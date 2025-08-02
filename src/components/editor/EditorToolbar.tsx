@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ColorPicker } from "./ColorPicker";
 import { 
   Bold, 
   Italic, 
@@ -10,16 +11,16 @@ import {
   Type,
   AlignLeft,
   AlignCenter,
-  AlignRight,
-  Palette
+  AlignRight
 } from "lucide-react";
 
 interface EditorToolbarProps {
   onCommand: (command: string, value?: string) => void;
+  onColorChange?: (color: string, type: 'background' | 'text') => void;
   configuration?: any;
 }
 
-export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarProps) => {
+export const EditorToolbar = ({ onCommand, onColorChange, configuration = {} }: EditorToolbarProps) => {
   const toolGroups = [
     {
       name: "formatting",
@@ -45,7 +46,6 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
         { icon: Image, command: "insertImage", tooltip: "Insert Image", enabled: configuration.enableImage !== false },
         { icon: Code, command: "formatBlock", value: "pre", tooltip: "Code Block", enabled: configuration.enableCode !== false },
         { icon: Type, command: "fontSize", tooltip: "Font Size", enabled: true },
-        { icon: Palette, command: "backgroundColor", tooltip: "Background Color", enabled: configuration.enableCustomBackground !== false },
       ]
     }
   ];
@@ -76,6 +76,14 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
           </div>
         );
       })}
+      
+      {/* Color Picker */}
+      {configuration.enableCustomBackground !== false && onColorChange && (
+        <>
+          <div className="w-px h-6 bg-border mx-1 self-center" />
+          <ColorPicker onColorSelect={onColorChange} configuration={configuration} />
+        </>
+      )}
     </div>
   );
 };

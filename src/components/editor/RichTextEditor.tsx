@@ -17,6 +17,7 @@ export const RichTextEditor = ({
 }: RichTextEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const [currentConfig, setCurrentConfig] = useState(configuration);
 
   useEffect(() => {
     if (editorRef.current && content !== editorRef.current.innerHTML) {
@@ -40,11 +41,6 @@ export const RichTextEditor = ({
         if (url) {
           document.execCommand("insertImage", false, url);
         }
-      } else if (command === "backgroundColor") {
-        const color = prompt("Enter background color (hex):");
-        if (color) {
-          document.execCommand("hiliteColor", false, color);
-        }
       } else {
         document.execCommand(command, false, value);
       }
@@ -53,6 +49,14 @@ export const RichTextEditor = ({
     } catch (error) {
       console.error("Command execution failed:", error);
     }
+  };
+
+  const handleColorChange = (color: string, type: 'background' | 'text') => {
+    const newConfig = { 
+      ...currentConfig, 
+      [type === 'background' ? 'backgroundColor' : 'textColor']: color 
+    };
+    setCurrentConfig(newConfig);
   };
 
   const handleContentChange = () => {
@@ -83,7 +87,7 @@ export const RichTextEditor = ({
 
   return (
     <Card className="overflow-hidden shadow-card">
-      <EditorToolbar onCommand={handleCommand} configuration={configuration} />
+      <EditorToolbar onCommand={handleCommand} onColorChange={handleColorChange} configuration={currentConfig} />
       <div
         ref={editorRef}
         contentEditable
@@ -94,13 +98,13 @@ export const RichTextEditor = ({
           ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
         `}
         style={{
-          fontFamily: configuration.enableCustomFont ? configuration.fontFamily : undefined,
-          fontSize: configuration.enableCustomFont ? configuration.fontSize : undefined,
-          backgroundColor: configuration.enableCustomBackground ? configuration.backgroundColor : undefined,
-          color: configuration.enableCustomBackground ? configuration.textColor : undefined,
+          fontFamily: currentConfig.enableCustomFont ? currentConfig.fontFamily : undefined,
+          fontSize: currentConfig.enableCustomFont ? currentConfig.fontSize : undefined,
+          backgroundColor: currentConfig.enableCustomBackground ? currentConfig.backgroundColor : undefined,
+          color: currentConfig.enableCustomBackground ? currentConfig.textColor : undefined,
           background: editorRef.current?.innerHTML === '' ? 
             `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
-            (configuration.enableCustomBackground ? configuration.backgroundColor : 'transparent')
+            (currentConfig.enableCustomBackground ? currentConfig.backgroundColor : 'transparent')
         }}
         onInput={handleContentChange}
         onFocus={() => setIsEditorFocused(true)}
