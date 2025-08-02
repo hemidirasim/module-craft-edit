@@ -118,14 +118,14 @@ serve(async (req) => {
   }
 
   // Enhanced CSS styles matching dashboard design with customization
-  const fontFamily = WIDGET_CONFIG.fontFamily || 'Inter';
-  const fontSize = WIDGET_CONFIG.fontSize || '14px';
-  const backgroundColor = WIDGET_CONFIG.backgroundColor || '#ffffff';
-  const textColor = WIDGET_CONFIG.textColor || '#1f2937';
+  const fontFamily = WIDGET_CONFIG.enableCustomFont ? (WIDGET_CONFIG.fontFamily || 'Inter') : 'Inter';
+  const fontSize = WIDGET_CONFIG.enableCustomFont ? (WIDGET_CONFIG.fontSize || '14px') : '14px';
+  const backgroundColor = WIDGET_CONFIG.enableCustomBackground ? (WIDGET_CONFIG.backgroundColor || '#ffffff') : '#ffffff';
+  const textColor = WIDGET_CONFIG.enableCustomBackground ? (WIDGET_CONFIG.textColor || '#1f2937') : '#1f2937';
   
   // Load Google Fonts if needed
   const googleFonts = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins'];
-  if (googleFonts.includes(fontFamily) && !document.querySelector(\`link[href*="\${fontFamily}"]\`)) {
+  if (WIDGET_CONFIG.enableCustomFont && googleFonts.includes(fontFamily) && !document.querySelector(\`link[href*="\${fontFamily}"]\`)) {
     const fontLink = document.createElement('link');
     fontLink.href = \`https://fonts.googleapis.com/css2?family=\${fontFamily.replace(' ', '+')}:wght@400;500;600;700&display=swap\`;
     fontLink.rel = 'stylesheet';
