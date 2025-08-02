@@ -33,16 +33,14 @@ export const TableContextMenu = ({ position, onClose, onAction, targetElement }:
   const rowMenuItems = [
     { label: 'Insert row above', action: 'insertRowAbove' },
     { label: 'Insert row below', action: 'insertRowBelow' },
-    { label: 'Delete row', action: 'deleteRow' },
-    { label: 'Select row', action: 'selectRow' }
+    { label: 'Delete row', action: 'deleteRow' }
   ];
 
   const columnMenuItems = [
     { label: 'Header column', action: 'headerColumn' },
     { label: 'Insert column left', action: 'insertColumnLeft' },
     { label: 'Insert column right', action: 'insertColumnRight' },
-    { label: 'Delete column', action: 'deleteColumn' },
-    { label: 'Select column', action: 'selectColumn' }
+    { label: 'Delete column', action: 'deleteColumn' }
   ];
 
   return (
