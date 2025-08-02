@@ -368,6 +368,12 @@ serve(async (req) => {
     image: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
     code: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/></svg>',
     html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/><path d="M14 7h-4l-2 2 2 2h4m0-4h4l2-2-2-2h-4"/></svg>',
+    undo: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="m21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>',
+    redo: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="m3 17a9 9 0 019-9 9 9 0 016 2.3L21 13"/></svg>',
+    copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+    paste: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/></svg>',
+    cut: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><path d="m8.12 8.12 5.76 5.76"/><circle cx="6" cy="18" r="3"/><path d="m8.12 15.88 5.76-5.76"/></svg>',
+    search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',
     type: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>',
     palette: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
     alignLeft: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="11" y1="14" x2="3" y2="14"/><line x1="11" y1="18" x2="3" y2="18"/></svg>',
@@ -377,6 +383,21 @@ serve(async (req) => {
   
   // Create toolbar groups matching dashboard
   const toolbarGroups = [
+    {
+      name: 'edit',
+      tools: [
+        { icon: 'undo', command: 'undo', tooltip: 'Undo (Ctrl+Z)', enabled: true },
+        { icon: 'redo', command: 'redo', tooltip: 'Redo (Ctrl+Y)', enabled: true }
+      ]
+    },
+    {
+      name: 'clipboard',
+      tools: [
+        { icon: 'copy', command: 'copy', tooltip: 'Copy (Ctrl+C)', enabled: true },
+        { icon: 'paste', command: 'paste', tooltip: 'Paste (Ctrl+V)', enabled: true },
+        { icon: 'cut', command: 'cut', tooltip: 'Cut (Ctrl+X)', enabled: true }
+      ]
+    },
     {
       name: 'formatting',
       tools: [
@@ -412,7 +433,8 @@ serve(async (req) => {
       tools: [
         { icon: 'link', command: 'createLink', tooltip: 'Insert Link', enabled: WIDGET_CONFIG.enableLink !== false },
         { icon: 'image', command: 'insertImage', tooltip: 'Insert Image', enabled: WIDGET_CONFIG.enableImage !== false },
-        { icon: 'html', command: 'toggleHtmlView', tooltip: 'HTML View', enabled: WIDGET_CONFIG.enableCode !== false }
+        { icon: 'html', command: 'toggleHtmlView', tooltip: 'HTML View', enabled: WIDGET_CONFIG.enableCode !== false },
+        { icon: 'search', command: 'findReplace', tooltip: 'Find & Replace (Ctrl+F)', enabled: true }
       ]
     }
   ];
@@ -543,6 +565,37 @@ serve(async (req) => {
         if (command === 'color-picker') {
           const palette = btn.parentElement.querySelector('.editorcraft-color-palette');
           palette.style.display = palette.style.display === 'none' ? 'grid' : 'none';
+          return;
+        }
+        
+        // Handle clipboard and edit commands
+        if (command === 'copy') {
+          document.execCommand('copy');
+          return;
+        }
+        
+        if (command === 'paste') {
+          document.execCommand('paste');
+          return;
+        }
+        
+        if (command === 'cut') {
+          document.execCommand('cut');
+          return;
+        }
+        
+        if (command === 'undo') {
+          document.execCommand('undo');
+          return;
+        }
+        
+        if (command === 'redo') {
+          document.execCommand('redo');
+          return;
+        }
+        
+        if (command === 'findReplace') {
+          alert('Find & Replace feature is available in dashboard editor only');
           return;
         }
         

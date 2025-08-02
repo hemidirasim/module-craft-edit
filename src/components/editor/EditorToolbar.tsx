@@ -14,7 +14,13 @@ import {
   AlignCenter,
   AlignRight,
   Palette,
-  ChevronDown
+  ChevronDown,
+  Undo2,
+  Redo2,
+  Copy,
+  Clipboard,
+  Scissors,
+  Search
 } from "lucide-react";
 
 interface EditorToolbarProps {
@@ -38,6 +44,17 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
     "#800000", "#008000", "#000080", "#808000", "#800080", "#008080"
   ];
 
+  const editTools = [
+    { icon: Undo2, command: "undo", tooltip: "Undo (Ctrl+Z)", enabled: true },
+    { icon: Redo2, command: "redo", tooltip: "Redo (Ctrl+Y)", enabled: true },
+  ];
+
+  const clipboardTools = [
+    { icon: Copy, command: "copy", tooltip: "Copy (Ctrl+C)", enabled: true },
+    { icon: Clipboard, command: "paste", tooltip: "Paste (Ctrl+V)", enabled: true },
+    { icon: Scissors, command: "cut", tooltip: "Cut (Ctrl+X)", enabled: true },
+  ];
+
   const formatTools = [
     { icon: Bold, command: "bold", tooltip: "Bold", enabled: configuration.enableBold !== false },
     { icon: Italic, command: "italic", tooltip: "Italic", enabled: configuration.enableItalic !== false },
@@ -55,10 +72,51 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
     { icon: Link, command: "createLink", tooltip: "Insert Link", enabled: configuration.enableLink !== false },
     { icon: Image, command: "insertImage", tooltip: "Insert Image", enabled: configuration.enableImage !== false },
     { icon: Code2, command: "toggleHtmlView", tooltip: "HTML View", enabled: configuration.enableCode !== false },
+    { icon: Search, command: "findReplace", tooltip: "Find & Replace (Ctrl+F)", enabled: true },
   ].filter(tool => tool.enabled);
 
   return (
     <div className="border-b border-border p-2 flex gap-1 flex-wrap bg-background/50 backdrop-blur-sm">
+      {/* Edit Tools */}
+      {editTools.length > 0 && (
+        <>
+          {editTools.map((tool) => (
+            <Button
+              key={tool.command}
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-accent"
+              onClick={() => onCommand(tool.command)}
+              title={tool.tooltip}
+            >
+              <tool.icon size={16} />
+            </Button>
+          ))}
+          <div className="w-px h-6 bg-border mx-1 self-center" />
+        </>
+      )}
+
+      {/* Clipboard Tools */}
+      {clipboardTools.length > 0 && (
+        <>
+          {clipboardTools.map((tool) => (
+            <Button
+              key={tool.command}
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-accent"
+              onClick={() => onCommand(tool.command)}
+              title={tool.tooltip}
+            >
+              <tool.icon size={16} />
+            </Button>
+          ))}
+          <div className="w-px h-6 bg-border mx-1 self-center" />
+        </>
+      )}
+
       {/* Format Tools */}
       {formatTools.length > 0 && (
         <>
