@@ -172,9 +172,11 @@ export const WorkspacesSection = () => {
                   <Settings className="w-4 h-4" />
                 </Button>
               </CardTitle>
-               <CardDescription className="flex items-center gap-2">
-                <Globe className="w-4 h-4" />
-                {workspace.domain}
+              <CardDescription>
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  {workspace.domain}
+                </div>
               </CardDescription>
             </CardHeader>
             <CardContent>

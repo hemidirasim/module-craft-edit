@@ -370,7 +370,6 @@ export const WidgetsSection = () => {
                 <RichTextEditor 
                   placeholder="This is how your widget will look..." 
                   configuration={formData.configuration}
-                  content="<p>Sample text to preview your styling...</p>"
                 />
               </div>
 
