@@ -214,18 +214,20 @@ export const RichTextEditor = ({
 
       case 'headerColumn':
         const columnIndex = cell.cellIndex;
-        const firstRow = table.rows[0];
-        const targetCell = firstRow.cells[columnIndex];
-        
-        if (targetCell && targetCell.tagName.toLowerCase() === 'td') {
-          const th = document.createElement('th');
-          th.innerHTML = targetCell.innerHTML;
-          th.style.cssText = targetCell.style.cssText;
-          th.style.backgroundColor = '#f5f5f5';
-          th.style.fontWeight = 'bold';
-          th.contentEditable = 'true';
-          targetCell.parentNode?.replaceChild(th, targetCell);
-        }
+        Array.from(table.rows).forEach(row => {
+          const targetCell = row.cells[columnIndex];
+          if (targetCell) {
+            if (targetCell.tagName.toLowerCase() === 'td') {
+              const th = document.createElement('th');
+              th.innerHTML = targetCell.innerHTML;
+              th.style.cssText = targetCell.style.cssText;
+              th.style.backgroundColor = '#f5f5f5';
+              th.style.fontWeight = 'bold';
+              th.contentEditable = 'true';
+              targetCell.parentNode?.replaceChild(th, targetCell);
+            }
+          }
+        });
         break;
 
       case 'insertColumnLeft':
