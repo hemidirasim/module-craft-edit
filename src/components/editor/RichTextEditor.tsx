@@ -130,13 +130,13 @@ export const RichTextEditor = ({
             ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
           `}
           style={{
-            fontFamily: configuration.enableCustomFont ? configuration.fontFamily : undefined,
-            fontSize: configuration.enableCustomFont ? configuration.fontSize : undefined,
-            backgroundColor: configuration.enableCustomBackground ? configuration.backgroundColor : undefined,
-            color: configuration.enableCustomBackground ? configuration.textColor : undefined,
+            fontFamily: configuration.fontFamily || undefined,
+            fontSize: configuration.fontSize || undefined,
+            backgroundColor: configuration.backgroundColor || undefined,
+            color: configuration.textColor || undefined,
             background: editorRef.current?.innerHTML === '' ? 
               `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
-              (configuration.enableCustomBackground ? configuration.backgroundColor : 'transparent')
+              'transparent'
           }}
           onInput={handleContentChange}
           onFocus={() => setIsEditorFocused(true)}

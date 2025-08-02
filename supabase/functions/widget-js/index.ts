@@ -478,38 +478,33 @@ serve(async (req) => {
   const visualEditor = container.querySelector('.editorcraft-editor');
   const htmlEditor = container.querySelector('.editorcraft-html-editor');
   
-  // Sync content between editors
-  function syncContent() {
-    if (isHtmlView) {
-      // From HTML to Visual
-      visualEditor.innerHTML = htmlEditor.value;
-      console.log('Synced HTML to Visual:', htmlEditor.value);
-    } else {
-      // From Visual to HTML
-      htmlEditor.value = visualEditor.innerHTML;
-      console.log('Synced Visual to HTML:', visualEditor.innerHTML);
-    }
-  }
+  console.log('Editors found:', !!visualEditor, !!htmlEditor);
   
-  // Toggle between visual and HTML view
+  // Simple toggle function
   function toggleHtmlView() {
-    console.log('Toggle HTML view. Current state:', isHtmlView);
+    console.log('Before toggle - isHtmlView:', isHtmlView);
+    console.log('Visual content:', visualEditor.innerHTML);
+    console.log('HTML content:', htmlEditor.value);
     
     if (isHtmlView) {
-      // Switch to visual view
-      syncContent(); // Sync HTML changes to visual
+      // HTML to Visual
+      const htmlContent = htmlEditor.value;
+      visualEditor.innerHTML = htmlContent;
       visualEditor.style.display = 'block';
       htmlEditor.style.display = 'none';
       isHtmlView = false;
-      console.log('Switched to visual view');
+      console.log('Switched to Visual, content set to:', htmlContent);
     } else {
-      // Switch to HTML view
-      syncContent(); // Sync visual changes to HTML
+      // Visual to HTML  
+      const visualContent = visualEditor.innerHTML;
+      htmlEditor.value = visualContent;
       visualEditor.style.display = 'none';
       htmlEditor.style.display = 'block';
       isHtmlView = true;
-      console.log('Switched to HTML view');
+      console.log('Switched to HTML, content set to:', visualContent);
     }
+    
+    console.log('After toggle - isHtmlView:', isHtmlView);
   }
   
   
