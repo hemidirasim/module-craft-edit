@@ -27,17 +27,19 @@ export const RichTextEditor = ({
     }
   }, [content, isHtmlView]);
 
-  useEffect(() => {
-    if (isHtmlView && editorRef.current) {
-      setHtmlContent(editorRef.current.innerHTML);
-    }
-  }, [isHtmlView]);
+  // Don't reset htmlContent automatically - only sync when switching views
 
   const handleCommand = (command: string, value?: string) => {
     if (command === "toggleHtmlView") {
       if (!isHtmlView && editorRef.current) {
         // Visual -> HTML: capture current content
-        setHtmlContent(editorRef.current.innerHTML);
+        const currentContent = editorRef.current.innerHTML;
+        setHtmlContent(currentContent);
+        console.log('Dashboard: Setting HTML content to:', currentContent);
+      } else if (isHtmlView && editorRef.current) {
+        // HTML -> Visual: apply HTML content to visual editor
+        editorRef.current.innerHTML = htmlContent;
+        console.log('Dashboard: Setting Visual content to:', htmlContent);
       }
       setIsHtmlView(!isHtmlView);
       return;

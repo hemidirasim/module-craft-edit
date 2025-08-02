@@ -535,6 +535,7 @@ serve(async (req) => {
         const value = btn.dataset.value;
         
         if (command === 'toggleHtmlView') {
+          console.log('HTML button clicked in edge function');
           toggleHtmlView();
           return;
         }
