@@ -118,8 +118,30 @@ export const RichTextEditor = ({
         return;
       }
 
-      if (command === 'insertOrderedList' || command === 'insertUnorderedList') {
-        document.execCommand(command, false);
+      if (command === 'insertOrderedList') {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const selectedText = selection.toString() || 'List item';
+          const listHTML = `<ol style="margin: 16px 0; padding-left: 20px;"><li>${selectedText}</li></ol>`;
+          document.execCommand('insertHTML', false, listHTML);
+        } else {
+          const listHTML = `<ol style="margin: 16px 0; padding-left: 20px;"><li>List item</li></ol>`;
+          document.execCommand('insertHTML', false, listHTML);
+        }
+        handleContentChange();
+        return;
+      }
+
+      if (command === 'insertUnorderedList') {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const selectedText = selection.toString() || 'List item';
+          const listHTML = `<ul style="margin: 16px 0; padding-left: 20px;"><li>${selectedText}</li></ul>`;
+          document.execCommand('insertHTML', false, listHTML);
+        } else {
+          const listHTML = `<ul style="margin: 16px 0; padding-left: 20px;"><li>List item</li></ul>`;
+          document.execCommand('insertHTML', false, listHTML);
+        }
         handleContentChange();
         return;
       }
