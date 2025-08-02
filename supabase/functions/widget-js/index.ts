@@ -171,111 +171,163 @@ serve(async (req) => {
       margin-left: 6px;
     }
     
-    .editorcraft-btn {
-      background: hsl(0, 0%, 100%);
-      border: 1px solid hsl(220, 13%, 91%);
-      border-radius: 6px;
-      padding: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      min-width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: hsl(222, 84%, 4.9%);
-    }
-    
-    .editorcraft-btn:hover {
-      background: hsl(210, 40%, 96%);
-      border-color: hsl(217, 32%, 78%);
-      transform: translateY(-1px);
-    }
-    
-    .editorcraft-btn.active {
-      background: hsl(221, 83%, 53%);
-      color: hsl(210, 40%, 98%);
-      border-color: hsl(221, 83%, 53%);
-      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.4);
-    }
-    
-    .editorcraft-editor {
-      min-height: 300px;
-      padding: 16px;
-      outline: none;
-      line-height: 1.6;
-      font-size: \${fontSize};
-      color: \${textColor};
-      background: \${backgroundColor};
-      font-family: "\${fontFamily}", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    
-    .editorcraft-editor:focus {
-      outline: 2px solid hsl(221, 83%, 53%);
-      outline-offset: -2px;
-    }
-    
-    .editorcraft-editor:empty:before {
-      content: "Start writing...";
-      color: hsl(215, 16%, 47%);
-      pointer-events: none;
-      font-style: italic;
-    }
-    
-    .editorcraft-editor p {
-      margin: 0 0 1em 0;
-    }
-    
-    .editorcraft-editor p:last-child {
-      margin-bottom: 0;
-    }
-    
-    .editorcraft-editor h1, .editorcraft-editor h2, .editorcraft-editor h3 {
-      font-weight: 600;
-      margin: 1.5em 0 0.5em 0;
-      line-height: 1.2;
-    }
-    
-    .editorcraft-editor h1 { font-size: 1.875em; }
-    .editorcraft-editor h2 { font-size: 1.5em; }
-    .editorcraft-editor h3 { font-size: 1.25em; }
-    
-    .editorcraft-editor blockquote {
-      border-left: 4px solid hsl(221, 83%, 53%);
-      padding-left: 16px;
-      margin: 1em 0;
-      font-style: italic;
-      color: hsl(215, 16%, 47%);
-    }
-    
-    .editorcraft-editor pre {
-      background: hsl(220, 13%, 95%);
-      border: 1px solid hsl(220, 13%, 91%);
-      border-radius: 6px;
-      padding: 12px;
-      font-family: ui-monospace, SFMono-Regular, "Cascadia Code", "Roboto Mono", monospace;
-      font-size: 13px;
-      overflow-x: auto;
-      margin: 1em 0;
-    }
-    
-    .editorcraft-editor a {
-      color: hsl(221, 83%, 53%);
-      text-decoration: underline;
-    }
-    
-    .editorcraft-editor a:hover {
-      text-decoration: none;
-    }
-    
-    .editorcraft-editor img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 6px;
-      margin: 0.5em 0;
-    }
+     .editorcraft-btn {
+       background: hsl(0, 0%, 100%);
+       border: 1px solid hsl(220, 13%, 91%);
+       border-radius: 6px;
+       padding: 8px;
+       cursor: pointer;
+       font-size: 14px;
+       font-weight: 500;
+       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+       min-width: 36px;
+       height: 36px;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       color: hsl(222, 84%, 4.9%);
+     }
+     
+     .editorcraft-btn:hover {
+       background: hsl(210, 40%, 96%);
+       border-color: hsl(217, 32%, 78%);
+       transform: translateY(-1px);
+     }
+     
+     .editorcraft-btn.active {
+       background: hsl(221, 83%, 53%);
+       color: hsl(210, 40%, 98%);
+       border-color: hsl(221, 83%, 53%);
+       box-shadow: 0 2px 4px rgba(59, 130, 246, 0.4);
+     }
+     
+     .editorcraft-select {
+       background: hsl(0, 0%, 100%);
+       border: 1px solid hsl(220, 13%, 91%);
+       border-radius: 6px;
+       padding: 8px 12px;
+       cursor: pointer;
+       font-size: 14px;
+       font-weight: 500;
+       height: 36px;
+       min-width: 80px;
+       color: hsl(222, 84%, 4.9%);
+     }
+     
+     .editorcraft-select:hover {
+       background: hsl(210, 40%, 96%);
+       border-color: hsl(217, 32%, 78%);
+     }
+     
+     .editorcraft-color-picker {
+       position: relative;
+     }
+     
+     .editorcraft-color-palette {
+       position: absolute;
+       top: 100%;
+       left: 0;
+       background: hsl(0, 0%, 100%);
+       border: 1px solid hsl(220, 13%, 91%);
+       border-radius: 6px;
+       padding: 8px;
+       display: grid;
+       grid-template-columns: repeat(6, 1fr);
+       gap: 4px;
+       z-index: 1000;
+       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+       margin-top: 4px;
+     }
+     
+     .editorcraft-color-btn {
+       width: 24px;
+       height: 24px;
+       border: 1px solid hsl(220, 13%, 91%);
+       border-radius: 4px;
+       cursor: pointer;
+       transition: transform 0.2s ease;
+     }
+     
+     .editorcraft-color-btn:hover {
+       transform: scale(1.1);
+       border-color: hsl(221, 83%, 53%);
+     }
+     
+     .editorcraft-editor {
+       min-height: 300px;
+       padding: 16px;
+       outline: none;
+       line-height: 1.6;
+       font-size: \${fontSize};
+       color: \${textColor};
+       background: \${backgroundColor};
+       font-family: "\${fontFamily}", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+     }
+     
+     .editorcraft-editor:focus {
+       outline: 2px solid hsl(221, 83%, 53%);
+       outline-offset: -2px;
+     }
+     
+     .editorcraft-editor:empty:before {
+       content: "Start writing...";
+       color: hsl(215, 16%, 47%);
+       pointer-events: none;
+       font-style: italic;
+     }
+     
+     .editorcraft-editor p {
+       margin: 0 0 1em 0;
+     }
+     
+     .editorcraft-editor p:last-child {
+       margin-bottom: 0;
+     }
+     
+     .editorcraft-editor h1, .editorcraft-editor h2, .editorcraft-editor h3 {
+       font-weight: 600;
+       margin: 1.5em 0 0.5em 0;
+       line-height: 1.2;
+     }
+     
+     .editorcraft-editor h1 { font-size: 1.875em; }
+     .editorcraft-editor h2 { font-size: 1.5em; }
+     .editorcraft-editor h3 { font-size: 1.25em; }
+     
+     .editorcraft-editor blockquote {
+       border-left: 4px solid hsl(221, 83%, 53%);
+       padding-left: 16px;
+       margin: 1em 0;
+       font-style: italic;
+       color: hsl(215, 16%, 47%);
+     }
+     
+     .editorcraft-editor pre {
+       background: hsl(220, 13%, 95%);
+       border: 1px solid hsl(220, 13%, 91%);
+       border-radius: 6px;
+       padding: 12px;
+       font-family: ui-monospace, SFMono-Regular, "Cascadia Code", "Roboto Mono", monospace;
+       font-size: 13px;
+       overflow-x: auto;
+       margin: 1em 0;
+     }
+     
+     .editorcraft-editor a {
+       color: hsl(221, 83%, 53%);
+       text-decoration: underline;
+     }
+     
+     .editorcraft-editor a:hover {
+       text-decoration: none;
+     }
+     
+     .editorcraft-editor img {
+       max-width: 100%;
+       height: auto;
+       border-radius: 6px;
+       margin: 0.5em 0;
+     }
   \`;
   
   // Inject styles if not already present
@@ -295,6 +347,8 @@ serve(async (req) => {
     link: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
     image: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
     code: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/></svg>',
+    type: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>',
+    palette: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
     alignLeft: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="11" y1="14" x2="3" y2="14"/><line x1="11" y1="18" x2="3" y2="18"/></svg>',
     alignCenter: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="16" y1="14" x2="8" y2="14"/><line x1="16" y1="18" x2="8" y2="18"/></svg>',
     alignRight: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="13" y2="14"/><line x1="21" y1="18" x2="13" y2="18"/></svg>'
@@ -309,6 +363,19 @@ serve(async (req) => {
         { icon: 'italic', command: 'italic', tooltip: 'Italic', enabled: WIDGET_CONFIG.enableItalic !== false },
         { icon: 'underline', command: 'underline', tooltip: 'Underline', enabled: WIDGET_CONFIG.enableUnderline !== false },
         { icon: 'strikethrough', command: 'strikeThrough', tooltip: 'Strikethrough', enabled: WIDGET_CONFIG.enableStrikethrough !== false }
+      ]
+    },
+    {
+      name: 'font',
+      tools: [
+        { icon: 'type', command: 'fontName', tooltip: 'Font Family', enabled: WIDGET_CONFIG.enableFont !== false, isDropdown: true, type: 'fontFamily' },
+        { icon: 'type', command: 'fontSize', tooltip: 'Font Size', enabled: WIDGET_CONFIG.enableFont !== false, isDropdown: true, type: 'fontSize' }
+      ]
+    },
+    {
+      name: 'color',
+      tools: [
+        { icon: 'palette', command: 'foreColor', tooltip: 'Text Color', enabled: WIDGET_CONFIG.enableColor !== false, isDropdown: true, type: 'color' }
       ]
     },
     {
@@ -329,6 +396,11 @@ serve(async (req) => {
     }
   ];
   
+  // Font families and sizes for dropdowns
+  const fontFamilies = ['Arial', 'Helvetica', 'Times New Roman', 'Georgia', 'Verdana', 'Courier New', 'Tahoma', 'Comic Sans MS', 'Impact', 'Trebuchet MS'];
+  const fontSizes = ['8px', '10px', '12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
+  const colors = ['#000000', '#333333', '#666666', '#999999', '#CCCCCC', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#800000', '#008000', '#000080', '#808000', '#800080', '#008080'];
+
   // Generate toolbar HTML
   let toolbarHTML = '';
   toolbarGroups.forEach((group, groupIndex) => {
@@ -336,7 +408,31 @@ serve(async (req) => {
     if (enabledTools.length > 0) {
       toolbarHTML += '<div class="editorcraft-btn-group">';
       enabledTools.forEach(tool => {
-        toolbarHTML += \`<button class="editorcraft-btn" data-command="\${tool.command}" \${tool.value ? \`data-value="\${tool.value}"\` : ''} title="\${tool.tooltip}">\${icons[tool.icon]}</button>\`;
+        if (tool.isDropdown) {
+          if (tool.type === 'fontFamily') {
+            toolbarHTML += \`
+              <select class="editorcraft-select" data-command="\${tool.command}" title="\${tool.tooltip}">
+                <option value="">Font</option>
+                \${fontFamilies.map(font => \`<option value="\${font}" style="font-family: \${font};">\${font}</option>\`).join('')}
+              </select>\`;
+          } else if (tool.type === 'fontSize') {
+            toolbarHTML += \`
+              <select class="editorcraft-select" data-command="\${tool.command}" title="\${tool.tooltip}">
+                <option value="">Size</option>
+                \${fontSizes.map(size => \`<option value="\${size}">\${size}</option>\`).join('')}
+              </select>\`;
+          } else if (tool.type === 'color') {
+            toolbarHTML += \`
+              <div class="editorcraft-color-picker" title="\${tool.tooltip}">
+                <button class="editorcraft-btn" data-command="color-picker">\${icons[tool.icon]}</button>
+                <div class="editorcraft-color-palette" style="display: none;">
+                  \${colors.map(color => \`<button class="editorcraft-color-btn" data-color="\${color}" style="background-color: \${color};" title="\${color}"></button>\`).join('')}
+                </div>
+              </div>\`;
+          }
+        } else {
+          toolbarHTML += \`<button class="editorcraft-btn" data-command="\${tool.command}" \${tool.value ? \`data-value="\${tool.value}"\` : ''} title="\${tool.tooltip}">\${icons[tool.icon]}</button>\`;
+        }
       });
       toolbarHTML += '</div>';
     }
@@ -360,29 +456,63 @@ serve(async (req) => {
     // Toolbar click handler
     toolbar.addEventListener('click', (e) => {
       const btn = e.target.closest('.editorcraft-btn');
-      if (!btn) return;
+      const select = e.target.closest('.editorcraft-select');
+      const colorBtn = e.target.closest('.editorcraft-color-btn');
       
-      e.preventDefault();
-      const command = btn.dataset.command;
-      const value = btn.dataset.value;
-      
-      editor.focus();
-      
-      if (command === 'createLink') {
-        const url = prompt('Enter URL:');
-        if (url) {
-          document.execCommand(command, false, url);
-        }
-      } else if (command === 'insertImage') {
-        const url = prompt('Enter image URL:');
-        if (url) {
-          document.execCommand('insertImage', false, url);
-        }
-      } else {
-        document.execCommand(command, false, value);
+      if (colorBtn) {
+        e.preventDefault();
+        const color = colorBtn.dataset.color;
+        editor.focus();
+        document.execCommand('foreColor', false, color);
+        // Hide color palette
+        colorBtn.closest('.editorcraft-color-palette').style.display = 'none';
+        updateToolbarState();
+        return;
       }
       
-      updateToolbarState();
+      if (btn) {
+        e.preventDefault();
+        const command = btn.dataset.command;
+        const value = btn.dataset.value;
+        
+        if (command === 'color-picker') {
+          const palette = btn.parentElement.querySelector('.editorcraft-color-palette');
+          palette.style.display = palette.style.display === 'none' ? 'grid' : 'none';
+          return;
+        }
+        
+        editor.focus();
+        
+        if (command === 'createLink') {
+          const url = prompt('Enter URL:');
+          if (url) {
+            document.execCommand(command, false, url);
+          }
+        } else if (command === 'insertImage') {
+          const url = prompt('Enter image URL:');
+          if (url) {
+            document.execCommand('insertImage', false, url);
+          }
+        } else {
+          document.execCommand(command, false, value);
+        }
+        
+        updateToolbarState();
+      }
+    });
+    
+    // Select change handler
+    toolbar.addEventListener('change', (e) => {
+      const select = e.target.closest('.editorcraft-select');
+      if (select) {
+        const command = select.dataset.command;
+        const value = select.value;
+        if (value) {
+          editor.focus();
+          document.execCommand(command, false, value);
+          updateToolbarState();
+        }
+      }
     });
     
     // Keyboard shortcuts matching dashboard
