@@ -117,14 +117,28 @@ serve(async (req) => {
     return;
   }
 
-  // Enhanced CSS styles matching dashboard design
+  // Enhanced CSS styles matching dashboard design with customization
+  const fontFamily = WIDGET_CONFIG.fontFamily || 'Inter';
+  const fontSize = WIDGET_CONFIG.fontSize || '14px';
+  const backgroundColor = WIDGET_CONFIG.backgroundColor || '#ffffff';
+  const textColor = WIDGET_CONFIG.textColor || '#1f2937';
+  
+  // Load Google Fonts if needed
+  const googleFonts = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins'];
+  if (googleFonts.includes(fontFamily) && !document.querySelector(\`link[href*="\${fontFamily}"]\`)) {
+    const fontLink = document.createElement('link');
+    fontLink.href = \`https://fonts.googleapis.com/css2?family=\${fontFamily.replace(' ', '+')}:wght@400;500;600;700&display=swap\`;
+    fontLink.rel = 'stylesheet';
+    document.head.appendChild(fontLink);
+  }
+  
   const styles = \`
     .editorcraft-container {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: "\${fontFamily}", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       border: 1px solid hsl(214, 32%, 91%);
       border-radius: 12px;
       overflow: hidden;
-      background: hsl(0, 0%, 100%);
+      background: \${backgroundColor};
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       transition: box-shadow 0.3s ease;
     }
@@ -192,10 +206,10 @@ serve(async (req) => {
       padding: 16px;
       outline: none;
       line-height: 1.6;
-      font-size: 14px;
-      color: hsl(222, 84%, 4.9%);
-      background: hsl(0, 0%, 100%);
-      font-family: inherit;
+      font-size: \${fontSize};
+      color: \${textColor};
+      background: \${backgroundColor};
+      font-family: "\${fontFamily}", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     
     .editorcraft-editor:focus {

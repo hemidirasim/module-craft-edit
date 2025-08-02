@@ -44,6 +44,10 @@ export const WidgetsSection = () => {
       enableLink: true,
       enableImage: true,
       enableCode: true,
+      fontFamily: 'Inter',
+      fontSize: '14px',
+      backgroundColor: '#ffffff',
+      textColor: '#1f2937',
     }
   });
   const { user } = useAuth();
@@ -125,6 +129,10 @@ export const WidgetsSection = () => {
           enableLink: true,
           enableImage: true,
           enableCode: true,
+          fontFamily: 'Inter',
+          fontSize: '14px',
+          backgroundColor: '#ffffff',
+          textColor: '#1f2937',
         }
       });
       setShowCreateForm(false);
@@ -218,11 +226,13 @@ export const WidgetsSection = () => {
               <div className="space-y-4">
                 <h4 className="font-medium">Enable Features</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(formData.configuration).map(([key, value]) => (
+                  {Object.entries(formData.configuration)
+                    .filter(([key]) => key.startsWith('enable'))
+                    .map(([key, value]) => (
                     <div key={key} className="flex items-center space-x-2">
                       <Switch
                         id={key}
-                        checked={value}
+                        checked={value as boolean}
                         onCheckedChange={(checked) => 
                           setFormData(prev => ({
                             ...prev,
@@ -235,6 +245,105 @@ export const WidgetsSection = () => {
                       </Label>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Styling Options</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fontFamily">Font Family</Label>
+                    <select
+                      id="fontFamily"
+                      className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                      value={formData.configuration.fontFamily}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        configuration: { ...prev.configuration, fontFamily: e.target.value }
+                      }))}
+                    >
+                      <option value="Inter">Inter</option>
+                      <option value="Arial">Arial</option>
+                      <option value="Helvetica">Helvetica</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Roboto">Roboto</option>
+                      <option value="Open Sans">Open Sans</option>
+                      <option value="Lato">Lato</option>
+                      <option value="Montserrat">Montserrat</option>
+                      <option value="Poppins">Poppins</option>
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="fontSize">Font Size</Label>
+                    <select
+                      id="fontSize"
+                      className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                      value={formData.configuration.fontSize}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        configuration: { ...prev.configuration, fontSize: e.target.value }
+                      }))}
+                    >
+                      <option value="12px">12px (Small)</option>
+                      <option value="14px">14px (Default)</option>
+                      <option value="16px">16px (Large)</option>
+                      <option value="18px">18px (Extra Large)</option>
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="backgroundColor">Background Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="backgroundColor"
+                        type="color"
+                        value={formData.configuration.backgroundColor}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          configuration: { ...prev.configuration, backgroundColor: e.target.value }
+                        }))}
+                        className="w-16 h-10"
+                      />
+                      <Input
+                        type="text"
+                        value={formData.configuration.backgroundColor}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          configuration: { ...prev.configuration, backgroundColor: e.target.value }
+                        }))}
+                        placeholder="#ffffff"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="textColor">Text Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="textColor"
+                        type="color"
+                        value={formData.configuration.textColor}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          configuration: { ...prev.configuration, textColor: e.target.value }
+                        }))}
+                        className="w-16 h-10"
+                      />
+                      <Input
+                        type="text"
+                        value={formData.configuration.textColor}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          configuration: { ...prev.configuration, textColor: e.target.value }
+                        }))}
+                        placeholder="#1f2937"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
