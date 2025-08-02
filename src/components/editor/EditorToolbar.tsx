@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { EmojiPicker } from "./EmojiPicker";
+import { TableSelector } from "./TableSelector";
 import { 
   Bold, 
   Italic, 
@@ -325,46 +327,42 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
       )}
 
       {/* Content Tools */}
-      {contentTools.map((tool) => (
-        <Button
-          key={tool.command}
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 hover:bg-accent"
-          onClick={() => {
-            if (tool.command === "createLink") {
-              const url = prompt("Enter URL:");
-              if (url) onCommand(tool.command, url);
-            } else if (tool.command === "insertImage") {
-              const url = prompt("Enter image URL:");
-              if (url) onCommand(tool.command, url);
-            } else if (tool.command === "insertTable") {
-              const rows = prompt("Number of rows:", "3");
-              const cols = prompt("Number of columns:", "3");
-              if (rows && cols) onCommand(tool.command, `${rows}x${cols}`);
-            } else if (tool.command === "formatBlock") {
-              onCommand(tool.command, "blockquote");
-            } else if (tool.command === "insertEmbed") {
-              const embedCode = prompt("Enter embed code or URL:");
-              if (embedCode) onCommand(tool.command, embedCode);
-            } else if (tool.command === "insertEmoji") {
-              // Create emoji picker
-              const emojis = ["😀", "😊", "😍", "👍", "❤️", "🎉", "✨", "💡", "📝", "⭐", "🔥", "💯", "👏", "🚀", "🎯", "💪", "🌟", "🎊", "🎈", "🎁"];
-              const selectedEmoji = prompt(`Choose emoji:\n${emojis.join(" ")}\n\nOr enter custom emoji:`, "😊");
-              if (selectedEmoji) onCommand(tool.command, selectedEmoji);
-            } else if (tool.command === "insertBookmark") {
-              const name = prompt("Bookmark name:");
-              if (name) onCommand(tool.command, name);
-            } else {
-              onCommand(tool.command);
-            }
-          }}
-          title={tool.tooltip}
-        >
-          <tool.icon size={16} />
-        </Button>
-      ))}
+      <div className="flex gap-1">
+        {contentTools.filter(tool => !['insertTable', 'insertEmoji'].includes(tool.command)).map((tool) => (
+          <Button
+            key={tool.command}
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-accent"
+            onClick={() => {
+              if (tool.command === "createLink") {
+                const url = prompt("Enter URL:");
+                if (url) onCommand(tool.command, url);
+              } else if (tool.command === "insertImage") {
+                const url = prompt("Enter image URL:");
+                if (url) onCommand(tool.command, url);
+              } else if (tool.command === "formatBlock") {
+                onCommand(tool.command, "blockquote");
+              } else if (tool.command === "insertEmbed") {
+                const embedCode = prompt("Enter embed code or URL:");
+                if (embedCode) onCommand(tool.command, embedCode);
+              } else if (tool.command === "insertBookmark") {
+                const name = prompt("Bookmark name:");
+                if (name) onCommand(tool.command, name);
+              } else {
+                onCommand(tool.command);
+              }
+            }}
+            title={tool.tooltip}
+          >
+            <tool.icon size={16} />
+          </Button>
+        ))}
+        
+        <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
+        <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
+      </div>
     </div>
   );
 };
