@@ -459,11 +459,12 @@ serve(async (req) => {
     }
   });
   
-  // Create editor HTML
+  // Create editor HTML with both visual and HTML editors
   const editorHTML = \`
     <div class="editorcraft-container">
       <div class="editorcraft-toolbar">\${toolbarHTML}</div>
-      <div class="editorcraft-editor" contenteditable="true"></div>
+      <div class="editorcraft-editor" contenteditable="true" style="display: block;"></div>
+      <textarea class="editorcraft-html-editor" style="display: none;" placeholder="<p>Enter HTML here...</p>"></textarea>
     </div>
   \`;
   
@@ -471,80 +472,49 @@ serve(async (req) => {
   
   // Widget state
   let isHtmlView = false;
-  let currentContent = '';
   
-  // Add event listeners
+  // Get references to both editors
   const toolbar = container.querySelector('.editorcraft-toolbar');
-  let editor = container.querySelector('.editorcraft-editor');
+  const visualEditor = container.querySelector('.editorcraft-editor');
+  const htmlEditor = container.querySelector('.editorcraft-html-editor');
   
-  // Save current content
-  function saveCurrentContent() {
-    const currentEditor = container.querySelector('.editorcraft-editor, .editorcraft-html-editor');
-    if (currentEditor) {
-      if (isHtmlView) {
-        currentContent = currentEditor.value || '';
-      } else {
-        currentContent = currentEditor.innerHTML || '';
-      }
-      console.log('Saved content:', currentContent, 'isHtmlView:', isHtmlView);
+  // Sync content between editors
+  function syncContent() {
+    if (isHtmlView) {
+      // From HTML to Visual
+      visualEditor.innerHTML = htmlEditor.value;
+      console.log('Synced HTML to Visual:', htmlEditor.value);
+    } else {
+      // From Visual to HTML
+      htmlEditor.value = visualEditor.innerHTML;
+      console.log('Synced Visual to HTML:', visualEditor.innerHTML);
     }
   }
   
   // Toggle between visual and HTML view
   function toggleHtmlView() {
-    const editorContainer = container.querySelector('.editorcraft-container');
-    const currentEditor = editorContainer.querySelector('.editorcraft-editor, .editorcraft-html-editor');
-    
-    // Save current content before switching
-    saveCurrentContent();
+    console.log('Toggle HTML view. Current state:', isHtmlView);
     
     if (isHtmlView) {
-      // Switch to visual view - HTML -> Visual
-      currentEditor.remove();
-      
-      const visualEditor = document.createElement('div');
-      visualEditor.className = 'editorcraft-editor';
-      visualEditor.contentEditable = 'true';
-      visualEditor.innerHTML = currentContent;
-      editorContainer.appendChild(visualEditor);
-      
-      editor = visualEditor;
+      // Switch to visual view
+      syncContent(); // Sync HTML changes to visual
+      visualEditor.style.display = 'block';
+      htmlEditor.style.display = 'none';
       isHtmlView = false;
-      console.log('Switched to visual view with content:', currentContent);
+      console.log('Switched to visual view');
     } else {
-      // Switch to HTML view - Visual -> HTML
-      currentEditor.remove();
-      
-      const htmlEditor = document.createElement('textarea');
-      htmlEditor.className = 'editorcraft-html-editor';
-      htmlEditor.value = currentContent;
-      htmlEditor.placeholder = '<p>Enter HTML here...</p>';
-      editorContainer.appendChild(htmlEditor);
-      
-      editor = htmlEditor;
+      // Switch to HTML view
+      syncContent(); // Sync visual changes to HTML
+      visualEditor.style.display = 'none';
+      htmlEditor.style.display = 'block';
       isHtmlView = true;
-      console.log('Switched to HTML view with content:', currentContent);
+      console.log('Switched to HTML view');
     }
-    
-    // Re-attach event listeners for the new editor
-    attachEditorEvents();
   }
   
-  function attachEditorEvents() {
-    if (!editor) return;
-    
-    // Remove existing listeners to avoid duplicates
-    const newToolbar = container.querySelector('.editorcraft-toolbar');
-    const newEditor = container.querySelector('.editorcraft-editor, .editorcraft-html-editor');
-    
-    // Clone toolbar to remove all event listeners
-    const cleanToolbar = newToolbar.cloneNode(true);
-    newToolbar.parentNode.replaceChild(cleanToolbar, newToolbar);
-    
-    // Update references
-    const toolbar = cleanToolbar;
-    editor = newEditor;
-    
+  
+  // Initialize event listeners
+  if (toolbar && visualEditor && htmlEditor) {
     // Toolbar click handler
     toolbar.addEventListener('click', (e) => {
       const btn = e.target.closest('.editorcraft-btn');
@@ -555,7 +525,7 @@ serve(async (req) => {
         e.preventDefault();
         const color = colorBtn.dataset.color;
         if (!isHtmlView) {
-          editor.focus();
+          visualEditor.focus();
           document.execCommand('foreColor', false, color);
         }
         // Hide color palette
@@ -581,7 +551,7 @@ serve(async (req) => {
         }
         
         if (!isHtmlView) {
-          editor.focus();
+          visualEditor.focus();
           
           if (command === 'createLink') {
             const url = prompt('Enter URL:');
@@ -609,29 +579,16 @@ serve(async (req) => {
         const command = select.dataset.command;
         const value = select.value;
         if (value && !isHtmlView) {
-          editor.focus();
+          visualEditor.focus();
           document.execCommand(command, false, value);
           updateToolbarState();
         }
       }
     });
     
-    // Add input event listener for both visual and HTML editors
-    if (isHtmlView) {
-      // HTML editor - save changes on input
-      editor.addEventListener('input', () => {
-        currentContent = editor.value;
-      });
-    } else {
-      // Visual editor - save changes on input
-      editor.addEventListener('input', () => {
-        currentContent = editor.innerHTML;
-      });
-    }
-    
-    // Keyboard shortcuts matching dashboard
-    editor.addEventListener('keydown', (e) => {
-      if (e.ctrlKey || e.metaKey) {
+    // Keyboard shortcuts for visual editor only
+    visualEditor.addEventListener('keydown', (e) => {
+      if (!isHtmlView && (e.ctrlKey || e.metaKey)) {
         switch (e.key) {
           case 'b':
             if (WIDGET_CONFIG.enableBold !== false) {
@@ -658,19 +615,21 @@ serve(async (req) => {
       }
     });
     
-    // Update toolbar state
-    editor.addEventListener('keyup', updateToolbarState);
-    editor.addEventListener('mouseup', updateToolbarState);
-    editor.addEventListener('focus', updateToolbarState);
+    // Update toolbar state for visual editor
+    visualEditor.addEventListener('keyup', updateToolbarState);
+    visualEditor.addEventListener('mouseup', updateToolbarState);
+    visualEditor.addEventListener('focus', updateToolbarState);
     
     function updateToolbarState() {
-      const buttons = toolbar.querySelectorAll('.editorcraft-btn');
-      buttons.forEach(btn => {
-        const command = btn.dataset.command;
-        if (command && document.queryCommandState) {
-          btn.classList.toggle('active', document.queryCommandState(command));
-        }
-      });
+      if (!isHtmlView) {
+        const buttons = toolbar.querySelectorAll('.editorcraft-btn');
+        buttons.forEach(btn => {
+          const command = btn.dataset.command;
+          if (command && document.queryCommandState) {
+            btn.classList.toggle('active', document.queryCommandState(command));
+          }
+        });
+      }
     }
     
     // Apply custom styling if configured
@@ -682,11 +641,6 @@ serve(async (req) => {
     
     // Initialize toolbar state
     setTimeout(updateToolbarState, 100);
-  }
-  
-  // Initialize event listeners
-  if (toolbar && editor) {
-    attachEditorEvents();
   }
   
   console.log('EditorCraft widget loaded successfully');
