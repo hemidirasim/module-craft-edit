@@ -51,10 +51,12 @@ export const RichTextEditor = ({
     }
   };
 
-  const handleColorChange = (color: string, type: 'background' | 'text') => {
+  const handleColorChange = (color: string, type: 'background' | 'text' | 'font' | 'size') => {
     const newConfig = { 
       ...currentConfig, 
-      [type === 'background' ? 'backgroundColor' : 'textColor']: color 
+      [type === 'background' ? 'backgroundColor' : 
+       type === 'text' ? 'textColor' :
+       type === 'font' ? 'fontFamily' : 'fontSize']: color 
     };
     setCurrentConfig(newConfig);
   };

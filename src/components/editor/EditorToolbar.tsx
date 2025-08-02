@@ -16,7 +16,7 @@ import {
 
 interface EditorToolbarProps {
   onCommand: (command: string, value?: string) => void;
-  onColorChange?: (color: string, type: 'background' | 'text') => void;
+  onColorChange?: (color: string, type: 'background' | 'text' | 'font' | 'size') => void;
   configuration?: any;
 }
 
@@ -77,11 +77,41 @@ export const EditorToolbar = ({ onCommand, onColorChange, configuration = {} }: 
         );
       })}
       
-      {/* Color Picker */}
-      {configuration.enableCustomBackground !== false && onColorChange && (
+      {/* Color & Font Controls */}
+      {(configuration.enableCustomBackground !== false || configuration.enableCustomFont !== false) && onColorChange && (
         <>
           <div className="w-px h-6 bg-border mx-1 self-center" />
-          <ColorPicker onColorSelect={onColorChange} configuration={configuration} />
+          {configuration.enableCustomBackground !== false && (
+            <ColorPicker onColorSelect={onColorChange} configuration={configuration} />
+          )}
+          {configuration.enableCustomFont !== false && (
+            <div className="flex gap-1">
+              <select 
+                className="h-8 px-2 text-xs bg-background border border-border rounded"
+                onChange={(e) => onColorChange?.(e.target.value, 'font')}
+                value={configuration.fontFamily || 'Arial'}
+              >
+                <option value="Arial">Arial</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value="Times New Roman">Times</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Courier New">Courier</option>
+                <option value="Verdana">Verdana</option>
+              </select>
+              <select 
+                className="h-8 px-2 text-xs bg-background border border-border rounded"
+                onChange={(e) => onColorChange?.(e.target.value, 'size')}
+                value={configuration.fontSize || '14px'}
+              >
+                <option value="12px">12px</option>
+                <option value="14px">14px</option>
+                <option value="16px">16px</option>
+                <option value="18px">18px</option>
+                <option value="20px">20px</option>
+                <option value="24px">24px</option>
+              </select>
+            </div>
+          )}
         </>
       )}
     </div>
