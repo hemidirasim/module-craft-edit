@@ -20,6 +20,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_widget_usage: {
+        Args: {
+          _widget_id: string
+          _domain: string
+          _page_url?: string
+          _user_agent?: string
+          _ip_address?: unknown
+        }
+        Returns: boolean
+      }
       setup_demo_user: {
         Args: Record<PropertyKey, never>
         Returns: undefined

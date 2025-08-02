@@ -35,10 +35,10 @@ export const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost">
+            <Button variant="ghost" onClick={() => window.location.href = '/auth'}>
               Login
             </Button>
-            <Button variant="hero">
+            <Button variant="hero" onClick={() => window.location.href = '/auth'}>
               Get Started
             </Button>
           </div>
@@ -69,10 +69,10 @@ export const Header = () => {
                 Demo
               </a>
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
-                <Button variant="ghost" className="justify-start">
+                <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/auth'}>
                   Login
                 </Button>
-                <Button variant="hero" className="justify-start">
+                <Button variant="hero" className="justify-start" onClick={() => window.location.href = '/auth'}>
                   Get Started
                 </Button>
               </div>
