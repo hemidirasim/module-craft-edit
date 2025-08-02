@@ -61,10 +61,21 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
             {enabledTools.map((tool) => (
               <Button
                 key={tool.command}
+                type="button"
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0 hover:bg-accent"
-                onClick={() => onCommand(tool.command, tool.value)}
+                onClick={() => {
+                  if (tool.command === "foreColor") {
+                    const color = prompt("Enter color (hex):");
+                    if (color) onCommand(tool.command, color);
+                  } else if (tool.command === "fontSize") {
+                    const size = prompt("Enter font size (e.g., 16px):");
+                    if (size) onCommand(tool.command, size);
+                  } else {
+                    onCommand(tool.command, tool.value);
+                  }
+                }}
                 title={tool.tooltip}
               >
                 <tool.icon size={16} />
