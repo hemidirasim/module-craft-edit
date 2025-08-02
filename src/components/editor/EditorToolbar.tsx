@@ -23,7 +23,15 @@ import {
   Scissors,
   Search,
   Edit,
-  ClipboardList
+  ClipboardList,
+  List,
+  ListOrdered,
+  CheckSquare,
+  Quote,
+  Table,
+  Play,
+  Smile,
+  Bookmark
 } from "lucide-react";
 
 interface EditorToolbarProps {
@@ -71,9 +79,20 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
     { icon: AlignRight, command: "justifyRight", tooltip: "Align Right", enabled: configuration.enableAlignment !== false },
   ].filter(tool => tool.enabled);
 
+  const listTools = [
+    { icon: List, command: "insertUnorderedList", tooltip: "Bulleted List", enabled: configuration.enableList !== false },
+    { icon: ListOrdered, command: "insertOrderedList", tooltip: "Numbered List", enabled: configuration.enableList !== false },
+    { icon: CheckSquare, command: "insertTodoList", tooltip: "To-Do List", enabled: configuration.enableList !== false },
+  ].filter(tool => tool.enabled);
+
   const contentTools = [
     { icon: Link, command: "createLink", tooltip: "Insert Link", enabled: configuration.enableLink !== false },
     { icon: Image, command: "insertImage", tooltip: "Insert Image", enabled: configuration.enableImage !== false },
+    { icon: Table, command: "insertTable", tooltip: "Insert Table", enabled: configuration.enableTable !== false },
+    { icon: Quote, command: "formatBlock", tooltip: "Block Quote", enabled: configuration.enableBlockquote !== false },
+    { icon: Play, command: "insertEmbed", tooltip: "Insert Media/Embed", enabled: configuration.enableEmbed !== false },
+    { icon: Smile, command: "insertEmoji", tooltip: "Insert Emoji", enabled: configuration.enableEmoji !== false },
+    { icon: Bookmark, command: "insertBookmark", tooltip: "Insert Bookmark", enabled: configuration.enableBookmark !== false },
     { icon: Code2, command: "toggleHtmlView", tooltip: "HTML View", enabled: configuration.enableCode !== false },
     { icon: Search, command: "findReplace", tooltip: "Find & Replace (Ctrl+F)", enabled: true },
   ].filter(tool => tool.enabled);
@@ -140,6 +159,53 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
                   {tool.tooltip}
                 </DropdownMenuItem>
               ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="w-px h-6 bg-border mx-1 self-center" />
+        </>
+      )}
+
+      {/* List Tools */}
+      {listTools.length > 0 && (
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 hover:bg-accent"
+                title="Lists"
+              >
+                <List size={16} />
+                <ChevronDown size={12} className="ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+              {listTools.map((tool) => (
+                <DropdownMenuItem
+                  key={tool.command}
+                  onClick={() => onCommand(tool.command)}
+                  className="cursor-pointer hover:bg-accent"
+                >
+                  <tool.icon size={16} className="mr-2" />
+                  {tool.tooltip}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuItem
+                onClick={() => onCommand("indent")}
+                className="cursor-pointer hover:bg-accent"
+              >
+                <div className="w-4 h-4 mr-2 flex items-center justify-center text-xs">→</div>
+                Indent (Multi-level)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onCommand("outdent")}
+                className="cursor-pointer hover:bg-accent"
+              >
+                <div className="w-4 h-4 mr-2 flex items-center justify-center text-xs">←</div>
+                Outdent
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <div className="w-px h-6 bg-border mx-1 self-center" />
@@ -273,6 +339,21 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
             } else if (tool.command === "insertImage") {
               const url = prompt("Enter image URL:");
               if (url) onCommand(tool.command, url);
+            } else if (tool.command === "insertTable") {
+              const rows = prompt("Number of rows:", "3");
+              const cols = prompt("Number of columns:", "3");
+              if (rows && cols) onCommand(tool.command, `${rows}x${cols}`);
+            } else if (tool.command === "formatBlock") {
+              onCommand(tool.command, "blockquote");
+            } else if (tool.command === "insertEmbed") {
+              const embedCode = prompt("Enter embed code or URL:");
+              if (embedCode) onCommand(tool.command, embedCode);
+            } else if (tool.command === "insertEmoji") {
+              const emoji = prompt("Enter emoji or choose: 😀 😊 😍 👍 ❤️ 🎉 ✨ 💡 📝 ⭐", "😊");
+              if (emoji) onCommand(tool.command, emoji);
+            } else if (tool.command === "insertBookmark") {
+              const name = prompt("Bookmark name:");
+              if (name) onCommand(tool.command, name);
             } else {
               onCommand(tool.command);
             }

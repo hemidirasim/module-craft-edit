@@ -74,6 +74,75 @@ export const RichTextEditor = ({
     editorRef.current.focus();
     
     try {
+      // Handle special commands first
+      if (command === 'insertTodoList') {
+        document.execCommand('insertHTML', false, '<ul style="list-style-type: none;"><li><input type="checkbox" style="margin-right: 8px;"> Todo item</li></ul>');
+        handleContentChange();
+        return;
+      }
+
+      if (command === 'insertTable') {
+        if (value) {
+          const [rows, cols] = value.split('x').map(Number);
+          let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">';
+          for (let i = 0; i < rows; i++) {
+            tableHTML += '<tr>';
+            for (let j = 0; j < cols; j++) {
+              tableHTML += '<td style="padding: 8px; border: 1px solid #ccc;">Cell content</td>';
+            }
+            tableHTML += '</tr>';
+          }
+          tableHTML += '</table><br>';
+          document.execCommand('insertHTML', false, tableHTML);
+          handleContentChange();
+          return;
+        }
+      }
+
+      if (command === 'formatBlock' && value === 'blockquote') {
+        document.execCommand(command, false, value);
+        handleContentChange();
+        return;
+      }
+
+      if (command === 'insertEmbed') {
+        if (value) {
+          let embedHTML = '';
+          if (value.includes('youtube.com') || value.includes('youtu.be')) {
+            const videoId = value.includes('youtu.be') 
+              ? value.split('/').pop()?.split('?')[0]
+              : value.split('v=')[1]?.split('&')[0];
+            embedHTML = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+          } else if (value.includes('<iframe') || value.includes('<embed')) {
+            embedHTML = value;
+          } else {
+            embedHTML = `<div style="background: #f5f5f5; padding: 16px; border-radius: 4px; border-left: 4px solid #007cba;"><strong>Embedded Content:</strong><br>${value}</div>`;
+          }
+          document.execCommand('insertHTML', false, embedHTML + '<br>');
+          handleContentChange();
+          return;
+        }
+      }
+
+      if (command === 'insertEmoji') {
+        if (value) {
+          document.execCommand('insertText', false, value);
+          handleContentChange();
+          return;
+        }
+      }
+
+      if (command === 'insertBookmark') {
+        if (value) {
+          const bookmarkId = value.toLowerCase().replace(/\s+/g, '-');
+          const bookmarkHTML = `<a name="${bookmarkId}" id="${bookmarkId}" style="color: #007cba; font-weight: bold; text-decoration: none;">🔖 ${value}</a>`;
+          document.execCommand('insertHTML', false, bookmarkHTML);
+          handleContentChange();
+          return;
+        }
+      }
+
+      // Handle standard commands  
       if (command === "createLink") {
         const url = prompt("Enter URL:");
         if (url) {
