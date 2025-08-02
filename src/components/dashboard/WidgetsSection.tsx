@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Plus, Code, Copy, Eye, Settings } from 'lucide-react';
+import { Plus, Code, Copy, Eye, Settings, Edit, Trash2 } from 'lucide-react';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 
 interface Widget {
@@ -32,6 +32,7 @@ export const WidgetsSection = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -160,6 +161,95 @@ export const WidgetsSection = () => {
     });
   };
 
+  const startEdit = (widget: Widget) => {
+    setEditingWidget(widget);
+    setFormData({
+      name: widget.name,
+      workspace_id: widget.workspace_id,
+      configuration: widget.configuration
+    });
+  };
+
+  const updateWidget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWidget) return;
+
+    try {
+      const { error } = await (supabase as any)
+        .from('editor_widgets')
+        .update({
+          name: formData.name,
+          workspace_id: formData.workspace_id,
+          configuration: formData.configuration
+        })
+        .eq('id', editingWidget.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Widget updated!",
+        description: "Your widget has been successfully updated.",
+      });
+
+      setEditingWidget(null);
+      setFormData({
+        name: '',
+        workspace_id: '',
+        configuration: {
+          enableBold: true,
+          enableItalic: true,
+          enableUnderline: true,
+          enableStrikethrough: true,
+          enableLink: true,
+          enableImage: true,
+          enableCode: true,
+          enableAlignment: true,
+          enableFont: false,
+          enableColor: false,
+          fontFamily: 'Inter',
+          fontSize: '14px',
+          backgroundColor: '#ffffff',
+          textColor: '#1f2937',
+        }
+      });
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: "Failed to update widget",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteWidget = async (widget: Widget) => {
+    if (!confirm(`Are you sure you want to delete "${widget.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await (supabase as any)
+        .from('editor_widgets')
+        .delete()
+        .eq('id', widget.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Widget deleted!",
+        description: "Your widget has been removed.",
+      });
+
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: "Failed to delete widget",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div>Loading widgets...</div>;
   }
@@ -189,16 +279,16 @@ export const WidgetsSection = () => {
         </Card>
       )}
 
-      {showCreateForm && (
+      {(showCreateForm || editingWidget) && (
         <Card>
           <CardHeader>
-            <CardTitle>Create New Widget</CardTitle>
+            <CardTitle>{editingWidget ? 'Edit Widget' : 'Create New Widget'}</CardTitle>
             <CardDescription>
               Configure your custom rich text editor
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={createWidget} className="space-y-6">
+            <form onSubmit={editingWidget ? updateWidget : createWidget} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Widget Name</Label>
@@ -267,11 +357,34 @@ export const WidgetsSection = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit">Create Widget</Button>
+                <Button type="submit">{editingWidget ? 'Update Widget' : 'Create Widget'}</Button>
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setEditingWidget(null);
+                    setFormData({
+                      name: '',
+                      workspace_id: '',
+                      configuration: {
+                        enableBold: true,
+                        enableItalic: true,
+                        enableUnderline: true,
+                        enableStrikethrough: true,
+                        enableLink: true,
+                        enableImage: true,
+                        enableCode: true,
+                        enableAlignment: true,
+                        enableFont: false,
+                        enableColor: false,
+                        fontFamily: 'Inter',
+                        fontSize: '14px',
+                        backgroundColor: '#ffffff',
+                        textColor: '#1f2937',
+                      }
+                    });
+                  }}
                 >
                   Cancel
                 </Button>
@@ -288,11 +401,22 @@ export const WidgetsSection = () => {
               <CardTitle className="flex items-center justify-between">
                 {widget.name}
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Eye className="w-4 h-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => startEdit(widget)}
+                    title="Edit widget"
+                  >
+                    <Edit className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm">
-                    <Settings className="w-4 h-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => deleteWidget(widget)}
+                    title="Delete widget"
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </CardTitle>
