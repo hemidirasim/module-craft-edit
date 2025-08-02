@@ -117,67 +117,150 @@ serve(async (req) => {
     return;
   }
 
-  // Inject CSS styles
+  // Enhanced CSS styles matching dashboard design
   const styles = \`
     .editorcraft-container {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      border: 1px solid hsl(214, 32%, 91%);
+      border-radius: 12px;
       overflow: hidden;
-      background: white;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      background: hsl(0, 0%, 100%);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: box-shadow 0.3s ease;
+    }
+    
+    .editorcraft-container:focus-within {
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
     
     .editorcraft-toolbar {
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 8px 12px;
+      background: hsl(210, 40%, 98%);
+      border-bottom: 1px solid hsl(214, 32%, 91%);
+      padding: 12px;
       display: flex;
       flex-wrap: wrap;
+      gap: 6px;
+      backdrop-filter: blur(8px);
+    }
+    
+    .editorcraft-btn-group {
+      display: flex;
       gap: 4px;
+      align-items: center;
+    }
+    
+    .editorcraft-btn-group:not(:last-child)::after {
+      content: '';
+      width: 1px;
+      height: 24px;
+      background: hsl(214, 32%, 91%);
+      margin-left: 6px;
     }
     
     .editorcraft-btn {
-      background: white;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      padding: 6px 8px;
+      background: hsl(0, 0%, 100%);
+      border: 1px solid hsl(220, 13%, 91%);
+      border-radius: 6px;
+      padding: 8px;
       cursor: pointer;
-      font-size: 12px;
-      transition: all 0.2s;
-      min-width: 32px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      min-width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
+      color: hsl(222, 84%, 4.9%);
     }
     
     .editorcraft-btn:hover {
-      background: #f3f4f6;
-      border-color: #9ca3af;
+      background: hsl(210, 40%, 96%);
+      border-color: hsl(217, 32%, 78%);
+      transform: translateY(-1px);
     }
     
     .editorcraft-btn.active {
-      background: #3b82f6;
-      color: white;
-      border-color: #3b82f6;
+      background: hsl(221, 83%, 53%);
+      color: hsl(210, 40%, 98%);
+      border-color: hsl(221, 83%, 53%);
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.4);
     }
     
     .editorcraft-editor {
-      min-height: 200px;
+      min-height: 300px;
       padding: 16px;
       outline: none;
       line-height: 1.6;
       font-size: 14px;
+      color: hsl(222, 84%, 4.9%);
+      background: hsl(0, 0%, 100%);
+      font-family: inherit;
     }
     
     .editorcraft-editor:focus {
-      box-shadow: inset 0 0 0 2px #3b82f6;
+      outline: 2px solid hsl(221, 83%, 53%);
+      outline-offset: -2px;
     }
     
     .editorcraft-editor:empty:before {
-      content: "Start typing...";
-      color: #9ca3af;
+      content: "Start writing...";
+      color: hsl(215, 16%, 47%);
       pointer-events: none;
+      font-style: italic;
+    }
+    
+    .editorcraft-editor p {
+      margin: 0 0 1em 0;
+    }
+    
+    .editorcraft-editor p:last-child {
+      margin-bottom: 0;
+    }
+    
+    .editorcraft-editor h1, .editorcraft-editor h2, .editorcraft-editor h3 {
+      font-weight: 600;
+      margin: 1.5em 0 0.5em 0;
+      line-height: 1.2;
+    }
+    
+    .editorcraft-editor h1 { font-size: 1.875em; }
+    .editorcraft-editor h2 { font-size: 1.5em; }
+    .editorcraft-editor h3 { font-size: 1.25em; }
+    
+    .editorcraft-editor blockquote {
+      border-left: 4px solid hsl(221, 83%, 53%);
+      padding-left: 16px;
+      margin: 1em 0;
+      font-style: italic;
+      color: hsl(215, 16%, 47%);
+    }
+    
+    .editorcraft-editor pre {
+      background: hsl(220, 13%, 95%);
+      border: 1px solid hsl(220, 13%, 91%);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, "Cascadia Code", "Roboto Mono", monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      margin: 1em 0;
+    }
+    
+    .editorcraft-editor a {
+      color: hsl(221, 83%, 53%);
+      text-decoration: underline;
+    }
+    
+    .editorcraft-editor a:hover {
+      text-decoration: none;
+    }
+    
+    .editorcraft-editor img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin: 0.5em 0;
     }
   \`;
   
@@ -189,18 +272,66 @@ serve(async (req) => {
     document.head.appendChild(styleSheet);
   }
   
+  // SVG icons matching dashboard design
+  const icons = {
+    bold: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>',
+    italic: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>',
+    underline: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg>',
+    strikethrough: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>',
+    link: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    image: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+    code: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/></svg>',
+    alignLeft: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="11" y1="14" x2="3" y2="14"/><line x1="11" y1="18" x2="3" y2="18"/></svg>',
+    alignCenter: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="16" y1="14" x2="8" y2="14"/><line x1="16" y1="18" x2="8" y2="18"/></svg>',
+    alignRight: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="13" y2="14"/><line x1="21" y1="18" x2="13" y2="18"/></svg>'
+  };
+  
+  // Create toolbar groups matching dashboard
+  const toolbarGroups = [
+    {
+      name: 'formatting',
+      tools: [
+        { icon: 'bold', command: 'bold', tooltip: 'Bold', enabled: WIDGET_CONFIG.enableBold !== false },
+        { icon: 'italic', command: 'italic', tooltip: 'Italic', enabled: WIDGET_CONFIG.enableItalic !== false },
+        { icon: 'underline', command: 'underline', tooltip: 'Underline', enabled: WIDGET_CONFIG.enableUnderline !== false },
+        { icon: 'strikethrough', command: 'strikeThrough', tooltip: 'Strikethrough', enabled: WIDGET_CONFIG.enableStrikethrough !== false }
+      ]
+    },
+    {
+      name: 'alignment',
+      tools: [
+        { icon: 'alignLeft', command: 'justifyLeft', tooltip: 'Align Left', enabled: WIDGET_CONFIG.enableAlignment !== false },
+        { icon: 'alignCenter', command: 'justifyCenter', tooltip: 'Align Center', enabled: WIDGET_CONFIG.enableAlignment !== false },
+        { icon: 'alignRight', command: 'justifyRight', tooltip: 'Align Right', enabled: WIDGET_CONFIG.enableAlignment !== false }
+      ]
+    },
+    {
+      name: 'content',
+      tools: [
+        { icon: 'link', command: 'createLink', tooltip: 'Insert Link', enabled: WIDGET_CONFIG.enableLink !== false },
+        { icon: 'image', command: 'insertImage', tooltip: 'Insert Image', enabled: WIDGET_CONFIG.enableImage !== false },
+        { icon: 'code', command: 'formatBlock', value: 'pre', tooltip: 'Code Block', enabled: WIDGET_CONFIG.enableCode !== false }
+      ]
+    }
+  ];
+  
+  // Generate toolbar HTML
+  let toolbarHTML = '';
+  toolbarGroups.forEach((group, groupIndex) => {
+    const enabledTools = group.tools.filter(tool => tool.enabled);
+    if (enabledTools.length > 0) {
+      toolbarHTML += '<div class="editorcraft-btn-group">';
+      enabledTools.forEach(tool => {
+        toolbarHTML += \`<button class="editorcraft-btn" data-command="\${tool.command}" \${tool.value ? \`data-value="\${tool.value}"\` : ''} title="\${tool.tooltip}">\${icons[tool.icon]}</button>\`;
+      });
+      toolbarHTML += '</div>';
+    }
+  });
+  
   // Create editor HTML
   const editorHTML = \`
     <div class="editorcraft-container">
-      <div class="editorcraft-toolbar">
-        \${WIDGET_CONFIG.enableBold !== false ? '<button class="editorcraft-btn" data-command="bold" title="Bold"><b>B</b></button>' : ''}
-        \${WIDGET_CONFIG.enableItalic !== false ? '<button class="editorcraft-btn" data-command="italic" title="Italic"><i>I</i></button>' : ''}
-        \${WIDGET_CONFIG.enableUnderline !== false ? '<button class="editorcraft-btn" data-command="underline" title="Underline"><u>U</u></button>' : ''}
-        \${WIDGET_CONFIG.enableStrikethrough !== false ? '<button class="editorcraft-btn" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>' : ''}
-        \${WIDGET_CONFIG.enableLink !== false ? '<button class="editorcraft-btn" data-command="createLink" title="Insert Link">🔗</button>' : ''}
-        \${WIDGET_CONFIG.enableImage !== false ? '<button class="editorcraft-btn" data-command="insertImage" title="Insert Image">🖼️</button>' : ''}
-        \${WIDGET_CONFIG.enableCode !== false ? '<button class="editorcraft-btn" data-command="formatBlock" data-value="pre" title="Code Block">&lt;&gt;</button>' : ''}
-      </div>
+      <div class="editorcraft-toolbar">\${toolbarHTML}</div>
       <div class="editorcraft-editor" contenteditable="true"></div>
     </div>
   \`;
@@ -212,6 +343,7 @@ serve(async (req) => {
   const editor = container.querySelector('.editorcraft-editor');
   
   if (toolbar && editor) {
+    // Toolbar click handler
     toolbar.addEventListener('click', (e) => {
       const btn = e.target.closest('.editorcraft-btn');
       if (!btn) return;
@@ -236,12 +368,42 @@ serve(async (req) => {
         document.execCommand(command, false, value);
       }
       
-      // Update button states
       updateToolbarState();
     });
     
+    // Keyboard shortcuts matching dashboard
+    editor.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'b':
+            if (WIDGET_CONFIG.enableBold !== false) {
+              e.preventDefault();
+              document.execCommand('bold');
+              updateToolbarState();
+            }
+            break;
+          case 'i':
+            if (WIDGET_CONFIG.enableItalic !== false) {
+              e.preventDefault();
+              document.execCommand('italic');
+              updateToolbarState();
+            }
+            break;
+          case 'u':
+            if (WIDGET_CONFIG.enableUnderline !== false) {
+              e.preventDefault();
+              document.execCommand('underline');
+              updateToolbarState();
+            }
+            break;
+        }
+      }
+    });
+    
+    // Update toolbar state
     editor.addEventListener('keyup', updateToolbarState);
     editor.addEventListener('mouseup', updateToolbarState);
+    editor.addEventListener('focus', updateToolbarState);
     
     function updateToolbarState() {
       const buttons = toolbar.querySelectorAll('.editorcraft-btn');
@@ -259,6 +421,9 @@ serve(async (req) => {
       customStyle.textContent = WIDGET_CONFIG.customCSS;
       document.head.appendChild(customStyle);
     }
+    
+    // Initialize toolbar state
+    setTimeout(updateToolbarState, 100);
   }
   
   console.log('EditorCraft widget loaded successfully');
