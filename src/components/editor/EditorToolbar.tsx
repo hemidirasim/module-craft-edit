@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   Bold, 
   Italic, 
@@ -20,7 +21,9 @@ import {
   Copy,
   Clipboard,
   Scissors,
-  Search
+  Search,
+  Edit,
+  ClipboardList
 } from "lucide-react";
 
 interface EditorToolbarProps {
@@ -77,42 +80,68 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
 
   return (
     <div className="border-b border-border p-2 flex gap-1 flex-wrap bg-background/50 backdrop-blur-sm">
-      {/* Edit Tools */}
+      {/* Edit Tools Dropdown */}
       {editTools.length > 0 && (
         <>
-          {editTools.map((tool) => (
-            <Button
-              key={tool.command}
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-accent"
-              onClick={() => onCommand(tool.command)}
-              title={tool.tooltip}
-            >
-              <tool.icon size={16} />
-            </Button>
-          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 hover:bg-accent"
+                title="Edit Tools"
+              >
+                <Edit size={16} />
+                <ChevronDown size={12} className="ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+              {editTools.map((tool) => (
+                <DropdownMenuItem
+                  key={tool.command}
+                  onClick={() => onCommand(tool.command)}
+                  className="cursor-pointer hover:bg-accent"
+                >
+                  <tool.icon size={16} className="mr-2" />
+                  {tool.tooltip}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <div className="w-px h-6 bg-border mx-1 self-center" />
         </>
       )}
 
-      {/* Clipboard Tools */}
+      {/* Clipboard Tools Dropdown */}
       {clipboardTools.length > 0 && (
         <>
-          {clipboardTools.map((tool) => (
-            <Button
-              key={tool.command}
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-accent"
-              onClick={() => onCommand(tool.command)}
-              title={tool.tooltip}
-            >
-              <tool.icon size={16} />
-            </Button>
-          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 hover:bg-accent"
+                title="Clipboard Tools"
+              >
+                <ClipboardList size={16} />
+                <ChevronDown size={12} className="ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+              {clipboardTools.map((tool) => (
+                <DropdownMenuItem
+                  key={tool.command}
+                  onClick={() => onCommand(tool.command)}
+                  className="cursor-pointer hover:bg-accent"
+                >
+                  <tool.icon size={16} className="mr-2" />
+                  {tool.tooltip}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <div className="w-px h-6 bg-border mx-1 self-center" />
         </>
       )}
