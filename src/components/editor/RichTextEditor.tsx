@@ -23,7 +23,7 @@ export const RichTextEditor = ({
   const [isHtmlView, setIsHtmlView] = useState(false);
   const [htmlContent, setHtmlContent] = useState("");
   const [showFindReplace, setShowFindReplace] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; element: HTMLElement } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; element: HTMLElement; type: 'row' | 'column' } | null>(null);
 
   useEffect(() => {
     if (editorRef.current && content !== editorRef.current.innerHTML && !isHtmlView) {
@@ -182,7 +182,6 @@ export const RichTextEditor = ({
     switch (action) {
       case 'insertRowAbove':
         const newRowAbove = row.cloneNode(true) as HTMLTableRowElement;
-        // Clear content from cloned cells
         newRowAbove.querySelectorAll('td, th').forEach(cell => {
           (cell as HTMLElement).innerHTML = '';
         });
@@ -191,7 +190,6 @@ export const RichTextEditor = ({
         
       case 'insertRowBelow':
         const newRowBelow = row.cloneNode(true) as HTMLTableRowElement;
-        // Clear content from cloned cells
         newRowBelow.querySelectorAll('td, th').forEach(cell => {
           (cell as HTMLElement).innerHTML = '';
         });
@@ -205,7 +203,6 @@ export const RichTextEditor = ({
         break;
         
       case 'selectRow':
-        // Select all cells in the row
         const selection = window.getSelection();
         if (selection) {
           selection.removeAllRanges();
@@ -214,22 +211,97 @@ export const RichTextEditor = ({
           selection.addRange(range);
         }
         break;
+
+      case 'headerColumn':
+        const columnIndex = cell.cellIndex;
+        Array.from(table.rows).forEach(row => {
+          const targetCell = row.cells[columnIndex];
+          if (targetCell) {
+            if (targetCell.tagName.toLowerCase() === 'td') {
+              const th = document.createElement('th');
+              th.innerHTML = targetCell.innerHTML;
+              th.style.cssText = targetCell.style.cssText;
+              th.style.backgroundColor = '#f5f5f5';
+              th.style.fontWeight = 'bold';
+              th.contentEditable = 'true';
+              targetCell.parentNode?.replaceChild(th, targetCell);
+            }
+          }
+        });
+        break;
+
+      case 'insertColumnLeft':
+        Array.from(table.rows).forEach(row => {
+          const newCell = document.createElement(row.cells[0].tagName.toLowerCase() as 'td' | 'th');
+          newCell.style.cssText = cell.style.cssText;
+          newCell.contentEditable = 'true';
+          row.insertBefore(newCell, row.cells[cell.cellIndex]);
+        });
+        break;
+
+      case 'insertColumnRight':
+        Array.from(table.rows).forEach(row => {
+          const newCell = document.createElement(row.cells[0].tagName.toLowerCase() as 'td' | 'th');
+          newCell.style.cssText = cell.style.cssText;
+          newCell.contentEditable = 'true';
+          const nextCell = row.cells[cell.cellIndex + 1];
+          if (nextCell) {
+            row.insertBefore(newCell, nextCell);
+          } else {
+            row.appendChild(newCell);
+          }
+        });
+        break;
+
+      case 'deleteColumn':
+        if (table.rows[0].cells.length > 1) {
+          Array.from(table.rows).forEach(row => {
+            if (row.cells[cell.cellIndex]) {
+              row.deleteCell(cell.cellIndex);
+            }
+          });
+        }
+        break;
+
+      case 'selectColumn':
+        const selection2 = window.getSelection();
+        if (selection2) {
+          selection2.removeAllRanges();
+          Array.from(table.rows).forEach(row => {
+            const targetCell = row.cells[cell.cellIndex];
+            if (targetCell) {
+              const range = document.createRange();
+              range.selectNodeContents(targetCell);
+              selection2.addRange(range);
+            }
+          });
+        }
+        break;
     }
     
     handleContentChange();
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    // Check if right-click is on a table cell
     const target = e.target as HTMLElement;
     const cell = target.closest('td, th');
     
     if (cell) {
       e.preventDefault();
+      
+      // Determine if it's a row or column operation based on click position
+      const rect = cell.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const cellWidth = rect.width;
+      
+      // If clicked on left/right 30% of cell, show column menu, otherwise row menu
+      const menuType = (clickX < cellWidth * 0.3 || clickX > cellWidth * 0.7) ? 'column' : 'row';
+      
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
-        element: cell as HTMLElement
+        element: cell as HTMLElement,
+        type: menuType
       });
     }
   };
@@ -336,6 +408,7 @@ export const RichTextEditor = ({
         onClose={() => setContextMenu(null)}
         onAction={handleTableAction}
         targetElement={contextMenu?.element || null}
+        menuType={contextMenu?.type || 'row'}
       />
       
       <FindReplaceDialog 

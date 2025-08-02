@@ -5,9 +5,10 @@ interface TableContextMenuProps {
   onClose: () => void;
   onAction: (action: string, element: HTMLElement) => void;
   targetElement: HTMLElement | null;
+  menuType: 'row' | 'column';
 }
 
-export const TableContextMenu = ({ position, onClose, onAction, targetElement }: TableContextMenuProps) => {
+export const TableContextMenu = ({ position, onClose, onAction, targetElement, menuType }: TableContextMenuProps) => {
   useEffect(() => {
     const handleClickOutside = () => onClose();
     const handleEscape = (e: KeyboardEvent) => {
@@ -27,12 +28,22 @@ export const TableContextMenu = ({ position, onClose, onAction, targetElement }:
 
   if (!position || !targetElement) return null;
 
-  const menuItems = [
+  const rowMenuItems = [
     { label: 'Insert row above', action: 'insertRowAbove' },
     { label: 'Insert row below', action: 'insertRowBelow' },
     { label: 'Delete row', action: 'deleteRow' },
     { label: 'Select row', action: 'selectRow' }
   ];
+
+  const columnMenuItems = [
+    { label: 'Header column', action: 'headerColumn' },
+    { label: 'Insert column left', action: 'insertColumnLeft' },
+    { label: 'Insert column right', action: 'insertColumnRight' },
+    { label: 'Delete column', action: 'deleteColumn' },
+    { label: 'Select column', action: 'selectColumn' }
+  ];
+
+  const menuItems = menuType === 'row' ? rowMenuItems : columnMenuItems;
 
   return (
     <div
