@@ -302,11 +302,17 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
             Bookmark
           </DropdownMenuItem>
           <div className="px-2 py-1">
-            <label className="text-xs text-muted-foreground block mb-1">Table</label>
+            <label className="text-xs text-muted-foreground flex items-center mb-1">
+              <Table size={14} className="mr-1" />
+              Table
+            </label>
             <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
           </div>
           <div className="px-2 py-1">
-            <label className="text-xs text-muted-foreground block mb-1">Emoji</label>
+            <label className="text-xs text-muted-foreground flex items-center mb-1">
+              <Smile size={14} className="mr-1" />
+              Emoji
+            </label>
             <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
           </div>
         </DropdownMenuContent>
