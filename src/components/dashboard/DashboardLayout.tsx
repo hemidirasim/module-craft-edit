@@ -21,56 +21,53 @@ export const DashboardLayout = ({ children, activeSection, onSectionChange }: Da
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              EditorCraft
-            </h1>
-            <span className="text-muted-foreground">Dashboard</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-muted-foreground">
-              {user?.email}
-            </span>
-            <Button variant="outline" size="sm" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign out
-            </Button>
-          </div>
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <div className="w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="p-6 border-b">
+          <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            EditorCraft
+          </h1>
+          <span className="text-sm text-muted-foreground">Dashboard</span>
         </div>
-      </header>
+        <nav className="p-4 space-y-2">
+          {sidebarItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Button
+                key={item.id}
+                variant={activeSection === item.id ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => onSectionChange(item.id)}
+              >
+                <Icon className="w-4 h-4 mr-2" />
+                {item.label}
+              </Button>
+            );
+          })}
+        </nav>
+      </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="p-4">
-              <nav className="space-y-2">
-                {sidebarItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Button
-                      key={item.id}
-                      variant={activeSection === item.id ? "default" : "ghost"}
-                      className="w-full justify-start"
-                      onClick={() => onSectionChange(item.id)}
-                    >
-                      <Icon className="w-4 h-4 mr-2" />
-                      {item.label}
-                    </Button>
-                  );
-                })}
-              </nav>
-            </Card>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="px-6 py-4 flex items-center justify-end">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-muted-foreground">
+                {user?.email}
+              </span>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign out
+              </Button>
+            </div>
           </div>
+        </header>
 
-          {/* Main Content */}
-          <div className="lg:col-span-4">
-            {children}
-          </div>
+        {/* Content */}
+        <div className="flex-1 p-6">
+          {children}
         </div>
       </div>
     </div>

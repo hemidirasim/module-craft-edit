@@ -10,7 +10,8 @@ import {
   Type,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  Palette
 } from "lucide-react";
 
 interface EditorToolbarProps {
@@ -44,6 +45,7 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
         { icon: Image, command: "insertImage", tooltip: "Insert Image", enabled: configuration.enableImage !== false },
         { icon: Code, command: "formatBlock", value: "pre", tooltip: "Code Block", enabled: configuration.enableCode !== false },
         { icon: Type, command: "fontSize", tooltip: "Font Size", enabled: true },
+        { icon: Palette, command: "backgroundColor", tooltip: "Background Color", enabled: configuration.enableCustomBackground !== false },
       ]
     }
   ];

@@ -40,6 +40,11 @@ export const RichTextEditor = ({
         if (url) {
           document.execCommand("insertImage", false, url);
         }
+      } else if (command === "backgroundColor") {
+        const color = prompt("Enter background color (hex):");
+        if (color) {
+          document.execCommand("hiliteColor", false, color);
+        }
       } else {
         document.execCommand(command, false, value);
       }
