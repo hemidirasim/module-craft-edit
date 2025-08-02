@@ -216,6 +216,32 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
               </PopoverContent>
             </Popover>
           </div>
+          {/* Background Color */}
+          <div className="px-2 py-1">
+            <label className="text-xs text-muted-foreground">Background Color</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-8 w-full mt-1 justify-start">
+                  <div className="w-4 h-4 mr-2 bg-gradient-to-r from-red-500 to-blue-500 rounded border"></div>
+                  Choose background
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2">
+                <div className="grid grid-cols-6 gap-1">
+                  {colors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color }}
+                      onClick={() => onCommand("backColor", color)}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -276,9 +302,11 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
             Bookmark
           </DropdownMenuItem>
           <div className="px-2 py-1">
+            <label className="text-xs text-muted-foreground block mb-1">Table</label>
             <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
           </div>
           <div className="px-2 py-1">
+            <label className="text-xs text-muted-foreground block mb-1">Emoji</label>
             <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
           </div>
         </DropdownMenuContent>
