@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { EditorToolbar } from "./EditorToolbar";
 import { FindReplaceDialog } from "./FindReplaceDialog";
+import { TableContextMenu } from "./TableContextMenu";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -22,6 +23,7 @@ export const RichTextEditor = ({
   const [isHtmlView, setIsHtmlView] = useState(false);
   const [htmlContent, setHtmlContent] = useState("");
   const [showFindReplace, setShowFindReplace] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; element: HTMLElement } | null>(null);
 
   useEffect(() => {
     if (editorRef.current && content !== editorRef.current.innerHTML && !isHtmlView) {
@@ -170,6 +172,68 @@ export const RichTextEditor = ({
     }
   };
 
+  const handleTableAction = (action: string, element: HTMLElement) => {
+    const cell = element.closest('td, th') as HTMLTableCellElement;
+    const row = cell?.closest('tr') as HTMLTableRowElement;
+    const table = row?.closest('table') as HTMLTableElement;
+    
+    if (!cell || !row || !table) return;
+
+    switch (action) {
+      case 'insertRowAbove':
+        const newRowAbove = row.cloneNode(true) as HTMLTableRowElement;
+        // Clear content from cloned cells
+        newRowAbove.querySelectorAll('td, th').forEach(cell => {
+          (cell as HTMLElement).innerHTML = '';
+        });
+        row.parentNode?.insertBefore(newRowAbove, row);
+        break;
+        
+      case 'insertRowBelow':
+        const newRowBelow = row.cloneNode(true) as HTMLTableRowElement;
+        // Clear content from cloned cells
+        newRowBelow.querySelectorAll('td, th').forEach(cell => {
+          (cell as HTMLElement).innerHTML = '';
+        });
+        row.parentNode?.insertBefore(newRowBelow, row.nextSibling);
+        break;
+        
+      case 'deleteRow':
+        if (table.rows.length > 1) {
+          row.remove();
+        }
+        break;
+        
+      case 'selectRow':
+        // Select all cells in the row
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          const range = document.createRange();
+          range.selectNodeContents(row);
+          selection.addRange(range);
+        }
+        break;
+    }
+    
+    handleContentChange();
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    // Check if right-click is on a table cell
+    const target = e.target as HTMLElement;
+    const cell = target.closest('td, th');
+    
+    if (cell) {
+      e.preventDefault();
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        element: cell as HTMLElement
+      });
+    }
+  };
+
   const handleContentChange = () => {
     if (editorRef.current && onChange) {
       onChange(editorRef.current.innerHTML);
@@ -260,11 +324,19 @@ export const RichTextEditor = ({
             onFocus={() => setIsEditorFocused(true)}
             onBlur={() => setIsEditorFocused(false)}
             onKeyDown={handleKeyDown}
+            onContextMenu={handleContextMenu}
             data-placeholder={placeholder}
             suppressContentEditableWarning={true}
           />
         )}
       </Card>
+      
+      <TableContextMenu
+        position={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null}
+        onClose={() => setContextMenu(null)}
+        onAction={handleTableAction}
+        targetElement={contextMenu?.element || null}
+      />
       
       <FindReplaceDialog 
         open={showFindReplace} 
