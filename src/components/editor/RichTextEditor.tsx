@@ -403,7 +403,7 @@ export const RichTextEditor = ({
       const isNearRightBorder = e.clientX > rect.right - 8;
       const isNearLeftBorder = e.clientX < rect.left + 8;
       
-      if (isNearRightBorder || isNearLeftBorder) {
+      if (isNearRightBorder) {
         e.preventDefault();
         setIsResizing(true);
         setResizeData({
@@ -411,6 +411,19 @@ export const RichTextEditor = ({
           startWidth: cell.offsetWidth,
           column: cell
         });
+      } else if (isNearLeftBorder && cell.cellIndex > 0) {
+        // When near left border, resize the previous column
+        const row = cell.closest('tr') as HTMLTableRowElement;
+        const prevCell = row.cells[cell.cellIndex - 1];
+        if (prevCell) {
+          e.preventDefault();
+          setIsResizing(true);
+          setResizeData({
+            startX: e.clientX,
+            startWidth: prevCell.offsetWidth,
+            column: prevCell
+          });
+        }
       }
     }
   };
