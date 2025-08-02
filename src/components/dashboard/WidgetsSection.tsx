@@ -58,11 +58,11 @@ export const WidgetsSection = () => {
   const loadData = async () => {
     try {
       const [widgetsResult, workspacesResult] = await Promise.all([
-        supabase
+        (supabase as any)
           .from('editor_widgets')
           .select('*, workspaces(name, domain)')
           .order('created_at', { ascending: false }),
-        supabase
+        (supabase as any)
           .from('workspaces')
           .select('id, name, domain')
           .eq('is_active', true)
@@ -104,7 +104,7 @@ export const WidgetsSection = () => {
       // Generate embed code
       const embedCode = `<div id="custom-editor-widget"></div>\n<script src="https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/widget-js/${data.id}.js"></script>`;
       
-      await supabase
+      await (supabase as any)
         .from('editor_widgets')
         .update({ embed_code: embedCode })
         .eq('id', data.id);

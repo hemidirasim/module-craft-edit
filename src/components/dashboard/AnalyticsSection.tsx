@@ -60,23 +60,23 @@ export const AnalyticsSection = () => {
       if (usageError) throw usageError;
 
       // Calculate analytics
-      const totalUsage = widgets?.reduce((sum, widget) => sum + (widget.usage_count || 0), 0) || 0;
-      const activeWidgets = widgets?.filter(widget => widget.is_active).length || 0;
+      const totalUsage = widgets?.reduce((sum: number, widget: any) => sum + (Number(widget.usage_count) || 0), 0) || 0;
+      const activeWidgets = widgets?.filter((widget: any) => widget.is_active).length || 0;
 
       // Get today's usage
       const today = new Date().toISOString().split('T')[0];
-      const usageToday = usageData?.filter(usage => 
+      const usageToday = usageData?.filter((usage: any) => 
         usage.created_at.startsWith(today)
       ).length || 0;
 
       // Get top domains
-      const domainCounts = usageData?.reduce((acc, usage) => {
+      const domainCounts = usageData?.reduce((acc: Record<string, number>, usage: any) => {
         acc[usage.domain] = (acc[usage.domain] || 0) + 1;
         return acc;
       }, {} as Record<string, number>) || {};
 
       const topDomains = Object.entries(domainCounts)
-        .map(([domain, count]) => ({ domain, count }))
+        .map(([domain, count]) => ({ domain, count: Number(count) }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
