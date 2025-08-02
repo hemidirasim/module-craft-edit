@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Bold, 
   Italic, 
@@ -11,7 +13,8 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Palette
+  Palette,
+  ChevronDown
 } from "lucide-react";
 
 interface EditorToolbarProps {
@@ -20,73 +23,178 @@ interface EditorToolbarProps {
 }
 
 export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarProps) => {
-  const toolGroups = [
-    {
-      name: "formatting",
-      tools: [
-        { icon: Bold, command: "bold", tooltip: "Bold", enabled: configuration.enableBold !== false },
-        { icon: Italic, command: "italic", tooltip: "Italic", enabled: configuration.enableItalic !== false },
-        { icon: Underline, command: "underline", tooltip: "Underline", enabled: configuration.enableUnderline !== false },
-        { icon: Strikethrough, command: "strikethrough", tooltip: "Strikethrough", enabled: configuration.enableStrikethrough !== false },
-      ]
-    },
-    {
-      name: "alignment",
-      tools: [
-        { icon: AlignLeft, command: "justifyLeft", tooltip: "Align Left", enabled: configuration.enableAlignment !== false },
-        { icon: AlignCenter, command: "justifyCenter", tooltip: "Align Center", enabled: configuration.enableAlignment !== false },
-        { icon: AlignRight, command: "justifyRight", tooltip: "Align Right", enabled: configuration.enableAlignment !== false },
-      ]
-    },
-    {
-      name: "content",
-      tools: [
-        { icon: Link, command: "createLink", tooltip: "Insert Link", enabled: configuration.enableLink !== false },
-        { icon: Image, command: "insertImage", tooltip: "Insert Image", enabled: configuration.enableImage !== false },
-        { icon: Code, command: "formatBlock", value: "pre", tooltip: "Code Block", enabled: configuration.enableCode !== false },
-        { icon: Type, command: "fontSize", tooltip: "Font", enabled: configuration.enableFont !== false },
-        { icon: Palette, command: "foreColor", tooltip: "Color", enabled: configuration.enableColor !== false },
-      ]
-    }
+  const fontFamilies = [
+    "Arial", "Helvetica", "Times New Roman", "Georgia", "Verdana", 
+    "Courier New", "Tahoma", "Comic Sans MS", "Impact", "Trebuchet MS"
   ];
+
+  const fontSizes = [
+    "8px", "10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px", "48px"
+  ];
+
+  const colors = [
+    "#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#FFFFFF",
+    "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF",
+    "#800000", "#008000", "#000080", "#808000", "#800080", "#008080"
+  ];
+
+  const formatTools = [
+    { icon: Bold, command: "bold", tooltip: "Bold", enabled: configuration.enableBold !== false },
+    { icon: Italic, command: "italic", tooltip: "Italic", enabled: configuration.enableItalic !== false },
+    { icon: Underline, command: "underline", tooltip: "Underline", enabled: configuration.enableUnderline !== false },
+    { icon: Strikethrough, command: "strikethrough", tooltip: "Strikethrough", enabled: configuration.enableStrikethrough !== false },
+  ].filter(tool => tool.enabled);
+
+  const alignTools = [
+    { icon: AlignLeft, command: "justifyLeft", tooltip: "Align Left", enabled: configuration.enableAlignment !== false },
+    { icon: AlignCenter, command: "justifyCenter", tooltip: "Align Center", enabled: configuration.enableAlignment !== false },
+    { icon: AlignRight, command: "justifyRight", tooltip: "Align Right", enabled: configuration.enableAlignment !== false },
+  ].filter(tool => tool.enabled);
+
+  const contentTools = [
+    { icon: Link, command: "createLink", tooltip: "Insert Link", enabled: configuration.enableLink !== false },
+    { icon: Image, command: "insertImage", tooltip: "Insert Image", enabled: configuration.enableImage !== false },
+    { icon: Code, command: "formatBlock", value: "pre", tooltip: "Code Block", enabled: configuration.enableCode !== false },
+  ].filter(tool => tool.enabled);
 
   return (
     <div className="border-b border-border p-2 flex gap-1 flex-wrap bg-background/50 backdrop-blur-sm">
-      {toolGroups.map((group, groupIndex) => {
-        const enabledTools = group.tools.filter(tool => tool.enabled);
-        if (enabledTools.length === 0) return null;
-        
-        return (
-          <div key={group.name} className="flex gap-1">
-            {enabledTools.map((tool) => (
+      {/* Format Tools */}
+      {formatTools.length > 0 && (
+        <>
+          {formatTools.map((tool) => (
+            <Button
+              key={tool.command}
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-accent"
+              onClick={() => onCommand(tool.command)}
+              title={tool.tooltip}
+            >
+              <tool.icon size={16} />
+            </Button>
+          ))}
+          <div className="w-px h-6 bg-border mx-1 self-center" />
+        </>
+      )}
+
+      {/* Font Family */}
+      {configuration.enableFont !== false && (
+        <>
+          <Select onValueChange={(value) => onCommand("fontName", value)}>
+            <SelectTrigger className="h-8 w-32">
+              <SelectValue placeholder="Font" />
+            </SelectTrigger>
+            <SelectContent>
+              {fontFamilies.map((font) => (
+                <SelectItem key={font} value={font} style={{ fontFamily: font }}>
+                  {font}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="w-px h-6 bg-border mx-1 self-center" />
+        </>
+      )}
+
+      {/* Font Size */}
+      {configuration.enableFont !== false && (
+        <>
+          <Select onValueChange={(value) => onCommand("fontSize", value)}>
+            <SelectTrigger className="h-8 w-16">
+              <SelectValue placeholder="Size" />
+            </SelectTrigger>
+            <SelectContent>
+              {fontSizes.map((size) => (
+                <SelectItem key={size} value={size}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="w-px h-6 bg-border mx-1 self-center" />
+        </>
+      )}
+
+      {/* Color Picker */}
+      {configuration.enableColor !== false && (
+        <>
+          <Popover>
+            <PopoverTrigger asChild>
               <Button
-                key={tool.command}
                 type="button"
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0 hover:bg-accent"
-                onClick={() => {
-                  if (tool.command === "foreColor") {
-                    const color = prompt("Enter color (hex):");
-                    if (color) onCommand(tool.command, color);
-                  } else if (tool.command === "fontSize") {
-                    const size = prompt("Enter font size (e.g., 16px):");
-                    if (size) onCommand(tool.command, size);
-                  } else {
-                    onCommand(tool.command, tool.value);
-                  }
-                }}
-                title={tool.tooltip}
+                title="Text Color"
               >
-                <tool.icon size={16} />
+                <Palette size={16} />
               </Button>
-            ))}
-            {groupIndex < toolGroups.length - 1 && enabledTools.length > 0 && (
-              <div className="w-px h-6 bg-border mx-1 self-center" />
-            )}
-          </div>
-        );
-      })}
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2">
+              <div className="grid grid-cols-6 gap-1">
+                {colors.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                    style={{ backgroundColor: color }}
+                    onClick={() => onCommand("foreColor", color)}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          <div className="w-px h-6 bg-border mx-1 self-center" />
+        </>
+      )}
+
+      {/* Alignment Tools */}
+      {alignTools.length > 0 && (
+        <>
+          {alignTools.map((tool) => (
+            <Button
+              key={tool.command}
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-accent"
+              onClick={() => onCommand(tool.command)}
+              title={tool.tooltip}
+            >
+              <tool.icon size={16} />
+            </Button>
+          ))}
+          <div className="w-px h-6 bg-border mx-1 self-center" />
+        </>
+      )}
+
+      {/* Content Tools */}
+      {contentTools.map((tool) => (
+        <Button
+          key={tool.command}
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 hover:bg-accent"
+          onClick={() => {
+            if (tool.command === "createLink") {
+              const url = prompt("Enter URL:");
+              if (url) onCommand(tool.command, url);
+            } else if (tool.command === "insertImage") {
+              const url = prompt("Enter image URL:");
+              if (url) onCommand(tool.command, url);
+            } else {
+              onCommand(tool.command, tool.value);
+            }
+          }}
+          title={tool.tooltip}
+        >
+          <tool.icon size={16} />
+        </Button>
+      ))}
     </div>
   );
 };
