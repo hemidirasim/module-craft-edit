@@ -84,11 +84,20 @@ export const RichTextEditor = ({
       if (command === 'insertTable') {
         if (value) {
           const [rows, cols] = value.split('x').map(Number);
-          let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">';
-          for (let i = 0; i < rows; i++) {
+          let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%; margin: 16px 0;">';
+          
+          // Create header row
+          tableHTML += '<tr>';
+          for (let j = 0; j < cols; j++) {
+            tableHTML += `<th style="padding: 12px; border: 1px solid #ccc; background-color: #f5f5f5; font-weight: bold; text-align: left;" contenteditable="true">Header ${j + 1}</th>`;
+          }
+          tableHTML += '</tr>';
+          
+          // Create data rows
+          for (let i = 1; i < rows; i++) {
             tableHTML += '<tr>';
             for (let j = 0; j < cols; j++) {
-              tableHTML += '<td style="padding: 8px; border: 1px solid #ccc;">Cell content</td>';
+              tableHTML += `<td style="padding: 12px; border: 1px solid #ccc; min-height: 40px;" contenteditable="true">Row ${i}, Col ${j + 1}</td>`;
             }
             tableHTML += '</tr>';
           }
