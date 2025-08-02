@@ -349,8 +349,10 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
               const embedCode = prompt("Enter embed code or URL:");
               if (embedCode) onCommand(tool.command, embedCode);
             } else if (tool.command === "insertEmoji") {
-              const emoji = prompt("Enter emoji or choose: 😀 😊 😍 👍 ❤️ 🎉 ✨ 💡 📝 ⭐", "😊");
-              if (emoji) onCommand(tool.command, emoji);
+              // Create emoji picker
+              const emojis = ["😀", "😊", "😍", "👍", "❤️", "🎉", "✨", "💡", "📝", "⭐", "🔥", "💯", "👏", "🚀", "🎯", "💪", "🌟", "🎊", "🎈", "🎁"];
+              const selectedEmoji = prompt(`Choose emoji:\n${emojis.join(" ")}\n\nOr enter custom emoji:`, "😊");
+              if (selectedEmoji) onCommand(tool.command, selectedEmoji);
             } else if (tool.command === "insertBookmark") {
               const name = prompt("Bookmark name:");
               if (name) onCommand(tool.command, name);
