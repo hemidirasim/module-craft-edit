@@ -44,6 +44,7 @@ export const WidgetsSection = () => {
       enableLink: true,
       enableImage: true,
       enableCode: true,
+      enableAlignment: true,
       enableCustomFont: false,
       enableCustomBackground: false,
       fontFamily: 'Inter',
@@ -131,6 +132,7 @@ export const WidgetsSection = () => {
           enableLink: true,
           enableImage: true,
           enableCode: true,
+          enableAlignment: true,
           enableCustomFont: false,
           enableCustomBackground: false,
           fontFamily: 'Inter',
@@ -247,6 +249,7 @@ export const WidgetsSection = () => {
                       <Label htmlFor={key} className="text-sm">
                         {key === 'enableCustomFont' ? 'Custom Font' :
                          key === 'enableCustomBackground' ? 'Custom Background' :
+                         key === 'enableAlignment' ? 'Alignment' :
                          key.replace('enable', '')}
                       </Label>
                     </div>

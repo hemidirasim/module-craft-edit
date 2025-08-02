@@ -32,9 +32,9 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
     {
       name: "alignment",
       tools: [
-        { icon: AlignLeft, command: "justifyLeft", tooltip: "Align Left", enabled: true },
-        { icon: AlignCenter, command: "justifyCenter", tooltip: "Align Center", enabled: true },
-        { icon: AlignRight, command: "justifyRight", tooltip: "Align Right", enabled: true },
+        { icon: AlignLeft, command: "justifyLeft", tooltip: "Align Left", enabled: configuration.enableAlignment !== false },
+        { icon: AlignCenter, command: "justifyCenter", tooltip: "Align Center", enabled: configuration.enableAlignment !== false },
+        { icon: AlignRight, command: "justifyRight", tooltip: "Align Right", enabled: configuration.enableAlignment !== false },
       ]
     },
     {

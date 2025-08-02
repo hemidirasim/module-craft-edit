@@ -88,16 +88,20 @@ export const RichTextEditor = ({
           focus:ring-2 focus:ring-primary/20 focus:ring-inset
           ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
         `}
+        style={{
+          fontFamily: configuration.enableCustomFont ? configuration.fontFamily : undefined,
+          fontSize: configuration.enableCustomFont ? configuration.fontSize : undefined,
+          backgroundColor: configuration.enableCustomBackground ? configuration.backgroundColor : undefined,
+          color: configuration.enableCustomBackground ? configuration.textColor : undefined,
+          background: editorRef.current?.innerHTML === '' ? 
+            `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
+            (configuration.enableCustomBackground ? configuration.backgroundColor : 'transparent')
+        }}
         onInput={handleContentChange}
         onFocus={() => setIsEditorFocused(true)}
         onBlur={() => setIsEditorFocused(false)}
         onKeyDown={handleKeyDown}
         data-placeholder={placeholder}
-        style={{
-          background: editorRef.current?.innerHTML === '' ? 
-            `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
-            'transparent'
-        }}
         suppressContentEditableWarning={true}
       />
     </Card>
