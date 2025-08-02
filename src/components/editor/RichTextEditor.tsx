@@ -35,6 +35,10 @@ export const RichTextEditor = ({
 
   const handleCommand = (command: string, value?: string) => {
     if (command === "toggleHtmlView") {
+      if (!isHtmlView && editorRef.current) {
+        // Visual -> HTML: capture current content
+        setHtmlContent(editorRef.current.innerHTML);
+      }
       setIsHtmlView(!isHtmlView);
       return;
     }

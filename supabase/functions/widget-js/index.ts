@@ -483,7 +483,7 @@ serve(async (req) => {
     const currentEditor = editorContainer.querySelector('.editorcraft-editor, .editorcraft-html-editor');
     
     if (isHtmlView) {
-      // Switch to visual view
+      // Switch to visual view - HTML -> Visual
       const htmlContent = currentEditor.value || '';
       currentEditor.remove();
       
@@ -496,8 +496,9 @@ serve(async (req) => {
       editor = visualEditor;
       isHtmlView = false;
     } else {
-      // Switch to HTML view
+      // Switch to HTML view - Visual -> HTML
       const visualContent = currentEditor.innerHTML || '';
+      console.log('Visual content:', visualContent); // Debug log
       currentEditor.remove();
       
       const htmlEditor = document.createElement('textarea');
