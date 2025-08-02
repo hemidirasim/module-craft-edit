@@ -107,7 +107,19 @@ export const RichTextEditor = ({
       }
 
       if (command === 'formatBlock' && value === 'blockquote') {
-        document.execCommand(command, false, value);
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const selectedText = range.toString() || 'Quote text';
+          const blockquoteHTML = `<blockquote style="border-left: 4px solid #007cba; padding-left: 16px; margin: 16px 0; font-style: italic; color: #666;">${selectedText}</blockquote>`;
+          document.execCommand('insertHTML', false, blockquoteHTML);
+        }
+        handleContentChange();
+        return;
+      }
+
+      if (command === 'insertOrderedList' || command === 'insertUnorderedList') {
+        document.execCommand(command, false);
         handleContentChange();
         return;
       }
@@ -151,9 +163,16 @@ export const RichTextEditor = ({
 
       // Handle standard commands  
       if (command === "createLink") {
+        const selection = window.getSelection();
+        const selectedText = selection && selection.rangeCount > 0 ? selection.toString() : '';
+        
+        const linkText = prompt("Enter link text:", selectedText || "Link text");
+        if (!linkText) return;
+        
         const url = prompt("Enter URL:");
         if (url) {
-          document.execCommand(command, false, url);
+          const linkHTML = `<a href="${url}" style="color: #007cba; text-decoration: underline;" target="_blank">${linkText}</a>`;
+          document.execCommand('insertHTML', false, linkHTML);
         }
       } else if (command === "insertImage") {
         const url = prompt("Enter image URL:");
@@ -374,10 +393,10 @@ export const RichTextEditor = ({
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isResizing && resizeData) {
       const diff = e.clientX - resizeData.startX;
-      const newWidth = resizeData.startWidth + diff;
-      if (newWidth > 50) { // Minimum width
-        resizeData.column.style.width = `${newWidth}px`;
-      }
+      const newWidth = Math.max(50, resizeData.startWidth + diff); // Minimum 50px
+      resizeData.column.style.width = `${newWidth}px`;
+      resizeData.column.style.minWidth = `${newWidth}px`;
+      resizeData.column.style.maxWidth = `${newWidth}px`;
     } else {
       // Check if hovering near column border
       const target = e.target as HTMLElement;
