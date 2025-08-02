@@ -32,7 +32,7 @@ export const AnalyticsSection = () => {
   const loadAnalytics = async () => {
     try {
       // Get total widget usage count
-      const { data: widgets, error: widgetsError } = await supabase
+      const { data: widgets, error: widgetsError } = await (supabase as any)
         .from('editor_widgets')
         .select(`
           usage_count,
@@ -44,7 +44,7 @@ export const AnalyticsSection = () => {
       if (widgetsError) throw widgetsError;
 
       // Get recent usage data
-      const { data: usageData, error: usageError } = await supabase
+      const { data: usageData, error: usageError } = await (supabase as any)
         .from('widget_usage')
         .select(`
           domain,

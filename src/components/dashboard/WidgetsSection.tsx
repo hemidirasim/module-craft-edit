@@ -89,7 +89,7 @@ export const WidgetsSection = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('editor_widgets')
         .insert([{
           name: formData.name,

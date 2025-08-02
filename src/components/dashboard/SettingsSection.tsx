@@ -40,12 +40,12 @@ export const SettingsSection = () => {
   const loadUserData = async () => {
     try {
       const [profileResult, creditsResult] = await Promise.all([
-        supabase
+        (supabase as any)
           .from('profiles')
           .select('*')
           .eq('user_id', user?.id)
           .single(),
-        supabase
+        (supabase as any)
           .from('user_credits')
           .select('*')
           .eq('user_id', user?.id)
@@ -76,7 +76,7 @@ export const SettingsSection = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('profiles')
         .update({
           full_name: formData.full_name,

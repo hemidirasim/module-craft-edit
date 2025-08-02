@@ -38,7 +38,7 @@ export const WorkspacesSection = () => {
 
   const loadWorkspaces = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('workspaces')
         .select('*')
         .order('created_at', { ascending: false });
@@ -61,7 +61,7 @@ export const WorkspacesSection = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('workspaces')
         .insert([{
           user_id: user.id,
