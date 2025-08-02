@@ -24,6 +24,8 @@ export const RichTextEditor = ({
   const [htmlContent, setHtmlContent] = useState("");
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; element: HTMLElement } | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeData, setResizeData] = useState<{ startX: number; startWidth: number; column: HTMLElement } | null>(null);
 
   useEffect(() => {
     if (editorRef.current && content !== editorRef.current.innerHTML && !isHtmlView) {
@@ -212,6 +214,21 @@ export const RichTextEditor = ({
         }
         break;
 
+      case 'headerRow':
+        const targetRow = row;
+        Array.from(targetRow.cells).forEach(cell => {
+          if (cell.tagName.toLowerCase() === 'td') {
+            const th = document.createElement('th');
+            th.innerHTML = cell.innerHTML;
+            th.style.cssText = cell.style.cssText;
+            th.style.backgroundColor = '#f5f5f5';
+            th.style.fontWeight = 'bold';
+            th.contentEditable = 'true';
+            cell.parentNode?.replaceChild(th, cell);
+          }
+        });
+        break;
+
       case 'headerColumn':
         const columnIndex = cell.cellIndex;
         Array.from(table.rows).forEach(row => {
@@ -352,6 +369,66 @@ export const RichTextEditor = ({
     }
   };
 
+  // Column resizing functionality
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isResizing && resizeData) {
+      const diff = e.clientX - resizeData.startX;
+      const newWidth = resizeData.startWidth + diff;
+      if (newWidth > 50) { // Minimum width
+        resizeData.column.style.width = `${newWidth}px`;
+      }
+    } else {
+      // Check if hovering near column border
+      const target = e.target as HTMLElement;
+      const cell = target.closest('td, th') as HTMLTableCellElement;
+      if (cell) {
+        const rect = cell.getBoundingClientRect();
+        const isNearRightBorder = e.clientX > rect.right - 8;
+        const isNearLeftBorder = e.clientX < rect.left + 8;
+        
+        if (isNearRightBorder || isNearLeftBorder) {
+          (e.target as HTMLElement).style.cursor = 'col-resize';
+        } else {
+          (e.target as HTMLElement).style.cursor = 'text';
+        }
+      }
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const cell = target.closest('td, th') as HTMLTableCellElement;
+    if (cell) {
+      const rect = cell.getBoundingClientRect();
+      const isNearRightBorder = e.clientX > rect.right - 8;
+      const isNearLeftBorder = e.clientX < rect.left + 8;
+      
+      if (isNearRightBorder || isNearLeftBorder) {
+        e.preventDefault();
+        setIsResizing(true);
+        setResizeData({
+          startX: e.clientX,
+          startWidth: cell.offsetWidth,
+          column: cell
+        });
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (isResizing) {
+      setIsResizing(false);
+      setResizeData(null);
+    }
+  };
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => document.removeEventListener('mouseup', handleMouseUp);
+    }
+  }, [isResizing]);
+
   return (
     <>
       <Card className="overflow-hidden shadow-card">
@@ -387,6 +464,8 @@ export const RichTextEditor = ({
             onBlur={() => setIsEditorFocused(false)}
             onKeyDown={handleKeyDown}
             onContextMenu={handleContextMenu}
+            onMouseMove={handleMouseMove}
+            onMouseDown={handleMouseDown}
             data-placeholder={placeholder}
             suppressContentEditableWarning={true}
           />

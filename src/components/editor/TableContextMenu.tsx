@@ -31,6 +31,7 @@ export const TableContextMenu = ({ position, onClose, onAction, targetElement }:
   if (!position || !targetElement) return null;
 
   const rowMenuItems = [
+    { label: 'Header row', action: 'headerRow' },
     { label: 'Insert row above', action: 'insertRowAbove' },
     { label: 'Insert row below', action: 'insertRowBelow' },
     { label: 'Delete row', action: 'deleteRow' }
