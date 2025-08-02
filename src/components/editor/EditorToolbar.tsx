@@ -101,268 +101,284 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
 
   return (
     <div className="border-b border-border p-2 flex gap-1 flex-wrap bg-background/50 backdrop-blur-sm">
-      {/* Edit Tools Dropdown */}
-      {editTools.length > 0 && (
-        <>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 hover:bg-accent"
-                title="Edit Tools"
-              >
-                <Edit size={16} />
-                <ChevronDown size={12} className="ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
-              {editTools.map((tool) => (
-                <DropdownMenuItem
-                  key={tool.command}
-                  onClick={() => onCommand(tool.command)}
-                  className="cursor-pointer hover:bg-accent"
-                >
-                  <tool.icon size={16} className="mr-2" />
-                  {tool.tooltip}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <div className="w-px h-6 bg-border mx-1 self-center" />
-        </>
-      )}
-
-      {/* Clipboard Tools Dropdown */}
-      {clipboardTools.length > 0 && (
-        <>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 hover:bg-accent"
-                title="Clipboard Tools"
-              >
-                <ClipboardList size={16} />
-                <ChevronDown size={12} className="ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
-              {clipboardTools.map((tool) => (
-                <DropdownMenuItem
-                  key={tool.command}
-                  onClick={() => onCommand(tool.command)}
-                  className="cursor-pointer hover:bg-accent"
-                >
-                  <tool.icon size={16} className="mr-2" />
-                  {tool.tooltip}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <div className="w-px h-6 bg-border mx-1 self-center" />
-        </>
-      )}
-
-      {/* List Tools */}
-      {listTools.length > 0 && (
-        <>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 hover:bg-accent"
-                title="Lists"
-              >
-                <List size={16} />
-                <ChevronDown size={12} className="ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
-              {listTools.map((tool) => (
-                <DropdownMenuItem
-                  key={tool.command}
-                  onClick={() => onCommand(tool.command)}
-                  className="cursor-pointer hover:bg-accent"
-                >
-                  <tool.icon size={16} className="mr-2" />
-                  {tool.tooltip}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuItem
-                onClick={() => onCommand("indent")}
-                className="cursor-pointer hover:bg-accent"
-              >
-                <div className="w-4 h-4 mr-2 flex items-center justify-center text-xs">→</div>
-                Indent (Multi-level)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onCommand("outdent")}
-                className="cursor-pointer hover:bg-accent"
-              >
-                <div className="w-4 h-4 mr-2 flex items-center justify-center text-xs">←</div>
-                Outdent
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <div className="w-px h-6 bg-border mx-1 self-center" />
-        </>
-      )}
-
-      {/* Format Tools */}
-      {formatTools.length > 0 && (
-        <>
-          {formatTools.map((tool) => (
-            <Button
-              key={tool.command}
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-accent"
-              onClick={() => onCommand(tool.command)}
-              title={tool.tooltip}
-            >
-              <tool.icon size={16} />
-            </Button>
-          ))}
-          <div className="w-px h-6 bg-border mx-1 self-center" />
-        </>
-      )}
-
-      {/* Font Family */}
-      {configuration.enableFont !== false && (
-        <>
-          <Select onValueChange={(value) => onCommand("fontName", value)}>
-            <SelectTrigger className="h-8 w-32">
-              <SelectValue placeholder="Font" />
-            </SelectTrigger>
-            <SelectContent>
-              {fontFamilies.map((font) => (
-                <SelectItem key={font} value={font} style={{ fontFamily: font }}>
-                  {font}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="w-px h-6 bg-border mx-1 self-center" />
-        </>
-      )}
-
-      {/* Font Size */}
-      {configuration.enableFont !== false && (
-        <>
-          <Select onValueChange={(value) => onCommand("fontSize", value)}>
-            <SelectTrigger className="h-8 w-16">
-              <SelectValue placeholder="Size" />
-            </SelectTrigger>
-            <SelectContent>
-              {fontSizes.map((size) => (
-                <SelectItem key={size} value={size}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="w-px h-6 bg-border mx-1 self-center" />
-        </>
-      )}
-
-      {/* Color Picker */}
-      {configuration.enableColor !== false && (
-        <>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-accent"
-                title="Text Color"
-              >
-                <Palette size={16} />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-2">
-              <div className="grid grid-cols-6 gap-1">
-                {colors.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
-                    style={{ backgroundColor: color }}
-                    onClick={() => onCommand("foreColor", color)}
-                    title={color}
-                  />
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-          <div className="w-px h-6 bg-border mx-1 self-center" />
-        </>
-      )}
-
-      {/* Alignment Tools */}
-      {alignTools.length > 0 && (
-        <>
-          {alignTools.map((tool) => (
-            <Button
-              key={tool.command}
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-accent"
-              onClick={() => onCommand(tool.command)}
-              title={tool.tooltip}
-            >
-              <tool.icon size={16} />
-            </Button>
-          ))}
-          <div className="w-px h-6 bg-border mx-1 self-center" />
-        </>
-      )}
-
-      {/* Content Tools */}
-      <div className="flex gap-1">
-        {contentTools.filter(tool => !['insertTable', 'insertEmoji'].includes(tool.command)).map((tool) => (
+      {/* Edit Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
-            key={tool.command}
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-3 hover:bg-accent"
+            title="Edit"
+          >
+            Edit
+            <ChevronDown size={12} className="ml-1" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+          <DropdownMenuItem onClick={() => onCommand('undo')} className="cursor-pointer hover:bg-accent">
+            <Undo2 size={16} className="mr-2" />
+            Undo (Ctrl+Z)
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCommand('redo')} className="cursor-pointer hover:bg-accent">
+            <Redo2 size={16} className="mr-2" />
+            Redo (Ctrl+Y)
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCommand('cut')} className="cursor-pointer hover:bg-accent">
+            <Scissors size={16} className="mr-2" />
+            Cut (Ctrl+X)
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCommand('copy')} className="cursor-pointer hover:bg-accent">
+            <Copy size={16} className="mr-2" />
+            Copy (Ctrl+C)
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCommand('paste')} className="cursor-pointer hover:bg-accent">
+            <Clipboard size={16} className="mr-2" />
+            Paste (Ctrl+V)
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCommand('findReplace')} className="cursor-pointer hover:bg-accent">
+            <Search size={16} className="mr-2" />
+            Find & Replace (Ctrl+F)
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Format Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-3 hover:bg-accent"
+            title="Format"
+          >
+            Format
+            <ChevronDown size={12} className="ml-1" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+          {/* Font Family */}
+          <div className="px-2 py-1">
+            <label className="text-xs text-muted-foreground">Font Family</label>
+            <Select onValueChange={(value) => onCommand("fontName", value)}>
+              <SelectTrigger className="h-8 w-full mt-1">
+                <SelectValue placeholder="Select font" />
+              </SelectTrigger>
+              <SelectContent>
+                {fontFamilies.map((font) => (
+                  <SelectItem key={font} value={font} style={{ fontFamily: font }}>
+                    {font}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Font Size */}
+          <div className="px-2 py-1">
+            <label className="text-xs text-muted-foreground">Font Size</label>
+            <Select onValueChange={(value) => onCommand("fontSize", value)}>
+              <SelectTrigger className="h-8 w-full mt-1">
+                <SelectValue placeholder="Size" />
+              </SelectTrigger>
+              <SelectContent>
+                {fontSizes.map((size) => (
+                  <SelectItem key={size} value={size}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Text Color */}
+          <div className="px-2 py-1">
+            <label className="text-xs text-muted-foreground">Text Color</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-8 w-full mt-1 justify-start">
+                  <Palette size={16} className="mr-2" />
+                  Choose color
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2">
+                <div className="grid grid-cols-6 gap-1">
+                  {colors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color }}
+                      onClick={() => onCommand("foreColor", color)}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Insert Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-3 hover:bg-accent"
+            title="Insert"
+          >
+            Insert
+            <ChevronDown size={12} className="ml-1" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+          <DropdownMenuItem 
+            onClick={() => {
+              const text = prompt("Link text:") || "";
+              const url = prompt("Link URL:");
+              if (url) onCommand('createLink', JSON.stringify({ text, url }));
+            }} 
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Link size={16} className="mr-2" />
+            Link
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => {
+              const url = prompt("Image URL:");
+              if (url) onCommand('insertImage', url);
+            }} 
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Image size={16} className="mr-2" />
+            Image
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => {
+              const embedCode = prompt("Embed code or URL:");
+              if (embedCode) onCommand('insertEmbed', embedCode);
+            }} 
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Play size={16} className="mr-2" />
+            Media/Embed
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => {
+              const name = prompt("Bookmark name:");
+              if (name) onCommand('insertBookmark', name);
+            }} 
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Bookmark size={16} className="mr-2" />
+            Bookmark
+          </DropdownMenuItem>
+          <div className="px-2 py-1">
+            <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
+          </div>
+          <div className="px-2 py-1">
+            <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <div className="w-px h-6 bg-border mx-1 self-center" />
+
+      {/* Essential formatting tools directly accessible */}
+      {formatTools.map((tool) => (
+        <Button
+          key={tool.command}
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 hover:bg-accent"
+          onClick={() => onCommand(tool.command)}
+          title={tool.tooltip}
+        >
+          <tool.icon size={16} />
+        </Button>
+      ))}
+
+      <div className="w-px h-6 bg-border mx-1 self-center" />
+
+      {/* Lists */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
             type="button"
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0 hover:bg-accent"
-            onClick={() => {
-              if (tool.command === "createLink") {
-                const url = prompt("Enter URL:");
-                if (url) onCommand(tool.command, url);
-              } else if (tool.command === "insertImage") {
-                const url = prompt("Enter image URL:");
-                if (url) onCommand(tool.command, url);
-              } else if (tool.command === "formatBlock") {
-                onCommand(tool.command, "blockquote");
-              } else if (tool.command === "insertEmbed") {
-                const embedCode = prompt("Enter embed code or URL:");
-                if (embedCode) onCommand(tool.command, embedCode);
-              } else if (tool.command === "insertBookmark") {
-                const name = prompt("Bookmark name:");
-                if (name) onCommand(tool.command, name);
-              } else {
-                onCommand(tool.command);
-              }
-            }}
-            title={tool.tooltip}
+            title="Lists"
           >
-            <tool.icon size={16} />
+            <List size={16} />
           </Button>
-        ))}
-        
-        <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
-        <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
-      </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+          <DropdownMenuItem onClick={() => onCommand('insertUnorderedList')} className="cursor-pointer hover:bg-accent">
+            <List size={16} className="mr-2" />
+            Bulleted List
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCommand('insertOrderedList')} className="cursor-pointer hover:bg-accent">
+            <ListOrdered size={16} className="mr-2" />
+            Numbered List
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCommand('insertTodoList')} className="cursor-pointer hover:bg-accent">
+            <CheckSquare size={16} className="mr-2" />
+            To-Do List
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCommand('indent')} className="cursor-pointer hover:bg-accent">
+            <div className="w-4 h-4 mr-2 flex items-center justify-center text-xs">→</div>
+            Indent
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCommand('outdent')} className="cursor-pointer hover:bg-accent">
+            <div className="w-4 h-4 mr-2 flex items-center justify-center text-xs">←</div>
+            Outdent
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Alignment tools */}
+      {alignTools.map((tool) => (
+        <Button
+          key={tool.command}
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 hover:bg-accent"
+          onClick={() => onCommand(tool.command)}
+          title={tool.tooltip}
+        >
+          <tool.icon size={16} />
+        </Button>
+      ))}
+
+      <div className="w-px h-6 bg-border mx-1 self-center" />
+
+      {/* Quote and HTML view */}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-8 w-8 p-0 hover:bg-accent"
+        onClick={() => onCommand('formatBlock', 'blockquote')}
+        title="Block Quote"
+      >
+        <Quote size={16} />
+      </Button>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-8 w-8 p-0 hover:bg-accent"
+        onClick={() => onCommand('toggleHtmlView')}
+        title="HTML View"
+      >
+        <Code2 size={16} />
+      </Button>
     </div>
   );
 };
