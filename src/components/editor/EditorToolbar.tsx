@@ -8,7 +8,7 @@ import {
   Strikethrough,
   Link,
   Image,
-  Code,
+  Code2,
   Type,
   AlignLeft,
   AlignCenter,
@@ -54,7 +54,7 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
   const contentTools = [
     { icon: Link, command: "createLink", tooltip: "Insert Link", enabled: configuration.enableLink !== false },
     { icon: Image, command: "insertImage", tooltip: "Insert Image", enabled: configuration.enableImage !== false },
-    { icon: Code, command: "formatBlock", value: "pre", tooltip: "Code Block", enabled: configuration.enableCode !== false },
+    { icon: Code2, command: "toggleHtmlView", tooltip: "HTML View", enabled: configuration.enableCode !== false },
   ].filter(tool => tool.enabled);
 
   return (
@@ -187,7 +187,7 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
               const url = prompt("Enter image URL:");
               if (url) onCommand(tool.command, url);
             } else {
-              onCommand(tool.command, tool.value);
+              onCommand(tool.command);
             }
           }}
           title={tool.tooltip}

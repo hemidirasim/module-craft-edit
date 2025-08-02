@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { EditorToolbar } from "./EditorToolbar";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 
 interface RichTextEditorProps {
   content?: string;
@@ -17,14 +18,27 @@ export const RichTextEditor = ({
 }: RichTextEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const [isHtmlView, setIsHtmlView] = useState(false);
+  const [htmlContent, setHtmlContent] = useState("");
 
   useEffect(() => {
-    if (editorRef.current && content !== editorRef.current.innerHTML) {
+    if (editorRef.current && content !== editorRef.current.innerHTML && !isHtmlView) {
       editorRef.current.innerHTML = content;
     }
-  }, [content]);
+  }, [content, isHtmlView]);
+
+  useEffect(() => {
+    if (isHtmlView && editorRef.current) {
+      setHtmlContent(editorRef.current.innerHTML);
+    }
+  }, [isHtmlView]);
 
   const handleCommand = (command: string, value?: string) => {
+    if (command === "toggleHtmlView") {
+      setIsHtmlView(!isHtmlView);
+      return;
+    }
+
     if (!editorRef.current) return;
     
     editorRef.current.focus();
@@ -61,6 +75,14 @@ export const RichTextEditor = ({
     }
   };
 
+  const handleHtmlChange = (value: string) => {
+    setHtmlContent(value);
+    if (editorRef.current && onChange) {
+      editorRef.current.innerHTML = value;
+      onChange(value);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Handle common keyboard shortcuts
     if (e.ctrlKey || e.metaKey) {
@@ -84,31 +106,40 @@ export const RichTextEditor = ({
   return (
     <Card className="overflow-hidden shadow-card">
       <EditorToolbar onCommand={handleCommand} configuration={configuration} />
-      <div
-        ref={editorRef}
-        contentEditable
-        className={`
-          min-h-[300px] p-4 outline-none text-foreground bg-background
-          prose prose-sm max-w-none
-          focus:ring-2 focus:ring-primary/20 focus:ring-inset
-          ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
-        `}
-        style={{
-          fontFamily: configuration.enableCustomFont ? configuration.fontFamily : undefined,
-          fontSize: configuration.enableCustomFont ? configuration.fontSize : undefined,
-          backgroundColor: configuration.enableCustomBackground ? configuration.backgroundColor : undefined,
-          color: configuration.enableCustomBackground ? configuration.textColor : undefined,
-          background: editorRef.current?.innerHTML === '' ? 
-            `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
-            (configuration.enableCustomBackground ? configuration.backgroundColor : 'transparent')
-        }}
-        onInput={handleContentChange}
-        onFocus={() => setIsEditorFocused(true)}
-        onBlur={() => setIsEditorFocused(false)}
-        onKeyDown={handleKeyDown}
-        data-placeholder={placeholder}
-        suppressContentEditableWarning={true}
-      />
+      {isHtmlView ? (
+        <Textarea
+          value={htmlContent}
+          onChange={(e) => handleHtmlChange(e.target.value)}
+          className="min-h-[300px] font-mono text-sm resize-none border-0 rounded-none"
+          placeholder="<p>Enter HTML here...</p>"
+        />
+      ) : (
+        <div
+          ref={editorRef}
+          contentEditable
+          className={`
+            min-h-[300px] p-4 outline-none text-foreground bg-background
+            prose prose-sm max-w-none
+            focus:ring-2 focus:ring-primary/20 focus:ring-inset
+            ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
+          `}
+          style={{
+            fontFamily: configuration.enableCustomFont ? configuration.fontFamily : undefined,
+            fontSize: configuration.enableCustomFont ? configuration.fontSize : undefined,
+            backgroundColor: configuration.enableCustomBackground ? configuration.backgroundColor : undefined,
+            color: configuration.enableCustomBackground ? configuration.textColor : undefined,
+            background: editorRef.current?.innerHTML === '' ? 
+              `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
+              (configuration.enableCustomBackground ? configuration.backgroundColor : 'transparent')
+          }}
+          onInput={handleContentChange}
+          onFocus={() => setIsEditorFocused(true)}
+          onBlur={() => setIsEditorFocused(false)}
+          onKeyDown={handleKeyDown}
+          data-placeholder={placeholder}
+          suppressContentEditableWarning={true}
+        />
+      )}
     </Card>
   );
 };

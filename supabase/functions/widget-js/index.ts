@@ -327,8 +327,28 @@ serve(async (req) => {
        height: auto;
        border-radius: 6px;
        margin: 0.5em 0;
-     }
-  \`;
+      }
+      
+      .editorcraft-html-editor {
+        min-height: 300px;
+        padding: 16px;
+        outline: none;
+        line-height: 1.4;
+        font-size: 14px;
+        font-family: ui-monospace, SFMono-Regular, "Cascadia Code", "Roboto Mono", monospace;
+        color: \${textColor};
+        background: \${backgroundColor};
+        border: none;
+        resize: none;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      .editorcraft-html-editor:focus {
+        outline: 2px solid hsl(221, 83%, 53%);
+        outline-offset: -2px;
+      }
+   \`;
   
   // Inject styles if not already present
   if (!document.getElementById('editorcraft-styles')) {
@@ -347,6 +367,7 @@ serve(async (req) => {
     link: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
     image: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
     code: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/></svg>',
+    html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/><path d="M14 7h-4l-2 2 2 2h4m0-4h4l2-2-2-2h-4"/></svg>',
     type: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>',
     palette: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
     alignLeft: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="11" y1="14" x2="3" y2="14"/><line x1="11" y1="18" x2="3" y2="18"/></svg>',
@@ -391,7 +412,7 @@ serve(async (req) => {
       tools: [
         { icon: 'link', command: 'createLink', tooltip: 'Insert Link', enabled: WIDGET_CONFIG.enableLink !== false },
         { icon: 'image', command: 'insertImage', tooltip: 'Insert Image', enabled: WIDGET_CONFIG.enableImage !== false },
-        { icon: 'code', command: 'formatBlock', value: 'pre', tooltip: 'Code Block', enabled: WIDGET_CONFIG.enableCode !== false }
+        { icon: 'html', command: 'toggleHtmlView', tooltip: 'HTML View', enabled: WIDGET_CONFIG.enableCode !== false }
       ]
     }
   ];
@@ -448,11 +469,51 @@ serve(async (req) => {
   
   container.innerHTML = editorHTML;
   
+  // Widget state
+  let isHtmlView = false;
+  
   // Add event listeners
   const toolbar = container.querySelector('.editorcraft-toolbar');
-  const editor = container.querySelector('.editorcraft-editor');
+  let editor = container.querySelector('.editorcraft-editor');
   
-  if (toolbar && editor) {
+  // Toggle between visual and HTML view
+  function toggleHtmlView() {
+    const editorContainer = container.querySelector('.editorcraft-container');
+    const currentEditor = editorContainer.querySelector('.editorcraft-editor, .editorcraft-html-editor');
+    
+    if (isHtmlView) {
+      // Switch to visual view
+      const htmlContent = currentEditor.value || '';
+      currentEditor.remove();
+      
+      const visualEditor = document.createElement('div');
+      visualEditor.className = 'editorcraft-editor';
+      visualEditor.contentEditable = true;
+      visualEditor.innerHTML = htmlContent;
+      editorContainer.appendChild(visualEditor);
+      
+      editor = visualEditor;
+      isHtmlView = false;
+    } else {
+      // Switch to HTML view
+      const visualContent = currentEditor.innerHTML || '';
+      currentEditor.remove();
+      
+      const htmlEditor = document.createElement('textarea');
+      htmlEditor.className = 'editorcraft-html-editor';
+      htmlEditor.value = visualContent;
+      htmlEditor.placeholder = '<p>Enter HTML here...</p>';
+      editorContainer.appendChild(htmlEditor);
+      
+      editor = htmlEditor;
+      isHtmlView = true;
+    }
+    
+    // Re-attach event listeners for the new editor
+    attachEditorEvents();
+  }
+  
+  function attachEditorEvents() {
     // Toolbar click handler
     toolbar.addEventListener('click', (e) => {
       const btn = e.target.closest('.editorcraft-btn');
@@ -474,6 +535,11 @@ serve(async (req) => {
         e.preventDefault();
         const command = btn.dataset.command;
         const value = btn.dataset.value;
+        
+        if (command === 'toggleHtmlView') {
+          toggleHtmlView();
+          return;
+        }
         
         if (command === 'color-picker') {
           const palette = btn.parentElement.querySelector('.editorcraft-color-palette');
@@ -568,6 +634,11 @@ serve(async (req) => {
     
     // Initialize toolbar state
     setTimeout(updateToolbarState, 100);
+  }
+  
+  // Initialize event listeners
+  if (toolbar && editor) {
+    attachEditorEvents();
   }
   
   console.log('EditorCraft widget loaded successfully');
