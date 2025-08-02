@@ -471,44 +471,59 @@ serve(async (req) => {
   
   // Widget state
   let isHtmlView = false;
+  let currentContent = '';
   
   // Add event listeners
   const toolbar = container.querySelector('.editorcraft-toolbar');
   let editor = container.querySelector('.editorcraft-editor');
   
+  // Save current content
+  function saveCurrentContent() {
+    const currentEditor = container.querySelector('.editorcraft-editor, .editorcraft-html-editor');
+    if (currentEditor) {
+      if (isHtmlView) {
+        currentContent = currentEditor.value || '';
+      } else {
+        currentContent = currentEditor.innerHTML || '';
+      }
+      console.log('Saved content:', currentContent, 'isHtmlView:', isHtmlView);
+    }
+  }
+  
   // Toggle between visual and HTML view
   function toggleHtmlView() {
     const editorContainer = container.querySelector('.editorcraft-container');
-    const toolbarElement = editorContainer.querySelector('.editorcraft-toolbar');
     const currentEditor = editorContainer.querySelector('.editorcraft-editor, .editorcraft-html-editor');
+    
+    // Save current content before switching
+    saveCurrentContent();
     
     if (isHtmlView) {
       // Switch to visual view - HTML -> Visual
-      const htmlContent = currentEditor.value || '';
       currentEditor.remove();
       
       const visualEditor = document.createElement('div');
       visualEditor.className = 'editorcraft-editor';
       visualEditor.contentEditable = 'true';
-      visualEditor.innerHTML = htmlContent;
+      visualEditor.innerHTML = currentContent;
       editorContainer.appendChild(visualEditor);
       
       editor = visualEditor;
       isHtmlView = false;
+      console.log('Switched to visual view with content:', currentContent);
     } else {
       // Switch to HTML view - Visual -> HTML
-      const visualContent = currentEditor.innerHTML || '';
-      console.log('Visual content:', visualContent); // Debug log
       currentEditor.remove();
       
       const htmlEditor = document.createElement('textarea');
       htmlEditor.className = 'editorcraft-html-editor';
-      htmlEditor.value = visualContent;
+      htmlEditor.value = currentContent;
       htmlEditor.placeholder = '<p>Enter HTML here...</p>';
       editorContainer.appendChild(htmlEditor);
       
       editor = htmlEditor;
       isHtmlView = true;
+      console.log('Switched to HTML view with content:', currentContent);
     }
     
     // Re-attach event listeners for the new editor
@@ -600,6 +615,19 @@ serve(async (req) => {
         }
       }
     });
+    
+    // Add input event listener for both visual and HTML editors
+    if (isHtmlView) {
+      // HTML editor - save changes on input
+      editor.addEventListener('input', () => {
+        currentContent = editor.value;
+      });
+    } else {
+      // Visual editor - save changes on input
+      editor.addEventListener('input', () => {
+        currentContent = editor.innerHTML;
+      });
+    }
     
     // Keyboard shortcuts matching dashboard
     editor.addEventListener('keydown', (e) => {

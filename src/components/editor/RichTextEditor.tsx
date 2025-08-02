@@ -87,6 +87,8 @@ export const RichTextEditor = ({
     }
   };
 
+  console.log('Current state - isHtmlView:', isHtmlView, 'htmlContent:', htmlContent);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Handle common keyboard shortcuts
     if (e.ctrlKey || e.metaKey) {
