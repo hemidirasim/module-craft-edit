@@ -369,7 +369,10 @@ export const WidgetsSection = () => {
                 <Label>Preview</Label>
                 <RichTextEditor 
                   placeholder="This is how your widget will look..." 
-                  configuration={formData.configuration}
+                  configuration={{
+                    ...formData.configuration,
+                    enableCustomBackground: formData.configuration.enableCustomBackground || false
+                  }}
                 />
               </div>
 
