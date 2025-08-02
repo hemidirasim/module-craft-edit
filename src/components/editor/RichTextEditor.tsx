@@ -23,7 +23,7 @@ export const RichTextEditor = ({
   const [isHtmlView, setIsHtmlView] = useState(false);
   const [htmlContent, setHtmlContent] = useState("");
   const [showFindReplace, setShowFindReplace] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; element: HTMLElement; type: 'row' | 'column' } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; element: HTMLElement } | null>(null);
 
   useEffect(() => {
     if (editorRef.current && content !== editorRef.current.innerHTML && !isHtmlView) {
@@ -288,20 +288,10 @@ export const RichTextEditor = ({
     
     if (cell) {
       e.preventDefault();
-      
-      // Determine if it's a row or column operation based on click position
-      const rect = cell.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const cellWidth = rect.width;
-      
-      // If clicked on left/right 30% of cell, show column menu, otherwise row menu
-      const menuType = (clickX < cellWidth * 0.3 || clickX > cellWidth * 0.7) ? 'column' : 'row';
-      
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
-        element: cell as HTMLElement,
-        type: menuType
+        element: cell as HTMLElement
       });
     }
   };
@@ -408,7 +398,6 @@ export const RichTextEditor = ({
         onClose={() => setContextMenu(null)}
         onAction={handleTableAction}
         targetElement={contextMenu?.element || null}
-        menuType={contextMenu?.type || 'row'}
       />
       
       <FindReplaceDialog 
