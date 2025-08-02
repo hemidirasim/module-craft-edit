@@ -479,6 +479,7 @@ serve(async (req) => {
   // Toggle between visual and HTML view
   function toggleHtmlView() {
     const editorContainer = container.querySelector('.editorcraft-container');
+    const toolbarElement = editorContainer.querySelector('.editorcraft-toolbar');
     const currentEditor = editorContainer.querySelector('.editorcraft-editor, .editorcraft-html-editor');
     
     if (isHtmlView) {
@@ -488,7 +489,7 @@ serve(async (req) => {
       
       const visualEditor = document.createElement('div');
       visualEditor.className = 'editorcraft-editor';
-      visualEditor.contentEditable = true;
+      visualEditor.contentEditable = 'true';
       visualEditor.innerHTML = htmlContent;
       editorContainer.appendChild(visualEditor);
       
@@ -514,6 +515,20 @@ serve(async (req) => {
   }
   
   function attachEditorEvents() {
+    if (!editor) return;
+    
+    // Remove existing listeners to avoid duplicates
+    const newToolbar = container.querySelector('.editorcraft-toolbar');
+    const newEditor = container.querySelector('.editorcraft-editor, .editorcraft-html-editor');
+    
+    // Clone toolbar to remove all event listeners
+    const cleanToolbar = newToolbar.cloneNode(true);
+    newToolbar.parentNode.replaceChild(cleanToolbar, newToolbar);
+    
+    // Update references
+    const toolbar = cleanToolbar;
+    editor = newEditor;
+    
     // Toolbar click handler
     toolbar.addEventListener('click', (e) => {
       const btn = e.target.closest('.editorcraft-btn');
@@ -523,8 +538,10 @@ serve(async (req) => {
       if (colorBtn) {
         e.preventDefault();
         const color = colorBtn.dataset.color;
-        editor.focus();
-        document.execCommand('foreColor', false, color);
+        if (!isHtmlView) {
+          editor.focus();
+          document.execCommand('foreColor', false, color);
+        }
         // Hide color palette
         colorBtn.closest('.editorcraft-color-palette').style.display = 'none';
         updateToolbarState();
@@ -547,23 +564,25 @@ serve(async (req) => {
           return;
         }
         
-        editor.focus();
-        
-        if (command === 'createLink') {
-          const url = prompt('Enter URL:');
-          if (url) {
-            document.execCommand(command, false, url);
+        if (!isHtmlView) {
+          editor.focus();
+          
+          if (command === 'createLink') {
+            const url = prompt('Enter URL:');
+            if (url) {
+              document.execCommand(command, false, url);
+            }
+          } else if (command === 'insertImage') {
+            const url = prompt('Enter image URL:');
+            if (url) {
+              document.execCommand('insertImage', false, url);
+            }
+          } else {
+            document.execCommand(command, false, value);
           }
-        } else if (command === 'insertImage') {
-          const url = prompt('Enter image URL:');
-          if (url) {
-            document.execCommand('insertImage', false, url);
-          }
-        } else {
-          document.execCommand(command, false, value);
+          
+          updateToolbarState();
         }
-        
-        updateToolbarState();
       }
     });
     
@@ -573,7 +592,7 @@ serve(async (req) => {
       if (select) {
         const command = select.dataset.command;
         const value = select.value;
-        if (value) {
+        if (value && !isHtmlView) {
           editor.focus();
           document.execCommand(command, false, value);
           updateToolbarState();
