@@ -6,12 +6,14 @@ interface RichTextEditorProps {
   content?: string;
   onChange?: (content: string) => void;
   placeholder?: string;
+  configuration?: any;
 }
 
 export const RichTextEditor = ({ 
   content = "", 
   onChange, 
-  placeholder = "Start writing..." 
+  placeholder = "Start writing...",
+  configuration = {}
 }: RichTextEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
@@ -76,7 +78,7 @@ export const RichTextEditor = ({
 
   return (
     <Card className="overflow-hidden shadow-card">
-      <EditorToolbar onCommand={handleCommand} />
+      <EditorToolbar onCommand={handleCommand} configuration={configuration} />
       <div
         ref={editorRef}
         contentEditable

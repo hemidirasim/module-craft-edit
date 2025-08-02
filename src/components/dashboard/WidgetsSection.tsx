@@ -364,7 +364,10 @@ export const WidgetsSection = () => {
 
               <div className="space-y-2">
                 <Label>Preview</Label>
-                <RichTextEditor placeholder="This is how your widget will look..." />
+                <RichTextEditor 
+                  placeholder="This is how your widget will look..." 
+                  configuration={formData.configuration}
+                />
               </div>
 
               <div className="flex gap-2">
