@@ -301,20 +301,28 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
             <Bookmark size={16} className="mr-2" />
             Bookmark
           </DropdownMenuItem>
-          <div className="px-2 py-1">
-            <label className="text-xs text-muted-foreground flex items-center mb-1">
-              <Table size={14} className="mr-1" />
-              Table
-            </label>
-            <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
-          </div>
-          <div className="px-2 py-1">
-            <label className="text-xs text-muted-foreground flex items-center mb-1">
-              <Smile size={14} className="mr-1" />
-              Emoji
-            </label>
-            <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
-          </div>
+          <DropdownMenuItem className="cursor-pointer hover:bg-accent p-0">
+            <div className="w-full">
+              <div className="flex items-center px-2 py-1.5">
+                <Table size={16} className="mr-2" />
+                Table
+              </div>
+              <div className="px-2 pb-2">
+                <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
+              </div>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer hover:bg-accent p-0">
+            <div className="w-full">
+              <div className="flex items-center px-2 py-1.5">
+                <Smile size={16} className="mr-2" />
+                Emoji
+              </div>
+              <div className="px-2 pb-2">
+                <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
+              </div>
+            </div>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
