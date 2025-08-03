@@ -14,6 +14,12 @@ export const Demo = () => {
       <li><s>Strikethrough</s> for corrections</li>
     </ul>
     <p>You can also insert <a href="#">links</a> and images. This editor is built from scratch with <strong>zero third-party dependencies</strong>.</p>
+    
+    <div style="text-align: center; margin: 20px 0;">
+      <img src="/lovable-uploads/d658b038-a3c1-4426-8485-f456baddff8b.png" alt="Sample image for testing" style="max-width: 300px; height: auto;" />
+      <p><em>Click on the image above to test the crop and editing features!</em></p>
+    </div>
+    
     <blockquote>
       <p>"The best way to predict the future is to invent it." - Alan Kay</p>
     </blockquote>
