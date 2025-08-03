@@ -233,22 +233,39 @@ export const RichTextEditor = ({
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
           const range = selection.getRangeAt(0);
-          const listItem = range.commonAncestorContainer.parentElement?.closest('li');
+          
+          // Find if cursor is in a list item
+          let currentElement = range.startContainer;
+          if (currentElement.nodeType === Node.TEXT_NODE) {
+            currentElement = currentElement.parentElement;
+          }
+          
+          const listItem = (currentElement as Element).closest('li');
           const list = listItem?.closest('ol, ul');
           
           if (listItem && list) {
-            // Toggle off: convert list item back to regular paragraph
-            const listItemText = listItem.textContent || '';
-            const paragraph = document.createElement('p');
-            paragraph.textContent = listItemText;
+            // Toggle off: convert list back to regular text
+            const listItems = Array.from(list.querySelectorAll('li'));
+            let replacement = '';
             
-            if (list.children.length === 1) {
-              // Only one item, remove the entire list
-              list.parentNode?.replaceChild(paragraph, list);
-            } else {
-              // Multiple items, just remove this one
-              listItem.parentNode?.replaceChild(paragraph, listItem);
-            }
+            listItems.forEach((item, index) => {
+              const text = item.textContent || '';
+              replacement += (index > 0 ? '<br>' : '') + text;
+            });
+            
+            // Create a div with the content
+            const div = document.createElement('div');
+            div.innerHTML = replacement;
+            
+            // Replace the entire list
+            list.parentNode?.replaceChild(div, list);
+            
+            // Set cursor position
+            selection.removeAllRanges();
+            const newRange = document.createRange();
+            newRange.setStart(div, 0);
+            newRange.collapse(true);
+            selection.addRange(newRange);
           } else {
             const selectedText = selection.toString();
             if (selectedText.trim()) {
@@ -278,22 +295,39 @@ export const RichTextEditor = ({
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
           const range = selection.getRangeAt(0);
-          const listItem = range.commonAncestorContainer.parentElement?.closest('li');
+          
+          // Find if cursor is in a list item
+          let currentElement = range.startContainer;
+          if (currentElement.nodeType === Node.TEXT_NODE) {
+            currentElement = currentElement.parentElement;
+          }
+          
+          const listItem = (currentElement as Element).closest('li');
           const list = listItem?.closest('ol, ul');
           
           if (listItem && list) {
-            // Toggle off: convert list item back to regular paragraph
-            const listItemText = listItem.textContent || '';
-            const paragraph = document.createElement('p');
-            paragraph.textContent = listItemText;
+            // Toggle off: convert list back to regular text
+            const listItems = Array.from(list.querySelectorAll('li'));
+            let replacement = '';
             
-            if (list.children.length === 1) {
-              // Only one item, remove the entire list
-              list.parentNode?.replaceChild(paragraph, list);
-            } else {
-              // Multiple items, just remove this one
-              listItem.parentNode?.replaceChild(paragraph, listItem);
-            }
+            listItems.forEach((item, index) => {
+              const text = item.textContent || '';
+              replacement += (index > 0 ? '<br>' : '') + text;
+            });
+            
+            // Create a div with the content
+            const div = document.createElement('div');
+            div.innerHTML = replacement;
+            
+            // Replace the entire list
+            list.parentNode?.replaceChild(div, list);
+            
+            // Set cursor position
+            selection.removeAllRanges();
+            const newRange = document.createRange();
+            newRange.setStart(div, 0);
+            newRange.collapse(true);
+            selection.addRange(newRange);
           } else {
             const selectedText = selection.toString();
             if (selectedText.trim()) {
