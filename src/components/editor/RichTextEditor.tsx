@@ -840,37 +840,40 @@ export const RichTextEditor = ({
             return;
           }
           
-          // For normal Enter, check if we are at an empty line
+          // For normal Enter, get cursor position and check current line content
           const selection = window.getSelection();
           if (!selection || selection.rangeCount === 0) return;
           
           const range = selection.getRangeAt(0);
-          const currentNode = range.startContainer;
           
-          // Get the text content of the current text node or parent element
-          let currentLineText = '';
-          if (currentNode.nodeType === Node.TEXT_NODE) {
-            const textContent = currentNode.textContent || '';
-            const offset = range.startOffset;
-            // Get text from last line break to cursor
-            const textBeforeCursor = textContent.substring(0, offset);
-            const lastLineBreak = textBeforeCursor.lastIndexOf('\n');
-            currentLineText = lastLineBreak >= 0 ? 
-              textBeforeCursor.substring(lastLineBreak + 1) : 
-              textBeforeCursor;
+          // Check if cursor is at the end of an empty line or <br> element
+          const container = range.startContainer;
+          const offset = range.startOffset;
+          
+          let isEmptyLine = false;
+          
+          if (container.nodeType === Node.TEXT_NODE) {
+            // Check if text node has only whitespace before cursor
+            const textContent = container.textContent || '';
+            const beforeCursor = textContent.substring(0, offset);
+            const afterCursor = textContent.substring(offset);
+            
+            // If the line before cursor is empty/whitespace and we're at end of this text
+            isEmptyLine = beforeCursor.trim() === '' && afterCursor.trim() === '';
           } else {
-            // If we're in an element, check if it's empty or just has <br>
-            const element = currentNode as Element;
-            if (element.tagName === 'BR' || 
-                (element.textContent || '').trim() === '' ||
-                element.innerHTML === '<br>') {
-              currentLineText = '';
+            // If we're in an element node (like after a <br>)
+            const element = container as Element;
+            if (element === blockquote || element.closest('blockquote') === blockquote) {
+              // Check if the previous sibling is a BR or if this is an empty element
+              const prevSibling = element.previousSibling;
+              isEmptyLine = !prevSibling || 
+                          prevSibling.nodeName === 'BR' || 
+                          (element.textContent || '').trim() === '';
             }
           }
           
-          // If current line is empty (just whitespace), exit blockquote
-          if (currentLineText.trim() === '') {
-            // Create new paragraph after blockquote
+          if (isEmptyLine) {
+            // Exit blockquote - create new paragraph after it
             const newParagraph = document.createElement('div');
             newParagraph.style.margin = '16px 0';
             newParagraph.innerHTML = '<br>';
@@ -888,7 +891,7 @@ export const RichTextEditor = ({
               newSelection?.addRange(newRange);
             }
           } else {
-            // Add line break within blockquote (continue quoting)
+            // Continue in blockquote - add line break
             document.execCommand('insertHTML', false, '<br>');
           }
           
