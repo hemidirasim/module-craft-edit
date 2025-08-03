@@ -56,11 +56,22 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
   };
 
   const generateEmbedCode = (videoInfo: { platform: string; id: string }) => {
+    // Format dimensions to include 'px' if it's a number, otherwise use as-is (for percentages)
+    const formatDimension = (value: string) => {
+      if (/^\d+$/.test(value)) {
+        return value + 'px';
+      }
+      return value;
+    };
+
+    const width = formatDimension(mediaWidth);
+    const height = formatDimension(mediaHeight);
+
     switch (videoInfo.platform) {
       case 'youtube':
-        return `<iframe width="${mediaWidth}" height="${mediaHeight}" src="https://www.youtube.com/embed/${videoInfo.id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+        return `<iframe width="${width}" height="${height}" src="https://www.youtube.com/embed/${videoInfo.id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
       case 'vimeo':
-        return `<iframe src="https://player.vimeo.com/video/${videoInfo.id}" width="${mediaWidth}" height="${mediaHeight}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+        return `<iframe src="https://player.vimeo.com/video/${videoInfo.id}" width="${width}" height="${height}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
       default:
         return '';
     }
