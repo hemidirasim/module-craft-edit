@@ -6,7 +6,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Crop, Square, Monitor, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,90 +54,56 @@ export const CropDialog = ({
   const [isResizing, setIsResizing] = useState(false);
   const [resizeHandle, setResizeHandle] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  // Crop data and display settings
   const [cropData, setCropData] = useState<CropData>({
-    x: 0,
-    y: 0,
+    x: 50,
+    y: 50,
     width: 200,
     height: 200
   });
 
-  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-  const [loadedImageDimensions, setLoadedImageDimensions] = useState({ width: 0, height: 0 });
+  // Display dimensions
+  const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
 
-  const setupCropArea = useCallback(() => {
-    console.log('setupCropArea called');
-    if (!containerRef.current || !imageElement) {
-      console.log('Missing container or imageElement');
-      return;
-    }
-    
-    // Use imageElement dimensions directly
-    const naturalWidth = imageElement.naturalWidth || 0;
-    const naturalHeight = imageElement.naturalHeight || 0;
-    
-    console.log('Image dimensions from setupCropArea:', { naturalWidth, naturalHeight });
-    
-    if (naturalWidth === 0 || naturalHeight === 0) {
-      console.log('⚠️ No valid image dimensions available');
-      return;
-    }
-    
-    console.log('Setting up crop area with dimensions:', naturalWidth, 'x', naturalHeight);
-    
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const maxWidth = Math.min(500, containerRect.width - 40);
-    const maxHeight = 400;
-    
-    const aspectRatio = naturalWidth / naturalHeight;
-    let displayWidth = maxWidth;
-    let displayHeight = displayWidth / aspectRatio;
-    
-    if (displayHeight > maxHeight) {
-      displayHeight = maxHeight;
-      displayWidth = displayHeight * aspectRatio;
-    }
-    
-    console.log('Display size calculated:', displayWidth, 'x', displayHeight);
-    setImageSize({ width: displayWidth, height: displayHeight });
-    
-    // Initialize crop to center
-    const initialSize = Math.min(displayWidth, displayHeight) * 0.6;
-    setCropData({
-      x: (displayWidth - initialSize) / 2,
-      y: (displayHeight - initialSize) / 2,
-      width: initialSize,
-      height: initialSize
-    });
-    
-    console.log('Crop area setup completed');
-  }, [imageElement]);
-
+  // Initialize when dialog opens
   useEffect(() => {
-    console.log('CropDialog useEffect triggered:', { imageElement, open });
-    if (imageElement && containerRef.current && open) {
-      console.log('=== CROP DIALOG DEBUG ===');
-      console.log('Image element:', imageElement);
-      console.log('Image src:', imageElement.src);
-      console.log('Image naturalWidth:', imageElement.naturalWidth);
-      console.log('Image naturalHeight:', imageElement.naturalHeight);
-      console.log('Image complete:', imageElement.complete);
+    if (open && imageElement && containerRef.current) {
+      console.log('🎯 Initializing crop dialog');
+      console.log('Image dimensions:', imageElement.naturalWidth, 'x', imageElement.naturalHeight);
       
-      // If image already has dimensions, setup immediately
-      if (imageElement.naturalWidth > 0 && imageElement.naturalHeight > 0) {
-        console.log('✅ Using existing image dimensions, setting up crop area');
-        setupCropArea();
-      } else {
-        console.log('⚠️ Image dimensions not available, waiting...');
-        // Wait a bit for image to be fully loaded, then setup crop area
-        const timer = setTimeout(() => {
-          console.log('Timer triggered, attempting setup again');
-          setupCropArea();
-        }, 200);
-        
-        return () => clearTimeout(timer);
+      // Calculate display size
+      const containerWidth = 600; // Fixed container width
+      const containerHeight = 400; // Fixed container height
+      
+      const imageAspect = imageElement.naturalWidth / imageElement.naturalHeight;
+      
+      let displayWidth = containerWidth;
+      let displayHeight = displayWidth / imageAspect;
+      
+      if (displayHeight > containerHeight) {
+        displayHeight = containerHeight;
+        displayWidth = displayHeight * imageAspect;
       }
+      
+      setDisplaySize({ width: displayWidth, height: displayHeight });
+      
+      // Center the crop area
+      const cropSize = Math.min(displayWidth, displayHeight) * 0.6;
+      setCropData({
+        x: (displayWidth - cropSize) / 2,
+        y: (displayHeight - cropSize) / 2,
+        width: cropSize,
+        height: cropSize
+      });
+      
+      setIsReady(true);
+      console.log('✅ Crop dialog ready');
+    } else if (!open) {
+      setIsReady(false);
     }
-  }, [imageElement, open, setupCropArea]);
+  }, [open, imageElement]);
 
   const handleMouseDown = (e: React.MouseEvent, action: 'drag' | 'resize', handle?: string) => {
     e.preventDefault();
@@ -158,17 +123,17 @@ export const CropDialog = ({
     const y = e.clientY - rect.top;
 
     if (isDragging) {
-      const newX = Math.max(0, Math.min(x - cropData.width / 2, imageSize.width - cropData.width));
-      const newY = Math.max(0, Math.min(y - cropData.height / 2, imageSize.height - cropData.height));
+      const newX = Math.max(0, Math.min(x - cropData.width / 2, displaySize.width - cropData.width));
+      const newY = Math.max(0, Math.min(y - cropData.height / 2, displaySize.height - cropData.height));
       setCropData(prev => ({ ...prev, x: newX, y: newY }));
     } else if (isResizing) {
       let newCrop = { ...cropData };
       
       if (resizeHandle.includes('right')) {
-        newCrop.width = Math.max(50, Math.min(x - cropData.x, imageSize.width - cropData.x));
+        newCrop.width = Math.max(50, Math.min(x - cropData.x, displaySize.width - cropData.x));
       }
       if (resizeHandle.includes('bottom')) {
-        newCrop.height = Math.max(50, Math.min(y - cropData.y, imageSize.height - cropData.y));
+        newCrop.height = Math.max(50, Math.min(y - cropData.y, displaySize.height - cropData.y));
       }
       if (resizeHandle.includes('left')) {
         const newWidth = Math.max(50, cropData.x + cropData.width - x);
@@ -194,7 +159,7 @@ export const CropDialog = ({
 
       setCropData(newCrop);
     }
-  }, [isDragging, isResizing, cropData, imageSize, selectedRatio, resizeHandle]);
+  }, [isDragging, isResizing, cropData, displaySize, selectedRatio, resizeHandle]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -224,7 +189,7 @@ export const CropDialog = ({
     
     if (ratio && ratio > 0) {
       const newHeight = cropData.width / ratio;
-      const maxHeight = imageSize.height - cropData.y;
+      const maxHeight = displaySize.height - cropData.y;
       
       if (newHeight <= maxHeight) {
         setCropData(prev => ({ ...prev, height: newHeight }));
@@ -246,11 +211,8 @@ export const CropDialog = ({
       if (!ctx) throw new Error('Canvas context not available');
 
       // Calculate scale factor between display size and natural size
-      const naturalWidth = imageElement.naturalWidth;
-      const naturalHeight = imageElement.naturalHeight;
-        
-      const scaleX = naturalWidth / imageSize.width;
-      const scaleY = naturalHeight / imageSize.height;
+      const scaleX = imageElement.naturalWidth / displaySize.width;
+      const scaleY = imageElement.naturalHeight / displaySize.height;
 
       // Set canvas size to crop dimensions in natural image coordinates
       const cropWidth = cropData.width * scaleX;
@@ -288,7 +250,7 @@ export const CropDialog = ({
       const formData = new FormData();
       formData.append('file', file);
 
-      // Use file-upload function (same as ImageDialog and FileManager)
+      // Upload using file-upload function
       const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/file-upload`, {
         method: 'POST',
         headers: {
@@ -328,13 +290,13 @@ export const CropDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Crop Image</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-
+          {/* Aspect Ratio Controls */}
           <div>
             <Label className="text-sm font-medium mb-2 block">Aspect Ratio</Label>
             <div className="grid grid-cols-4 gap-2">
@@ -353,46 +315,31 @@ export const CropDialog = ({
             </div>
           </div>
 
-          {/* Always show crop area if we have imageElement, regardless of imageSize */}
-          {imageElement ? (
-            <div
-              ref={containerRef}
-              className="relative border border-border rounded-lg overflow-hidden bg-muted flex items-center justify-center"
-              style={{ 
-                height: imageSize.height > 0 ? imageSize.height + 40 : 500,
-                minHeight: 400
-              }}
-            >
-              <img
-                src={imageElement.src}
-                alt="Crop preview"
-                className="absolute"
+          {/* Crop Area */}
+          <div className="relative border border-border rounded-lg overflow-hidden bg-muted flex items-center justify-center" style={{ height: 450 }}>
+            {isReady ? (
+              <div
+                ref={containerRef}
+                className="relative"
                 style={{
-                  width: imageSize.width > 0 ? imageSize.width : 'auto',
-                  height: imageSize.height > 0 ? imageSize.height : 'auto',
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)'
+                  width: displaySize.width,
+                  height: displaySize.height,
                 }}
-                draggable={false}
-                onLoad={() => {
-                  console.log('Image in crop dialog loaded');
-                  if (imageSize.width === 0) {
-                    setupCropArea();
-                  }
-                }}
-              />
-              
-              {/* Only show crop overlay if imageSize is set */}
-              {imageSize.width > 0 && imageSize.height > 0 && (
+              >
+                {/* Image */}
+                <img
+                  src={imageElement.src}
+                  alt="Crop preview"
+                  className="absolute inset-0 w-full h-full object-contain"
+                  draggable={false}
+                />
+                
+                {/* Crop overlay */}
                 <div
                   className="absolute border-2 border-primary bg-primary/20 cursor-move"
                   style={{
-                    left: cropData.x + 20,
-                    top: cropData.y + 20,
+                    left: cropData.x,
+                    top: cropData.y,
                     width: cropData.width,
                     height: cropData.height,
                   }}
@@ -416,20 +363,13 @@ export const CropDialog = ({
                     onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-right')}
                   />
                 </div>
-              )}
-              
-              {/* Loading message if crop area not setup yet */}
-              {imageSize.width === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
-                  <p className="text-muted-foreground">Setting up crop area...</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="border border-border rounded-lg p-8 text-center bg-muted">
-              <p className="text-muted-foreground">No image selected for cropping</p>
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center">
+                <p className="text-muted-foreground">Loading...</p>
+              </div>
+            )}
+          </div>
 
           {/* Hidden canvas for cropping */}
           <canvas ref={canvasRef} style={{ display: 'none' }} />
@@ -439,7 +379,7 @@ export const CropDialog = ({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={cropAndUploadImage} disabled={isProcessing || !imageElement}>
+            <Button onClick={cropAndUploadImage} disabled={isProcessing || !isReady}>
               {isProcessing ? 'Processing...' : 'Crop & Upload'}
             </Button>
           </div>
