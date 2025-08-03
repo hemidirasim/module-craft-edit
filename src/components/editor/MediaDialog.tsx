@@ -216,6 +216,13 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
                         setEmbedCode(embed);
                       }
                     }}
+                    onBlur={() => {
+                      const videoInfo = extractVideoId(videoUrl);
+                      if (videoInfo) {
+                        const embed = generateEmbedCode(videoInfo);
+                        setEmbedCode(embed);
+                      }
+                    }}
                     placeholder="560px or 100%"
                   />
                   <p className="text-xs text-muted-foreground">
@@ -233,6 +240,13 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
                       setMediaHeight(value + " ");
                       setTimeout(() => setMediaHeight(value), 1);
                       
+                      const videoInfo = extractVideoId(videoUrl);
+                      if (videoInfo) {
+                        const embed = generateEmbedCode(videoInfo);
+                        setEmbedCode(embed);
+                      }
+                    }}
+                    onBlur={() => {
                       const videoInfo = extractVideoId(videoUrl);
                       if (videoInfo) {
                         const embed = generateEmbedCode(videoInfo);
