@@ -48,7 +48,7 @@ export const CropDialog = ({
 }: CropDialogProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [selectedRatio, setSelectedRatio] = useState<number | null>(null);
+  const [selectedRatio, setSelectedRatio] = useState<number | null>(null); // Default to freeform
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeHandle, setResizeHandle] = useState<string>("");
@@ -165,8 +165,10 @@ export const CropDialog = ({
         newCrop.height = newHeight;
       }
 
-      // Apply aspect ratio constraint if selected
+      // Apply aspect ratio constraint ONLY if selectedRatio is not null and greater than 0
+      // null = freeform, no constraints
       if (selectedRatio !== null && selectedRatio > 0) {
+        console.log('Applying aspect ratio constraint:', selectedRatio);
         if (resizeHandle.includes('right') || resizeHandle.includes('left')) {
           newCrop.height = newCrop.width / selectedRatio;
         } else {
@@ -182,6 +184,11 @@ export const CropDialog = ({
           newCrop.height = displaySize.height - newCrop.y;
           newCrop.width = newCrop.height * selectedRatio;
         }
+      } else {
+        console.log('Freeform mode - no aspect ratio constraints applied');
+        // In freeform mode, just ensure boundaries are respected
+        newCrop.width = Math.min(newCrop.width, displaySize.width - newCrop.x);
+        newCrop.height = Math.min(newCrop.height, displaySize.height - newCrop.y);
       }
 
       setCropData(newCrop);
@@ -366,7 +373,7 @@ export const CropDialog = ({
           {/* Aspect Ratio Controls */}
           <div>
             <Label className="text-sm font-medium mb-2 block">Aspect Ratio</Label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {aspectRatios.map((ratio) => (
                 <Button
                   key={ratio.label}
