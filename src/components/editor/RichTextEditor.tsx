@@ -818,6 +818,58 @@ export const RichTextEditor = ({
   console.log('Current state - isHtmlView:', isHtmlView, 'htmlContent:', htmlContent);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Handle Enter key in blockquote
+    if (e.key === 'Enter') {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        let currentElement = range.startContainer;
+        
+        if (currentElement.nodeType === Node.TEXT_NODE) {
+          currentElement = currentElement.parentElement;
+        }
+        
+        const blockquote = (currentElement as Element)?.closest('blockquote');
+        if (blockquote) {
+          e.preventDefault();
+          
+          // Check if this is the second Enter press by looking for an empty line
+          const cursorPosition = range.startOffset;
+          const textContent = currentElement?.textContent || '';
+          const beforeCursor = textContent.substring(0, cursorPosition);
+          const afterCursor = textContent.substring(cursorPosition);
+          
+          // If we're at the end of the blockquote and pressing Enter
+          if (afterCursor.trim() === '' && beforeCursor.trim() !== '') {
+            // First Enter - add a new line in blockquote
+            document.execCommand('insertHTML', false, '<br>');
+          } else if (beforeCursor.trim() === '' || (beforeCursor.endsWith('\n') && beforeCursor.trim() === '')) {
+            // Second Enter or empty line - exit blockquote
+            const newParagraph = '<div style="margin: 16px 0;"><br></div>';
+            
+            // Insert the new paragraph after the blockquote
+            const newElement = document.createElement('div');
+            newElement.innerHTML = newParagraph;
+            blockquote.parentNode?.insertBefore(newElement.firstChild!, blockquote.nextSibling);
+            
+            // Move cursor to the new paragraph
+            const newRange = document.createRange();
+            const newSelection = window.getSelection();
+            newRange.setStart(newElement.firstChild!, 0);
+            newRange.collapse(true);
+            newSelection?.removeAllRanges();
+            newSelection?.addRange(newRange);
+          } else {
+            // Normal Enter behavior within blockquote
+            document.execCommand('insertHTML', false, '<br>');
+          }
+          
+          handleContentChange();
+          return;
+        }
+      }
+    }
+
     // Handle common keyboard shortcuts
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
