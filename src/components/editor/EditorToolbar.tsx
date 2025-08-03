@@ -307,9 +307,7 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
                 <Table size={16} className="mr-2" />
                 Table
               </div>
-              <div className="px-2 pb-2">
-                <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
-              </div>
+              <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
             </div>
           </DropdownMenuItem>
           <DropdownMenuItem className="cursor-pointer hover:bg-accent p-0">
@@ -318,9 +316,7 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
                 <Smile size={16} className="mr-2" />
                 Emoji
               </div>
-              <div className="px-2 pb-2">
-                <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
-              </div>
+              <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
             </div>
           </DropdownMenuItem>
         </DropdownMenuContent>
