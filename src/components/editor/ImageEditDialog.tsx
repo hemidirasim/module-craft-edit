@@ -8,9 +8,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import { RotateCw, AlignLeft, AlignCenter, AlignRight, Crop } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlignLeft, AlignCenter, AlignRight, Crop } from "lucide-react";
 import { CropDialog } from "./CropDialog";
 import { toast } from "sonner";
 
@@ -23,7 +23,7 @@ interface ImageEditDialogProps {
 
 interface ImageChanges {
   width?: string;
-  rotation?: number;
+  height?: string;
   alignment?: 'left' | 'center' | 'right';
   caption?: string;
   alt?: string;
@@ -37,11 +37,14 @@ export const ImageEditDialog = ({
   onApplyChanges 
 }: ImageEditDialogProps) => {
   const [width, setWidth] = useState<string>("");
-  const [rotation, setRotation] = useState<number>(0);
+  const [height, setHeight] = useState<string>("");
+  const [widthUnit, setWidthUnit] = useState<'px' | '%'>('px');
+  const [heightUnit, setHeightUnit] = useState<'px' | '%'>('px');
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('center');
   const [caption, setCaption] = useState<string>("");
   const [alt, setAlt] = useState<string>("");
   const [originalWidth, setOriginalWidth] = useState<number>(0);
+  const [originalHeight, setOriginalHeight] = useState<number>(0);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [newImageSrc, setNewImageSrc] = useState<string>("");
   const [currentImageElement, setCurrentImageElement] = useState<HTMLImageElement | null>(null);
@@ -50,12 +53,21 @@ export const ImageEditDialog = ({
     if (imageElement && open) {
       // Get current image properties
       const currentWidth = imageElement.style.width || imageElement.width + 'px';
-      setWidth(currentWidth.replace('px', ''));
+      const currentHeight = imageElement.style.height || imageElement.height + 'px';
       
-      // Get rotation from transform
-      const transform = imageElement.style.transform;
-      const rotateMatch = transform.match(/rotate\((\d+)deg\)/);
-      setRotation(rotateMatch ? parseInt(rotateMatch[1]) : 0);
+      // Parse width and height values with units
+      const widthMatch = currentWidth.match(/^(\d+)(.*)$/);
+      const heightMatch = currentHeight.match(/^(\d+)(.*)$/);
+      
+      if (widthMatch) {
+        setWidth(widthMatch[1]);
+        setWidthUnit(widthMatch[2].includes('%') ? '%' : 'px');
+      }
+      
+      if (heightMatch) {
+        setHeight(heightMatch[1]);
+        setHeightUnit(heightMatch[2].includes('%') ? '%' : 'px');
+      }
       
       // Get alignment from parent or image style
       const parent = imageElement.parentElement;
@@ -70,15 +82,16 @@ export const ImageEditDialog = ({
       // Get alt text
       setAlt(imageElement.alt || '');
       
-      // Store original width for percentage calculations
+      // Store original dimensions for percentage calculations
       setOriginalWidth(imageElement.naturalWidth);
+      setOriginalHeight(imageElement.naturalHeight);
     }
   }, [imageElement, open]);
 
   const handleApply = () => {
     const changes: ImageChanges = {
-      width: width + 'px',
-      rotation,
+      width: width ? width + widthUnit : undefined,
+      height: height ? height + heightUnit : undefined,
       alignment,
       caption,
       alt,
@@ -124,23 +137,54 @@ export const ImageEditDialog = ({
     }
   };
 
-  const handleWidthChange = (value: string) => {
-    setWidth(value);
-  };
-
-  const handleRotationChange = (degrees: number) => {
-    setRotation((prev) => (prev + degrees) % 360);
-  };
-
-  const getWidthPercentage = () => {
-    if (!originalWidth || !width) return 100;
-    return Math.round((parseInt(width) / originalWidth) * 100);
-  };
-
-  const setWidthByPercentage = (percentage: number) => {
-    if (originalWidth) {
-      setWidth(Math.round((originalWidth * percentage) / 100).toString());
+  const convertWidthToPixels = (value: string, unit: 'px' | '%') => {
+    if (unit === '%' && originalWidth) {
+      return Math.round((originalWidth * parseInt(value)) / 100).toString();
     }
+    return value;
+  };
+
+  const convertHeightToPixels = (value: string, unit: 'px' | '%') => {
+    if (unit === '%' && originalHeight) {
+      return Math.round((originalHeight * parseInt(value)) / 100).toString();
+    }
+    return value;
+  };
+
+  const convertWidthToPercent = (value: string, unit: 'px' | '%') => {
+    if (unit === 'px' && originalWidth) {
+      return Math.round((parseInt(value) / originalWidth) * 100).toString();
+    }
+    return value;
+  };
+
+  const convertHeightToPercent = (value: string, unit: 'px' | '%') => {
+    if (unit === 'px' && originalHeight) {
+      return Math.round((parseInt(value) / originalHeight) * 100).toString();
+    }
+    return value;
+  };
+
+  const handleWidthUnitChange = (newUnit: 'px' | '%') => {
+    if (width) {
+      if (newUnit === 'px' && widthUnit === '%') {
+        setWidth(convertWidthToPixels(width, '%'));
+      } else if (newUnit === '%' && widthUnit === 'px') {
+        setWidth(convertWidthToPercent(width, 'px'));
+      }
+    }
+    setWidthUnit(newUnit);
+  };
+
+  const handleHeightUnitChange = (newUnit: 'px' | '%') => {
+    if (height) {
+      if (newUnit === 'px' && heightUnit === '%') {
+        setHeight(convertHeightToPixels(height, '%'));
+      } else if (newUnit === '%' && heightUnit === 'px') {
+        setHeight(convertHeightToPercent(height, 'px'));
+      }
+    }
+    setHeightUnit(newUnit);
   };
 
   return (
@@ -175,71 +219,43 @@ export const ImageEditDialog = ({
               <Input
                 type="number"
                 value={width}
-                onChange={(e) => handleWidthChange(e.target.value)}
-                placeholder="Pixels"
+                onChange={(e) => setWidth(e.target.value)}
+                placeholder="Width"
                 className="flex-1"
               />
-              <span className="text-sm text-muted-foreground">px</span>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setWidthByPercentage(25)}
-              >
-                25%
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setWidthByPercentage(50)}
-              >
-                50%
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setWidthByPercentage(75)}
-              >
-                75%
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setWidthByPercentage(100)}
-              >
-                100%
-              </Button>
+              <Select value={widthUnit} onValueChange={handleWidthUnitChange}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="px">px</SelectItem>
+                  <SelectItem value="%">%</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Rotation Control */}
+          {/* Height Control */}
           <div className="space-y-2">
-            <Label>Rotation</Label>
+            <Label>Height</Label>
             <div className="flex gap-2 items-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleRotationChange(-90)}
-              >
-                <RotateCw className="w-4 h-4 transform scale-x-[-1]" />
-              </Button>
-              <span className="flex-1 text-center text-sm">{rotation}°</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleRotationChange(90)}
-              >
-                <RotateCw className="w-4 h-4" />
-              </Button>
+              <Input
+                type="number"
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                placeholder="Height"
+                className="flex-1"
+              />
+              <Select value={heightUnit} onValueChange={handleHeightUnitChange}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="px">px</SelectItem>
+                  <SelectItem value="%">%</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Slider
-              value={[rotation]}
-              onValueChange={(value) => setRotation(value[0])}
-              max={360}
-              step={1}
-              className="w-full"
-            />
           </div>
 
           {/* Alignment Control */}

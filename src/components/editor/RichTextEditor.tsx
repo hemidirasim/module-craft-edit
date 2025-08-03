@@ -1063,18 +1063,33 @@ export const RichTextEditor = ({
       selectedImage.style.width = changes.width;
     }
     
-    // Apply rotation changes
-    if (changes.rotation !== undefined) {
-      const currentTransform = selectedImage.style.transform || '';
-      const newTransform = currentTransform.replace(/rotate\([^)]*\)/, '') + ` rotate(${changes.rotation}deg)`;
-      selectedImage.style.transform = newTransform.trim();
+    // Apply height changes
+    if (changes.height) {
+      selectedImage.style.height = changes.height;
     }
     
     // Apply alignment changes
     if (changes.alignment) {
-      const parent = selectedImage.parentElement;
-      if (parent) {
-        parent.style.textAlign = changes.alignment;
+      // Find the containing paragraph or create one if needed
+      let container = selectedImage.parentElement;
+      
+      // If the image is directly in the editor, wrap it in a paragraph
+      if (container === editorRef.current) {
+        const p = document.createElement('p');
+        container.insertBefore(p, selectedImage);
+        p.appendChild(selectedImage);
+        container = p;
+      }
+      
+      // Apply text alignment to the container
+      if (container) {
+        container.style.textAlign = changes.alignment;
+        
+        // For center alignment, ensure proper display
+        if (changes.alignment === 'center') {
+          container.style.display = 'block';
+          container.style.width = '100%';
+        }
       }
     }
     
