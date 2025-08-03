@@ -9,7 +9,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket } from 'lucide-react';
+import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket, Link } from 'lucide-react';
 
 interface TextContextMenuProps {
   children: React.ReactNode;
@@ -61,6 +61,10 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
         <ContextMenuItem onClick={() => onCommand('underline')}>
           <Underline className="mr-2 h-4 w-4" />
           Underline
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onCommand('createLink')}>
+          <Link className="mr-2 h-4 w-4" />
+          Add Link
         </ContextMenuItem>
         
         <ContextMenuSeparator />
