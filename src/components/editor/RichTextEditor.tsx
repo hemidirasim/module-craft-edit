@@ -220,7 +220,7 @@ export const RichTextEditor = ({
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
           const range = selection.getRangeAt(0);
-          const selectedText = range.toString() || 'Quote text';
+          const selectedText = range.toString() || '';
           const blockquoteHTML = `<blockquote style="border-left: 4px solid #007cba; padding-left: 16px; margin: 16px 0; font-style: italic; color: #666;">${selectedText}</blockquote>`;
           document.execCommand('insertHTML', false, blockquoteHTML);
         }
@@ -759,8 +759,8 @@ export const RichTextEditor = ({
             ref={editorRef}
             contentEditable
             className={`
-              min-h-[300px] p-4 outline-none text-foreground bg-background
-              prose prose-sm max-w-none
+              min-h-[300px] p-4 outline-none text-foreground bg-background text-base
+              prose prose-base max-w-none
               focus:ring-2 focus:ring-primary/20 focus:ring-inset
               ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
             `}
