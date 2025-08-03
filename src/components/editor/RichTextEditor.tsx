@@ -387,49 +387,31 @@ export const RichTextEditor = ({
           document.execCommand("hiliteColor", false, color);
         }
       } else if (command === "fontSize") {
-        console.log('🔍 Font size command called with value:', value);
-        
         if (value) {
           const selection = window.getSelection();
-          console.log('🔍 Selection object:', selection);
-          console.log('🔍 Selection range count:', selection?.rangeCount);
           
           if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
-            console.log('🔍 Selected text:', range.toString());
             
-            // Use execCommand with fontSize and font size values 1-7
-            document.execCommand('styleWithCSS', false, 'true');
-            
-            // First try the traditional execCommand approach
-            const fontSizeMap: { [key: string]: string } = {
-              '10': '1', '12': '2', '14': '3', '16': '4', 
-              '18': '5', '20': '6', '24': '7', '28': '7', 
-              '32': '7', '36': '7', '48': '7'
-            };
-            
-            const execValue = fontSizeMap[value] || '4';
-            console.log('🔍 Using execCommand fontSize with value:', execValue);
-            
-            const result = document.execCommand('fontSize', false, execValue);
-            console.log('🔍 execCommand result:', result);
-            
-            // Then override with CSS
-            setTimeout(() => {
-              const fontElements = editorRef.current?.querySelectorAll('font[size]');
-              fontElements?.forEach(element => {
-                (element as HTMLElement).style.fontSize = value + 'px';
-                element.removeAttribute('size');
-              });
+            if (!range.collapsed) {
+              // Text is selected, wrap it with a span with the new font size
+              const selectedContent = range.extractContents();
+              const span = document.createElement('span');
+              span.style.fontSize = value + 'px';
+              span.style.setProperty('font-size', value + 'px', 'important');
+              span.appendChild(selectedContent);
+              range.insertNode(span);
               
-              console.log('🔍 Applied CSS font size:', value + 'px');
-              handleContentChange();
-            }, 10);
-          } else {
-            console.log('🔍 No selection found');
+              // Clear selection and place cursor after the span
+              selection.removeAllRanges();
+              const newRange = document.createRange();
+              newRange.setStartAfter(span);
+              newRange.setEndAfter(span);
+              selection.addRange(newRange);
+            }
           }
-        } else {
-          console.log('🔍 No value provided for fontSize');
+          
+          handleContentChange();
         }
       } else {
         document.execCommand(command, false, value);
