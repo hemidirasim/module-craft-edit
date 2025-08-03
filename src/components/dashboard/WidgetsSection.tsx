@@ -28,6 +28,7 @@ interface Workspace {
 }
 
 export const WidgetsSection = () => {
+  const [previewContent, setPreviewContent] = useState('');
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
@@ -353,8 +354,8 @@ export const WidgetsSection = () => {
                 <RichTextEditor 
                   placeholder="This is how your widget will look..." 
                   configuration={formData.configuration}
-                  content=""
-                  onChange={() => {}} // Empty handler to prevent data loss
+                  content={previewContent}
+                  onChange={setPreviewContent}
                 />
               </div>
 
