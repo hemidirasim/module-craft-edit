@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import { RotateCw, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
-import { ImageCropper } from "./ImageCropper";
+import { RotateCw, AlignLeft, AlignCenter, AlignRight, Crop } from "lucide-react";
+import { CropDialog } from "./CropDialog";
 
 interface ImageEditDialogProps {
   open: boolean;
@@ -20,20 +20,13 @@ interface ImageEditDialogProps {
   onApplyChanges: (changes: ImageChanges) => void;
 }
 
-interface CropData {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 interface ImageChanges {
   width?: string;
   rotation?: number;
   alignment?: 'left' | 'center' | 'right';
   caption?: string;
   alt?: string;
-  cropData?: CropData | null;
+  newSrc?: string;
 }
 
 export const ImageEditDialog = ({ 
@@ -48,7 +41,8 @@ export const ImageEditDialog = ({
   const [caption, setCaption] = useState<string>("");
   const [alt, setAlt] = useState<string>("");
   const [originalWidth, setOriginalWidth] = useState<number>(0);
-  const [cropData, setCropData] = useState<CropData | null>(null);
+  const [showCropDialog, setShowCropDialog] = useState(false);
+  const [newImageSrc, setNewImageSrc] = useState<string>("");
 
   useEffect(() => {
     if (imageElement && open) {
@@ -86,11 +80,15 @@ export const ImageEditDialog = ({
       alignment,
       caption,
       alt,
-      cropData
+      newSrc: newImageSrc || undefined
     };
     
     onApplyChanges(changes);
     onOpenChange(false);
+  };
+
+  const handleCropComplete = (croppedImageSrc: string) => {
+    setNewImageSrc(croppedImageSrc);
   };
 
   const handleWidthChange = (value: string) => {
@@ -121,11 +119,22 @@ export const ImageEditDialog = ({
         
         <div className="space-y-6">
           {/* Crop Section */}
-          <ImageCropper 
-            imageElement={imageElement}
-            onCropChange={setCropData}
-            className="border-b pb-6"
-          />
+          <div className="border-b pb-6">
+            <Button
+              variant="outline"
+              onClick={() => setShowCropDialog(true)}
+              className="w-full"
+            >
+              <Crop className="w-4 h-4 mr-2" />
+              Crop Image
+            </Button>
+            {newImageSrc && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Image has been cropped and will be updated when you apply changes.
+              </p>
+            )}
+          </div>
+          
           {/* Width Control */}
           <div className="space-y-2">
             <Label>Width</Label>
@@ -259,6 +268,13 @@ export const ImageEditDialog = ({
             </Button>
           </div>
         </div>
+        
+        <CropDialog
+          open={showCropDialog}
+          onOpenChange={setShowCropDialog}
+          imageElement={imageElement}
+          onApplyChanges={handleCropComplete}
+        />
       </DialogContent>
     </Dialog>
   );

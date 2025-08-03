@@ -1078,6 +1078,11 @@ export const RichTextEditor = ({
       }
     }
     
+    // Apply new image source if cropped
+    if (changes.newSrc) {
+      selectedImage.src = changes.newSrc;
+    }
+    
     // Apply alt text changes
     if (changes.alt !== undefined) {
       selectedImage.alt = changes.alt;
