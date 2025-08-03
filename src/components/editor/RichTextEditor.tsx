@@ -155,12 +155,24 @@ export const RichTextEditor = ({
             tableHTML += '<tr>';
             for (let j = 0; j < cols; j++) {
               const width = `${100 / cols}%`;
-              tableHTML += `<td style="padding: 12px; border: 1px solid #ccc; min-height: 40px; width: ${width};" contenteditable="true"></td>`;
+              tableHTML += `<td style="padding: 12px; border: 1px solid #ccc; min-height: 40px; width: ${width};" contenteditable="true">&nbsp;</td>`;
             }
             tableHTML += '</tr>';
           }
           tableHTML += '</table><br>';
           document.execCommand('insertHTML', false, tableHTML);
+          
+          // After inserting table, make sure all cells are properly editable
+          setTimeout(() => {
+            if (editorRef.current) {
+              const tableCells = editorRef.current.querySelectorAll('td, th');
+              tableCells.forEach(cell => {
+                (cell as HTMLElement).contentEditable = 'true';
+                (cell as HTMLElement).style.cursor = 'text';
+              });
+            }
+          }, 10);
+          
           handleContentChange();
           return;
         }
