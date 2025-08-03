@@ -324,8 +324,23 @@ export const RichTextEditor = ({
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
-            const selectedText = range.toString() || '';
-            const blockquoteHTML = `<blockquote style="border-left: 4px solid #007cba; padding-left: 16px; margin: 16px 0; font-style: italic; color: #666;">${selectedText}</blockquote>`;
+            
+            // Extract HTML content instead of plain text to preserve line breaks
+            const tempDiv = document.createElement('div');
+            tempDiv.appendChild(range.cloneContents());
+            let selectedHTML = tempDiv.innerHTML;
+            
+            // If no HTML content, use plain text
+            if (!selectedHTML || selectedHTML.trim() === '') {
+              selectedHTML = range.toString() || '';
+            }
+            
+            // Convert line breaks to <br> tags if it's plain text
+            if (!selectedHTML.includes('<') && selectedHTML.includes('\n')) {
+              selectedHTML = selectedHTML.replace(/\n/g, '<br>');
+            }
+            
+            const blockquoteHTML = `<blockquote style="border-left: 4px solid #007cba; padding-left: 16px; margin: 16px 0; font-style: italic; color: #666;">${selectedHTML}</blockquote>`;
             document.execCommand('insertHTML', false, blockquoteHTML);
           }
         } else {
