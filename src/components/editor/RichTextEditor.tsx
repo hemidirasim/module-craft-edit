@@ -595,6 +595,66 @@ export const RichTextEditor = ({
             column: prevCell
           });
         }
+      } else {
+        // Handle normal text cursor positioning in table cells
+        setTimeout(() => {
+          const selection = window.getSelection();
+          if (selection && cell && cell.contentEditable === 'true') {
+            cell.focus();
+            
+            // Create proper cursor position based on click location
+            const range = document.createRange();
+            const rect = cell.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            
+            try {
+              // Use document.caretPositionFromPoint for more precise positioning
+              if ((document as any).caretPositionFromPoint) {
+                const caretPos = (document as any).caretPositionFromPoint(e.clientX, e.clientY);
+                if (caretPos) {
+                  range.setStart(caretPos.offsetNode, caretPos.offset);
+                  range.collapse(true);
+                }
+              } else if ((document as any).caretRangeFromPoint) {
+                // Fallback for browsers that support caretRangeFromPoint
+                const caretRange = (document as any).caretRangeFromPoint(e.clientX, e.clientY);
+                if (caretRange) {
+                  range.setStart(caretRange.startContainer, caretRange.startOffset);
+                  range.collapse(true);
+                }
+              } else {
+                // Final fallback - position cursor based on text content
+                const textNodes = Array.from(cell.childNodes).filter(node => 
+                  node.nodeType === Node.TEXT_NODE || 
+                  (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName !== 'BR')
+                );
+                
+                if (textNodes.length > 0) {
+                  const lastTextNode = textNodes[textNodes.length - 1];
+                  if (lastTextNode.nodeType === Node.TEXT_NODE) {
+                    range.setStart(lastTextNode, lastTextNode.textContent?.length || 0);
+                  } else {
+                    range.setStart(lastTextNode, 0);
+                  }
+                } else {
+                  range.selectNodeContents(cell);
+                }
+                range.collapse(true);
+              }
+              
+              selection.removeAllRanges();
+              selection.addRange(range);
+            } catch (error) {
+              // If positioning fails, just put cursor at the end of the cell
+              console.warn('Cursor positioning failed, using fallback:', error);
+              range.selectNodeContents(cell);
+              range.collapse(false);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+          }
+        }, 0);
       }
     }
   };
