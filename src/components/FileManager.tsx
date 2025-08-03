@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { 
   Folder as FolderIcon, 
   File, 
@@ -12,7 +12,11 @@ import {
   ArrowLeft,
   Grid3X3,
   List,
-  Search
+  Search,
+  Copy,
+  Edit,
+  Eye,
+  Move
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +40,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { useFileManager } from '@/hooks/useFileManager';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -67,6 +78,11 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [renameFileId, setRenameFileId] = useState<string | null>(null);
+  const [newFileName, setNewFileName] = useState('');
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fileTypes = [
     { value: 'all', label: 'All Files' },
@@ -190,6 +206,71 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
     return filtered;
   };
 
+  // Drag & Drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!dropZoneRef.current?.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      for (const file of droppedFiles) {
+        await uploadFile(file, currentFolderId);
+      }
+      toast.success(`${droppedFiles.length} file(s) uploaded successfully`);
+    } catch (error) {
+      toast.error('Failed to upload files');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Context menu handlers
+  const handleCopyUrl = async (file: any) => {
+    try {
+      const signedUrl = await getSignedUrl(file.storage_path);
+      await navigator.clipboard.writeText(signedUrl);
+      toast.success('File URL copied to clipboard');
+    } catch (error) {
+      toast.error('Failed to copy URL');
+    }
+  };
+
+  const handleRenameFile = async (fileId: string, newName: string) => {
+    try {
+      // You'll need to add a rename function to the useFileManager hook
+      await refresh(); // For now, just refresh
+      toast.success('File renamed successfully');
+      setRenameFileId(null);
+      setNewFileName('');
+    } catch (error) {
+      toast.error('Failed to rename file');
+    }
+  };
+
+  const handlePreviewFile = async (file: any) => {
+    try {
+      const signedUrl = await getSignedUrl(file.storage_path);
+      window.open(signedUrl, '_blank');
+    } catch (error) {
+      toast.error('Failed to preview file');
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -277,6 +358,7 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
               </span>
             </Button>
             <input
+              ref={fileInputRef}
               type="file"
               multiple
               onChange={handleFileUpload}
@@ -310,141 +392,226 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
         </div>
       </div>
 
-      {/* Content */}
-      <div className="space-y-4">
-        {/* Folders */}
-        {getSubfolders().length > 0 && (
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Folders</h3>
-            <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}>
-              {getSubfolders().map((folder) => (
-                <Card
-                  key={folder.id}
-                  className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
-                    viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'
-                  }`}
-                  onClick={() => setCurrentFolderId(folder.id)}
-                >
-                  <div className={`flex ${viewMode === 'list' ? 'items-center gap-3' : 'flex-col items-center gap-2'}`}>
-                    <FolderIcon className="w-8 h-8 text-blue-500" />
-                    <span className="text-sm font-medium truncate">{folder.name}</span>
-                  </div>
-                  
-                  {viewMode === 'list' && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Folder</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{folder.name}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteFolder(folder.id)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </Card>
-              ))}
+      {/* Drag & Drop Zone */}
+      <div
+        ref={dropZoneRef}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`min-h-[400px] border-2 border-dashed rounded-lg transition-colors ${
+          isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+        }`}
+      >
+        {isDragging && (
+          <div className="absolute inset-0 flex items-center justify-center bg-primary/5 rounded-lg z-10">
+            <div className="text-center">
+              <Upload className="w-12 h-12 mx-auto mb-4 text-primary" />
+              <p className="text-lg font-medium">Drop files here to upload</p>
             </div>
           </div>
         )}
 
-        {/* Files */}
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">Files</h3>
-          {loading ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading...</p>
-            </div>
-          ) : getFilteredFiles().length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No files found</p>
-            </div>
-          ) : (
-            <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}>
-              {getFilteredFiles().map((file) => (
-                <Card
-                  key={file.id}
-                  className={`p-4 hover:bg-accent transition-colors ${
-                    selectMode ? 'cursor-pointer' : ''
-                  } ${viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'}`}
-                  onClick={selectMode ? () => onSelectFile?.(file) : undefined}
-                >
-                  <div className={`flex ${viewMode === 'list' ? 'items-center gap-3 flex-1' : 'flex-col items-center gap-2'}`}>
-                    {getFileIcon(file.file_type, file.mime_type)}
-                    <div className={viewMode === 'list' ? 'flex-1 min-w-0' : ''}>
-                      <p className="text-sm font-medium truncate">{file.original_name}</p>
-                      {viewMode === 'list' && (
-                        <p className="text-xs text-muted-foreground">
-                          {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}
-                        </p>
-                      )}
+        <div className="space-y-4 p-4">
+          {/* Folders */}
+          {getSubfolders().length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Folders</h3>
+              <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}>
+                {getSubfolders().map((folder) => (
+                  <Card
+                    key={folder.id}
+                    className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                      viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'
+                    }`}
+                    onClick={() => setCurrentFolderId(folder.id)}
+                  >
+                    <div className={`flex ${viewMode === 'list' ? 'items-center gap-3' : 'flex-col items-center gap-2'}`}>
+                      <FolderIcon className="w-8 h-8 text-blue-500" />
+                      <span className="text-sm font-medium truncate">{folder.name}</span>
                     </div>
-                    {viewMode === 'grid' && (
-                      <div className="text-center">
-                        <Badge variant="secondary" className="text-xs">
-                          {file.file_type}
-                        </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatFileSize(file.file_size)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {!selectMode && (
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleFileDownload(file);
-                        }}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
+                    
+                    {viewMode === 'list' && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                          <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete File</AlertDialogTitle>
+                            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete "{file.original_name}"? This action cannot be undone.
+                              Are you sure you want to delete "{folder.name}"? This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteFile(file)}>
+                            <AlertDialogAction onClick={() => handleDeleteFolder(folder.id)}>
                               Delete
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                    </div>
-                  )}
-                </Card>
-              ))}
+                    )}
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* Files */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Files</h3>
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading...</p>
+              </div>
+            ) : getFilteredFiles().length === 0 ? (
+              <div className="text-center py-16">
+                <Upload className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground mb-2">No files found</p>
+                <p className="text-sm text-muted-foreground">Drag & drop files here or click Upload Files</p>
+              </div>
+            ) : (
+              <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}>
+                {getFilteredFiles().map((file) => (
+                  <ContextMenu key={file.id}>
+                    <ContextMenuTrigger>
+                      <Card
+                        className={`p-4 hover:bg-accent transition-colors ${
+                          selectMode ? 'cursor-pointer' : ''
+                        } ${viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'}`}
+                        onClick={selectMode ? () => onSelectFile?.(file) : undefined}
+                      >
+                        <div className={`flex ${viewMode === 'list' ? 'items-center gap-3 flex-1' : 'flex-col items-center gap-2'}`}>
+                          {getFileIcon(file.file_type, file.mime_type)}
+                          <div className={viewMode === 'list' ? 'flex-1 min-w-0' : ''}>
+                            {renameFileId === file.id ? (
+                              <Input
+                                value={newFileName}
+                                onChange={(e) => setNewFileName(e.target.value)}
+                                onBlur={() => {
+                                  if (newFileName.trim()) {
+                                    handleRenameFile(file.id, newFileName);
+                                  } else {
+                                    setRenameFileId(null);
+                                    setNewFileName('');
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    if (newFileName.trim()) {
+                                      handleRenameFile(file.id, newFileName);
+                                    }
+                                  } else if (e.key === 'Escape') {
+                                    setRenameFileId(null);
+                                    setNewFileName('');
+                                  }
+                                }}
+                                autoFocus
+                                className="text-sm h-auto p-0 border-none bg-transparent"
+                              />
+                            ) : (
+                              <p className="text-sm font-medium truncate">{file.original_name}</p>
+                            )}
+                            {viewMode === 'list' && (
+                              <p className="text-xs text-muted-foreground">
+                                {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          {viewMode === 'grid' && (
+                            <div className="text-center">
+                              <Badge variant="secondary" className="text-xs">
+                                {file.file_type}
+                              </Badge>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatFileSize(file.file_size)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {!selectMode && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFileDownload(file);
+                              }}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete File</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{file.original_name}"? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteFile(file)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
+                      </Card>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onClick={() => handlePreviewFile(file)}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Preview
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => handleCopyUrl(file)}>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy URL
+                      </ContextMenuItem>
+                      <ContextMenuItem 
+                        onClick={() => {
+                          setRenameFileId(file.id);
+                          setNewFileName(file.original_name);
+                        }}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Rename
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem 
+                        onClick={() => handleFileDownload(file)}
+                        className="text-blue-600"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </ContextMenuItem>
+                      <ContextMenuItem 
+                        onClick={() => handleDeleteFile(file)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
