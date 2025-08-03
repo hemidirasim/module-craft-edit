@@ -8,6 +8,7 @@ import { Image, Upload, Link2, X, Files, Crop } from "lucide-react";
 import { CropDialog } from "./CropDialog";
 import { FileManagerDialog } from "./FileManagerDialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ImageDialogProps {
   open: boolean;
@@ -160,24 +161,22 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
   const handleFileSelect = async (file: any) => {
     if (file.file_type === 'image') {
       try {
-        // Use signed URL for private storage
-        const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/storage/v1/object/sign/user-files/${file.storage_path}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lyeXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzMyNDEsImV4cCI6MjA2OTcwOTI0MX0.sfEeN4RhfGUYa6a2iMG6ofAHbdt85YQ1FMVuXBao8-Q`,
-          },
-          body: JSON.stringify({ expiresIn: 3600 })
-        });
+        console.log('Selected file:', file);
+        console.log('Storage path:', file.storage_path);
         
-        const result = await response.json();
-        console.log('File manager signed URL response:', result);
+        // Use Supabase client to get signed URL (same as FileManager)
+        const { data, error } = await supabase.storage
+          .from('user-files')
+          .createSignedUrl(file.storage_path, 3600);
+
+        if (error) {
+          console.error('Supabase storage error:', error);
+          throw error;
+        }
+
+        console.log('Signed URL data:', data);
         
-        const signedPath = result.signedURL;
-        const fullUrl = signedPath?.startsWith('http') 
-          ? signedPath 
-          : `https://qgmluixnzhpthywyrytn.supabase.co/storage/v1${signedPath}`;
-        
+        const fullUrl = data.signedUrl;
         console.log('Final image URL:', fullUrl);
         
         setUploadedImageUrl(fullUrl);
