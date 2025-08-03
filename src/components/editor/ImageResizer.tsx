@@ -35,17 +35,25 @@ export const ImageResizer = ({ imageElement, onResize }: ImageResizerProps) => {
   }, [imageElement]);
 
   const handleMouseDown = (e: React.MouseEvent, handle: string) => {
+    console.log('🎯 ImageResizer handleMouseDown triggered:', handle);
     e.preventDefault();
     e.stopPropagation();
     
-    if (!imageElement) return;
+    if (!imageElement) {
+      console.log('❌ No imageElement found');
+      return;
+    }
     
+    console.log('✅ Starting resize operation');
     setIsResizing(true);
     setResizeHandle(handle);
     
     // Store initial dimensions and mouse position
     const currentWidth = imageElement.offsetWidth;
     const currentHeight = imageElement.offsetHeight;
+    
+    console.log('📐 Initial dimensions:', { width: currentWidth, height: currentHeight });
+    console.log('🖱️ Initial mouse position:', { x: e.clientX, y: e.clientY });
     
     setStartDimensions({ width: currentWidth, height: currentHeight });
     setStartMousePos({ x: e.clientX, y: e.clientY });
@@ -54,8 +62,12 @@ export const ImageResizer = ({ imageElement, onResize }: ImageResizerProps) => {
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing || !imageElement) return;
     
+    console.log('🔄 Mouse move during resize:', { x: e.clientX, y: e.clientY });
+    
     const deltaX = e.clientX - startMousePos.x;
     const deltaY = e.clientY - startMousePos.y;
+    
+    console.log('📊 Delta values:', { deltaX, deltaY });
     
     let newWidth = startDimensions.width;
     let newHeight = startDimensions.height;
@@ -85,9 +97,13 @@ export const ImageResizer = ({ imageElement, onResize }: ImageResizerProps) => {
       }
     }
     
+    console.log('📏 New dimensions calculated:', { newWidth, newHeight });
+    
     // Apply new dimensions
     imageElement.style.width = newWidth + 'px';
     imageElement.style.height = newHeight + 'px';
+    
+    console.log('✅ Applied new dimensions to image');
     
     // Update overlay position
     const rect = imageElement.getBoundingClientRect();
@@ -98,16 +114,19 @@ export const ImageResizer = ({ imageElement, onResize }: ImageResizerProps) => {
   }, [isResizing, imageElement, startDimensions, startMousePos, resizeHandle, onResize]);
 
   const handleMouseUp = useCallback(() => {
+    console.log('🏁 Mouse up - ending resize operation');
     setIsResizing(false);
     setResizeHandle("");
   }, []);
 
   useEffect(() => {
     if (isResizing) {
+      console.log('🎧 Adding global mouse event listeners');
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       
       return () => {
+        console.log('🔇 Removing global mouse event listeners');
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
       };
