@@ -3,6 +3,7 @@ import { EditorToolbar } from "./EditorToolbar";
 import { FindReplaceDialog } from "./FindReplaceDialog";
 import { TableContextMenu } from "./TableContextMenu";
 import { TextContextMenu } from "./TextContextMenu";
+import { ImageEditDialog } from "./ImageEditDialog";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -27,6 +28,8 @@ export const RichTextEditor = ({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; element: HTMLElement } | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeData, setResizeData] = useState<{ startX: number; startWidth: number; column: HTMLElement } | null>(null);
+  const [showImageEdit, setShowImageEdit] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const [activeFormats, setActiveFormats] = useState<{
     bold: boolean;
     italic: boolean;
@@ -1041,6 +1044,81 @@ export const RichTextEditor = ({
     }
   }, [isResizing]);
 
+  const handleEditorClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    
+    // Check if clicked element is an image
+    if (target.tagName === 'IMG') {
+      e.preventDefault();
+      setSelectedImage(target as HTMLImageElement);
+      setShowImageEdit(true);
+    }
+  };
+
+  const handleImageChanges = (changes: any) => {
+    if (!selectedImage) return;
+    
+    // Apply width changes
+    if (changes.width) {
+      selectedImage.style.width = changes.width;
+    }
+    
+    // Apply rotation changes
+    if (changes.rotation !== undefined) {
+      const currentTransform = selectedImage.style.transform || '';
+      const newTransform = currentTransform.replace(/rotate\([^)]*\)/, '') + ` rotate(${changes.rotation}deg)`;
+      selectedImage.style.transform = newTransform.trim();
+    }
+    
+    // Apply alignment changes
+    if (changes.alignment) {
+      const parent = selectedImage.parentElement;
+      if (parent) {
+        parent.style.textAlign = changes.alignment;
+      }
+    }
+    
+    // Apply alt text changes
+    if (changes.alt !== undefined) {
+      selectedImage.alt = changes.alt;
+    }
+    
+    // Apply caption changes
+    if (changes.caption !== undefined) {
+      let figure = selectedImage.closest('figure');
+      
+      if (!figure && changes.caption) {
+        // Create figure wrapper if it doesn't exist and we have a caption
+        figure = document.createElement('figure');
+        figure.style.margin = '16px 0';
+        figure.style.textAlign = changes.alignment || 'center';
+        
+        selectedImage.parentNode?.insertBefore(figure, selectedImage);
+        figure.appendChild(selectedImage);
+      }
+      
+      if (figure) {
+        let figcaption = figure.querySelector('figcaption');
+        
+        if (changes.caption) {
+          if (!figcaption) {
+            figcaption = document.createElement('figcaption');
+            figcaption.style.textAlign = 'center';
+            figcaption.style.fontStyle = 'italic';
+            figcaption.style.color = '#666';
+            figcaption.style.marginTop = '8px';
+            figure.appendChild(figcaption);
+          }
+          figcaption.textContent = changes.caption;
+        } else if (figcaption) {
+          figcaption.remove();
+        }
+      }
+    }
+    
+    handleContentChange();
+  };
+
   return (
     <>
       <Card className="overflow-hidden shadow-card">
@@ -1079,6 +1157,7 @@ export const RichTextEditor = ({
               onContextMenu={handleContextMenu}
               onMouseMove={handleMouseMove}
               onMouseDown={handleMouseDown}
+              onClick={handleEditorClick}
               data-placeholder={placeholder}
               suppressContentEditableWarning={true}
             />
@@ -1097,6 +1176,13 @@ export const RichTextEditor = ({
         open={showFindReplace} 
         onOpenChange={setShowFindReplace}
         editorRef={editorRef}
+      />
+      
+      <ImageEditDialog
+        open={showImageEdit}
+        onOpenChange={setShowImageEdit}
+        imageElement={selectedImage}
+        onApplyChanges={handleImageChanges}
       />
     </>
   );
