@@ -33,7 +33,6 @@ interface CropDialogProps {
 
 const aspectRatios: AspectRatio[] = [
   { label: "Freeform", value: null, icon: <Crop className="w-4 h-4" /> },
-  { label: "Original", value: 0, icon: <Monitor className="w-4 h-4" /> },
   { label: "1:1", value: 1, icon: <Square className="w-4 h-4" /> },
   { label: "4:3", value: 4/3 },
   { label: "16:9", value: 16/9 },
@@ -164,10 +163,20 @@ export const CropDialog = ({
       }
 
       // Apply aspect ratio constraint if selected
-      if (selectedRatio && selectedRatio > 0) {
+      if (selectedRatio !== null && selectedRatio > 0) {
         if (resizeHandle.includes('right') || resizeHandle.includes('left')) {
           newCrop.height = newCrop.width / selectedRatio;
         } else {
+          newCrop.width = newCrop.height * selectedRatio;
+        }
+        
+        // Ensure crop doesn't exceed boundaries after ratio adjustment
+        if (newCrop.x + newCrop.width > displaySize.width) {
+          newCrop.width = displaySize.width - newCrop.x;
+          newCrop.height = newCrop.width / selectedRatio;
+        }
+        if (newCrop.y + newCrop.height > displaySize.height) {
+          newCrop.height = displaySize.height - newCrop.y;
           newCrop.width = newCrop.height * selectedRatio;
         }
       }
@@ -194,15 +203,12 @@ export const CropDialog = ({
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
   const handleAspectRatioChange = (ratio: number | null) => {
+    console.log('Aspect ratio changed to:', ratio);
     setSelectedRatio(ratio);
     
-    if (ratio === 0 && imageElement) {
-      // Original ratio
-      const originalRatio = imageElement.naturalWidth / imageElement.naturalHeight;
-      setSelectedRatio(originalRatio);
-    }
-    
-    if (ratio && ratio > 0) {
+    // Only apply constraint if ratio is not null (freeform)
+    if (ratio !== null && ratio > 0) {
+      console.log('Applying aspect ratio constraint:', ratio);
       const newHeight = cropData.width / ratio;
       const maxHeight = displaySize.height - cropData.y;
       
@@ -212,30 +218,49 @@ export const CropDialog = ({
         const newWidth = maxHeight * ratio;
         setCropData(prev => ({ ...prev, width: newWidth, height: maxHeight }));
       }
+    } else {
+      console.log('Freeform mode - no aspect ratio constraint');
     }
   };
 
   const cropAndUploadImage = async () => {
-    if (!imageElement || !canvasRef.current) return;
+    if (!imageElement || !canvasRef.current) {
+      console.error('Missing imageElement or canvas');
+      toast.error('Missing image or canvas element');
+      return;
+    }
 
+    console.log('🔄 Starting crop and upload...');
     setIsProcessing(true);
     
     try {
+      console.log('Canvas and context setup...');
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas context not available');
+      if (!ctx) {
+        throw new Error('Canvas context not available');
+      }
+
+      console.log('Image dimensions:', imageElement.naturalWidth, 'x', imageElement.naturalHeight);
+      console.log('Display dimensions:', displaySize.width, 'x', displaySize.height);
+      console.log('Crop data:', cropData);
 
       // Calculate scale factor between display size and natural size
       const scaleX = imageElement.naturalWidth / displaySize.width;
       const scaleY = imageElement.naturalHeight / displaySize.height;
+      
+      console.log('Scale factors:', { scaleX, scaleY });
 
       // Set canvas size to crop dimensions in natural image coordinates
       const cropWidth = cropData.width * scaleX;
       const cropHeight = cropData.height * scaleY;
       
+      console.log('Crop dimensions in natural scale:', { cropWidth, cropHeight });
+      
       canvas.width = cropWidth;
       canvas.height = cropHeight;
 
+      console.log('Drawing cropped image to canvas...');
       // Draw the cropped portion
       ctx.drawImage(
         imageElement,
@@ -249,21 +274,33 @@ export const CropDialog = ({
         cropHeight // destination height
       );
 
+      console.log('Converting canvas to blob...');
       // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve) => {
+      const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
+          if (blob) {
+            console.log('✅ Blob created successfully, size:', blob.size);
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create blob'));
+          }
         }, 'image/jpeg', 0.9);
       });
 
+      console.log('Getting user session...');
       // Get session for authentication
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('User not authenticated');
+      if (!session) {
+        throw new Error('User not authenticated');
+      }
 
+      console.log('Preparing file for upload...');
       // Create file from blob for upload
       const file = new File([blob], `cropped-${Date.now()}.jpg`, { type: 'image/jpeg' });
       const formData = new FormData();
       formData.append('file', file);
+
+      console.log('Uploading to Supabase...');
 
       // Upload using file-upload function
       const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/file-upload`, {
