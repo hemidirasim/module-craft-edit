@@ -387,33 +387,49 @@ export const RichTextEditor = ({
           document.execCommand("hiliteColor", false, color);
         }
       } else if (command === "fontSize") {
+        console.log('🔍 Font size command called with value:', value);
+        
         if (value) {
-          document.execCommand('styleWithCSS', false, 'true');
-          
-          // Create a temporary element to apply the font size
-          const tempSpan = document.createElement('span');
-          tempSpan.style.fontSize = value + 'px';
-          
           const selection = window.getSelection();
+          console.log('🔍 Selection object:', selection);
+          console.log('🔍 Selection range count:', selection?.rangeCount);
+          
           if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
+            console.log('🔍 Selected text:', range.toString());
             
-            if (range.collapsed) {
-              // If no text is selected, just set up the formatting for future typing
-              range.insertNode(tempSpan);
-              range.setStart(tempSpan, 0);
-              range.setEnd(tempSpan, 0);
-              selection.removeAllRanges();
-              selection.addRange(range);
-            } else {
-              // If text is selected, wrap it with the span
-              const selectedContent = range.extractContents();
-              tempSpan.appendChild(selectedContent);
-              range.insertNode(tempSpan);
-            }
+            // Use execCommand with fontSize and font size values 1-7
+            document.execCommand('styleWithCSS', false, 'true');
+            
+            // First try the traditional execCommand approach
+            const fontSizeMap: { [key: string]: string } = {
+              '10': '1', '12': '2', '14': '3', '16': '4', 
+              '18': '5', '20': '6', '24': '7', '28': '7', 
+              '32': '7', '36': '7', '48': '7'
+            };
+            
+            const execValue = fontSizeMap[value] || '4';
+            console.log('🔍 Using execCommand fontSize with value:', execValue);
+            
+            const result = document.execCommand('fontSize', false, execValue);
+            console.log('🔍 execCommand result:', result);
+            
+            // Then override with CSS
+            setTimeout(() => {
+              const fontElements = editorRef.current?.querySelectorAll('font[size]');
+              fontElements?.forEach(element => {
+                (element as HTMLElement).style.fontSize = value + 'px';
+                element.removeAttribute('size');
+              });
+              
+              console.log('🔍 Applied CSS font size:', value + 'px');
+              handleContentChange();
+            }, 10);
+          } else {
+            console.log('🔍 No selection found');
           }
-          
-          handleContentChange();
+        } else {
+          console.log('🔍 No value provided for fontSize');
         }
       } else {
         document.execCommand(command, false, value);
