@@ -833,34 +833,41 @@ export const RichTextEditor = ({
         if (blockquote) {
           e.preventDefault();
           
-          // Check if this is the second Enter press by looking for an empty line
+          // If Shift+Enter, just add a line break and continue in blockquote
+          if (e.shiftKey) {
+            document.execCommand('insertHTML', false, '<br>');
+            handleContentChange();
+            return;
+          }
+          
+          // For normal Enter, check if this is the second consecutive Enter
           const cursorPosition = range.startOffset;
           const textContent = currentElement?.textContent || '';
           const beforeCursor = textContent.substring(0, cursorPosition);
           const afterCursor = textContent.substring(cursorPosition);
           
-          // If we're at the end of the blockquote and pressing Enter
-          if (afterCursor.trim() === '' && beforeCursor.trim() !== '') {
-            // First Enter - add a new line in blockquote
-            document.execCommand('insertHTML', false, '<br>');
-          } else if (beforeCursor.trim() === '' || (beforeCursor.endsWith('\n') && beforeCursor.trim() === '')) {
-            // Second Enter or empty line - exit blockquote
-            const newParagraph = '<div style="margin: 16px 0;"><br></div>';
+          // Check if we're at an empty line or at the end with empty content
+          const isAtEmptyLine = beforeCursor.trim() === '' || beforeCursor.endsWith('\n');
+          const isAtEnd = afterCursor.trim() === '';
+          
+          if (isAtEmptyLine || (isAtEnd && beforeCursor.trim() !== '')) {
+            // This is likely the second Enter - exit blockquote
+            const newParagraph = document.createElement('div');
+            newParagraph.style.margin = '16px 0';
+            newParagraph.innerHTML = '<br>';
             
             // Insert the new paragraph after the blockquote
-            const newElement = document.createElement('div');
-            newElement.innerHTML = newParagraph;
-            blockquote.parentNode?.insertBefore(newElement.firstChild!, blockquote.nextSibling);
+            blockquote.parentNode?.insertBefore(newParagraph, blockquote.nextSibling);
             
             // Move cursor to the new paragraph
             const newRange = document.createRange();
             const newSelection = window.getSelection();
-            newRange.setStart(newElement.firstChild!, 0);
+            newRange.setStart(newParagraph, 0);
             newRange.collapse(true);
             newSelection?.removeAllRanges();
             newSelection?.addRange(newRange);
           } else {
-            // Normal Enter behavior within blockquote
+            // First Enter - add a line break in blockquote
             document.execCommand('insertHTML', false, '<br>');
           }
           
