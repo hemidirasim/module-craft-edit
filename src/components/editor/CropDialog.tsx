@@ -124,11 +124,17 @@ export const CropDialog = ({
 
   const handleMouseDown = (e: React.MouseEvent, action: 'drag' | 'resize', handle?: string) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('🖱️ Mouse down:', { action, handle, selectedRatio });
+    
     if (action === 'drag') {
       setIsDragging(true);
+      console.log('✅ Started dragging');
     } else {
       setIsResizing(true);
       setResizeHandle(handle || '');
+      console.log('✅ Started resizing with handle:', handle);
     }
   };
 
@@ -202,6 +208,7 @@ export const CropDialog = ({
   }, [isDragging, isResizing, cropData, displaySize, selectedRatio, resizeHandle]);
 
   const handleMouseUp = useCallback(() => {
+    console.log('🖱️ Mouse up - stopping drag/resize');
     setIsDragging(false);
     setIsResizing(false);
     setResizeHandle('');
@@ -416,30 +423,56 @@ export const CropDialog = ({
                 
                 {/* Crop overlay */}
                 <div
-                  className="absolute border-2 border-primary bg-primary/20 cursor-move"
+                  className="absolute border-2 border-primary bg-primary/20 cursor-move select-none"
                   style={{
                     left: cropData.x,
                     top: cropData.y,
                     width: cropData.width,
                     height: cropData.height,
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
                   }}
                   onMouseDown={(e) => handleMouseDown(e, 'drag')}
                 >
-                  {/* Resize handles */}
+                  {/* Resize handles with better visibility and interaction */}
                   <div
-                    className="absolute -top-1 -left-1 w-3 h-3 bg-primary border border-background cursor-nw-resize"
+                    className="absolute w-4 h-4 bg-primary border-2 border-white cursor-nw-resize hover:bg-primary/80 select-none"
+                    style={{
+                      top: -8,
+                      left: -8,
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                    }}
                     onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-left')}
                   />
                   <div
-                    className="absolute -top-1 -right-1 w-3 h-3 bg-primary border border-background cursor-ne-resize"
+                    className="absolute w-4 h-4 bg-primary border-2 border-white cursor-ne-resize hover:bg-primary/80 select-none"
+                    style={{
+                      top: -8,
+                      right: -8,
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                    }}
                     onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-right')}
                   />
                   <div
-                    className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary border border-background cursor-sw-resize"
+                    className="absolute w-4 h-4 bg-primary border-2 border-white cursor-sw-resize hover:bg-primary/80 select-none"
+                    style={{
+                      bottom: -8,
+                      left: -8,
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                    }}
                     onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-left')}
                   />
                   <div
-                    className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary border border-background cursor-se-resize"
+                    className="absolute w-4 h-4 bg-primary border-2 border-white cursor-se-resize hover:bg-primary/80 select-none"
+                    style={{
+                      bottom: -8,
+                      right: -8,
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                    }}
                     onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-right')}
                   />
                 </div>
