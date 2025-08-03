@@ -79,8 +79,43 @@ export const RichTextEditor = ({
 
       if (element && element.nodeType === Node.ELEMENT_NODE) {
         const computedStyle = window.getComputedStyle(element as Element);
-        formats.fontSize = computedStyle.fontSize;
-        formats.fontFamily = computedStyle.fontFamily.split(',')[0].replace(/['"]/g, '');
+        
+        // Get font size
+        const fontSize = computedStyle.fontSize;
+        if (fontSize) {
+          formats.fontSize = fontSize;
+        }
+        
+        // Get font family - clean up the value and get the first font
+        let fontFamily = computedStyle.fontFamily;
+        if (fontFamily) {
+          // Remove quotes and get first font
+          fontFamily = fontFamily.split(',')[0].replace(/['"]/g, '').trim();
+          // Handle common system fonts
+          if (fontFamily.toLowerCase().includes('arial')) {
+            formats.fontFamily = 'Arial';
+          } else if (fontFamily.toLowerCase().includes('helvetica')) {
+            formats.fontFamily = 'Helvetica';
+          } else if (fontFamily.toLowerCase().includes('times')) {
+            formats.fontFamily = 'Times New Roman';
+          } else if (fontFamily.toLowerCase().includes('georgia')) {
+            formats.fontFamily = 'Georgia';
+          } else if (fontFamily.toLowerCase().includes('verdana')) {
+            formats.fontFamily = 'Verdana';
+          } else if (fontFamily.toLowerCase().includes('courier')) {
+            formats.fontFamily = 'Courier New';
+          } else if (fontFamily.toLowerCase().includes('tahoma')) {
+            formats.fontFamily = 'Tahoma';
+          } else if (fontFamily.toLowerCase().includes('comic')) {
+            formats.fontFamily = 'Comic Sans MS';
+          } else if (fontFamily.toLowerCase().includes('impact')) {
+            formats.fontFamily = 'Impact';
+          } else if (fontFamily.toLowerCase().includes('trebuchet')) {
+            formats.fontFamily = 'Trebuchet MS';
+          } else {
+            formats.fontFamily = fontFamily;
+          }
+        }
 
         // Detect block format
         const tagName = (element as Element).tagName.toLowerCase();
