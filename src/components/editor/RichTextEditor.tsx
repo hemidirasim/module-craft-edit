@@ -91,29 +91,18 @@ export const RichTextEditor = ({
         if (fontFamily) {
           // Remove quotes and get first font
           fontFamily = fontFamily.split(',')[0].replace(/['"]/g, '').trim();
-          // Handle common system fonts
-          if (fontFamily.toLowerCase().includes('arial')) {
-            formats.fontFamily = 'Arial';
-          } else if (fontFamily.toLowerCase().includes('helvetica')) {
-            formats.fontFamily = 'Helvetica';
-          } else if (fontFamily.toLowerCase().includes('times')) {
-            formats.fontFamily = 'Times New Roman';
-          } else if (fontFamily.toLowerCase().includes('georgia')) {
-            formats.fontFamily = 'Georgia';
-          } else if (fontFamily.toLowerCase().includes('verdana')) {
-            formats.fontFamily = 'Verdana';
-          } else if (fontFamily.toLowerCase().includes('courier')) {
-            formats.fontFamily = 'Courier New';
-          } else if (fontFamily.toLowerCase().includes('tahoma')) {
-            formats.fontFamily = 'Tahoma';
-          } else if (fontFamily.toLowerCase().includes('comic')) {
-            formats.fontFamily = 'Comic Sans MS';
-          } else if (fontFamily.toLowerCase().includes('impact')) {
-            formats.fontFamily = 'Impact';
-          } else if (fontFamily.toLowerCase().includes('trebuchet')) {
-            formats.fontFamily = 'Trebuchet MS';
-          } else {
-            formats.fontFamily = fontFamily;
+          
+          // Only set font family if it's one of our defined fonts in the toolbar
+          const availableFonts = ['Arial', 'Helvetica', 'Times New Roman', 'Georgia', 'Verdana', 'Courier New', 'Tahoma', 'Comic Sans MS', 'Impact', 'Trebuchet MS'];
+          
+          // Match exact font name
+          const matchedFont = availableFonts.find(font => 
+            font.toLowerCase() === fontFamily.toLowerCase() ||
+            fontFamily.toLowerCase().includes(font.toLowerCase())
+          );
+          
+          if (matchedFont) {
+            formats.fontFamily = matchedFont;
           }
         }
 
