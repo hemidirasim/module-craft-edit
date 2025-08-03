@@ -831,43 +831,56 @@ export const RichTextEditor = ({
         
         const blockquote = (currentElement as Element)?.closest('blockquote');
         if (blockquote) {
+          console.log('In blockquote, shiftKey:', e.shiftKey);
           e.preventDefault();
           
           // If Shift+Enter, just add a line break and continue in blockquote
           if (e.shiftKey) {
+            console.log('Shift+Enter: adding line break in blockquote');
             document.execCommand('insertHTML', false, '<br>');
             handleContentChange();
             return;
           }
           
-          // For normal Enter, check if this is the second consecutive Enter
+          // For normal Enter, check the current line content
           const cursorPosition = range.startOffset;
-          const textContent = currentElement?.textContent || '';
-          const beforeCursor = textContent.substring(0, cursorPosition);
-          const afterCursor = textContent.substring(cursorPosition);
+          const parentText = currentElement?.textContent || '';
+          console.log('Current element text:', parentText);
+          console.log('Cursor position:', cursorPosition);
           
-          // Check if we're at an empty line or at the end with empty content
-          const isAtEmptyLine = beforeCursor.trim() === '' || beforeCursor.endsWith('\n');
-          const isAtEnd = afterCursor.trim() === '';
+          // Check if the current line is empty (just before cursor)
+          const textBeforeCursor = parentText.substring(0, cursorPosition);
+          const lines = parentText.split('\n');
+          const currentLineIndex = textBeforeCursor.split('\n').length - 1;
+          const currentLine = lines[currentLineIndex] || '';
           
-          if (isAtEmptyLine || (isAtEnd && beforeCursor.trim() !== '')) {
-            // This is likely the second Enter - exit blockquote
+          console.log('Current line:', currentLine);
+          console.log('Current line trimmed:', currentLine.trim());
+          
+          // If current line is empty, exit blockquote
+          if (currentLine.trim() === '') {
+            console.log('Empty line detected, exiting blockquote');
+            
+            // Create new paragraph after blockquote
             const newParagraph = document.createElement('div');
             newParagraph.style.margin = '16px 0';
             newParagraph.innerHTML = '<br>';
             
-            // Insert the new paragraph after the blockquote
-            blockquote.parentNode?.insertBefore(newParagraph, blockquote.nextSibling);
-            
-            // Move cursor to the new paragraph
-            const newRange = document.createRange();
-            const newSelection = window.getSelection();
-            newRange.setStart(newParagraph, 0);
-            newRange.collapse(true);
-            newSelection?.removeAllRanges();
-            newSelection?.addRange(newRange);
+            // Insert after blockquote
+            if (blockquote.parentNode) {
+              blockquote.parentNode.insertBefore(newParagraph, blockquote.nextSibling);
+              
+              // Move cursor to new paragraph
+              const newRange = document.createRange();
+              const newSelection = window.getSelection();
+              newRange.setStart(newParagraph, 0);
+              newRange.collapse(true);
+              newSelection?.removeAllRanges();
+              newSelection?.addRange(newRange);
+            }
           } else {
-            // First Enter - add a line break in blockquote
+            console.log('Non-empty line, adding line break in blockquote');
+            // Add line break within blockquote
             document.execCommand('insertHTML', false, '<br>');
           }
           
