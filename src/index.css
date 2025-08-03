@@ -128,7 +128,7 @@ All colors MUST be HSL.
 @layer components {
   /* Rich Text Editor Styles */
   [contenteditable="true"] {
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1.6;
   }
   
@@ -137,7 +137,7 @@ All colors MUST be HSL.
     color: hsl(var(--muted-foreground));
     pointer-events: none;
     opacity: 0.6;
-    font-size: 16px;
+    font-size: 18px;
   }
   
   [contenteditable="true"]:focus:before {
