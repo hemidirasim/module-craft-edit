@@ -24,31 +24,23 @@ export const EmojiPicker = ({
     }
     return acc;
   }, {} as Record<string, string[]>);
-  return <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="h-8 w-full justify-start">
-          <Smile size={16} className="mr-2" />
-          Insert Emoji
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-4 bg-background border border-border shadow-lg z-50">
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2">
-            <Search size={16} className="text-muted-foreground" />
-            <Input placeholder="Find an emoji (min. 2 characters)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="text-sm" />
-          </div>
-          
-          <div className="max-h-64 overflow-y-auto space-y-3">
-            {Object.entries(filteredEmojis).map(([category, emojis]) => <div key={category}>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">{category}</h4>
-                <div className="grid grid-cols-8 gap-1">
-                  {emojis.map((emoji, index) => <button key={`${emoji}-${index}`} type="button" className="w-8 h-8 text-lg hover:bg-accent rounded transition-colors flex items-center justify-center" onClick={() => onEmojiSelect(emoji)} title={emoji}>
-                      {emoji}
-                    </button>)}
-                </div>
-              </div>)}
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center space-x-2">
+        <Search size={16} className="text-muted-foreground" />
+        <Input placeholder="Find an emoji (min. 2 characters)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="text-sm" />
+      </div>
+      
+      <div className="max-h-64 overflow-y-auto space-y-3">
+        {Object.entries(filteredEmojis).map(([category, emojis]) => <div key={category}>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">{category}</h4>
+            <div className="grid grid-cols-8 gap-1">
+              {emojis.map((emoji, index) => <button key={`${emoji}-${index}`} type="button" className="w-8 h-8 text-lg hover:bg-accent rounded transition-colors flex items-center justify-center" onClick={() => onEmojiSelect(emoji)} title={emoji}>
+                  {emoji}
+                </button>)}
+            </div>
+          </div>)}
+      </div>
+    </div>
+  );
 };
