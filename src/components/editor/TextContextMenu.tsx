@@ -20,18 +20,38 @@ interface TextContextMenuProps {
 export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCommand }) => {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [selectedText, setSelectedText] = useState('');
+  const [savedSelection, setSavedSelection] = useState<Range | null>(null);
 
   const handleCreateLink = () => {
     const selection = window.getSelection();
-    const text = selection?.toString() || '';
-    setSelectedText(text);
-    setShowLinkDialog(true);
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const text = selection.toString() || '';
+      setSelectedText(text);
+      setSavedSelection(range.cloneRange());
+      setShowLinkDialog(true);
+    }
   };
 
   const handleInsertLink = (linkData: { text: string; url: string; target?: string; title?: string }) => {
-    const { text, url, target, title } = linkData;
-    const linkHTML = `<a href="${url}"${target ? ` target="${target}"` : ''}${title ? ` title="${title}"` : ''} style="color: #007cba; text-decoration: underline;">${text}</a>`;
-    onCommand('insertHTML', linkHTML);
+    if (savedSelection) {
+      // Restore the selection
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(savedSelection);
+        
+        // Create the link HTML
+        const { text, url, target, title } = linkData;
+        const linkHTML = `<a href="${url}"${target ? ` target="${target}"` : ''}${title ? ` title="${title}"` : ''} style="color: #007cba; text-decoration: underline;">${text}</a>`;
+        
+        // Replace the selected content with the link
+        document.execCommand('insertHTML', false, linkHTML);
+        
+        // Clear the saved selection
+        setSavedSelection(null);
+      }
+    }
   };
 
   const fontSizes = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
