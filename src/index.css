@@ -127,11 +127,17 @@ All colors MUST be HSL.
 
 @layer components {
   /* Rich Text Editor Styles */
+  [contenteditable="true"] {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  
   [contenteditable="true"]:empty:before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
     pointer-events: none;
     opacity: 0.6;
+    font-size: 16px;
   }
   
   [contenteditable="true"]:focus:before {
