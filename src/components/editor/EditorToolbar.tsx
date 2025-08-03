@@ -298,18 +298,18 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
             <Bookmark size={16} className="mr-2" />
             Bookmark
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer hover:bg-accent p-0">
-            <div className="w-full">
-              <div className="flex items-center px-2 py-1.5">
+          <DropdownMenuItem asChild>
+            <div className="w-full p-2">
+              <div className="flex items-center mb-2">
                 <Table size={16} className="mr-2" />
                 Table
               </div>
               <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
             </div>
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer hover:bg-accent p-0">
-            <div className="w-full">
-              <div className="flex items-center px-2 py-1.5">
+          <DropdownMenuItem asChild>
+            <div className="w-full p-2">
+              <div className="flex items-center mb-2">
                 <Smile size={16} className="mr-2" />
                 Emoji
               </div>
@@ -419,26 +419,37 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
       <LinkDialog
         open={showLinkDialog}
         onOpenChange={setShowLinkDialog}
-        onInsertLink={(linkData) => onCommand('createLink', JSON.stringify(linkData))}
+        onInsertLink={(linkData) => {
+          const linkHtml = `<a href="${linkData.url}"${linkData.target ? ` target="${linkData.target}"` : ''}${linkData.title ? ` title="${linkData.title}"` : ''}>${linkData.text}</a>`;
+          onCommand('insertHTML', linkHtml);
+        }}
         selectedText={selectedText}
       />
       
       <ImageDialog
         open={showImageDialog}
         onOpenChange={setShowImageDialog}
-        onInsertImage={(imageData) => onCommand('insertImage', JSON.stringify(imageData))}
+        onInsertImage={(imageData) => {
+          const imageHtml = `<img src="${imageData.src}" alt="${imageData.alt}"${imageData.width ? ` width="${imageData.width}"` : ''}${imageData.height ? ` height="${imageData.height}"` : ''} />`;
+          onCommand('insertHTML', imageHtml);
+        }}
       />
       
       <MediaDialog
         open={showMediaDialog}
         onOpenChange={setShowMediaDialog}
-        onInsertMedia={(mediaData) => onCommand('insertEmbed', JSON.stringify(mediaData))}
+        onInsertMedia={(mediaData) => {
+          onCommand('insertHTML', mediaData.content);
+        }}
       />
       
       <BookmarkDialog
         open={showBookmarkDialog}
         onOpenChange={setShowBookmarkDialog}
-        onInsertBookmark={(bookmarkData) => onCommand('insertBookmark', JSON.stringify(bookmarkData))}
+        onInsertBookmark={(bookmarkData) => {
+          const bookmarkHtml = `<a id="${bookmarkData.id}" name="${bookmarkData.id}" title="${bookmarkData.description || ''}">📖 ${bookmarkData.name}</a>`;
+          onCommand('insertHTML', bookmarkHtml);
+        }}
       />
     </div>
   );
