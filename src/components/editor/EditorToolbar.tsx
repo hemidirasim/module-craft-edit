@@ -198,15 +198,15 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
             <label className="text-xs text-muted-foreground">Font Family</label>
             <Select 
               onValueChange={(value) => onCommand("fontName", value)}
-              value={activeFormats?.fontFamily && activeFormats.fontFamily !== "ui-sans-serif" && activeFormats.fontFamily !== "-apple-system" ? activeFormats.fontFamily : ""}
+              value={activeFormats?.fontFamily || undefined}
             >
               <SelectTrigger className="h-8 w-full mt-1">
                 <SelectValue placeholder="Select font" />
               </SelectTrigger>
               <SelectContent>
                 {fontFamilies.map((font) => (
-                  <SelectItem key={font} value={font} style={{ fontFamily: font }}>
-                    {font}
+                  <SelectItem key={font} value={font}>
+                    <span style={{ fontFamily: font }}>{font}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
