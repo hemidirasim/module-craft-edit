@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmojiPicker } from "./EmojiPicker";
 import { TableSelector } from "./TableSelector";
+import { LinkDialog } from "./LinkDialog";
+import { ImageDialog } from "./ImageDialog";
+import { MediaDialog } from "./MediaDialog";
+import { BookmarkDialog } from "./BookmarkDialog";
 import { 
   Bold, 
   Italic, 
@@ -39,9 +44,14 @@ import {
 interface EditorToolbarProps {
   onCommand: (command: string, value?: string) => void;
   configuration?: any;
+  selectedText?: string;
 }
 
-export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarProps) => {
+export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = "" }: EditorToolbarProps) => {
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [showImageDialog, setShowImageDialog] = useState(false);
+  const [showMediaDialog, setShowMediaDialog] = useState(false);
+  const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   const fontFamilies = [
     "Arial", "Helvetica", "Times New Roman", "Georgia", "Verdana", 
     "Courier New", "Tahoma", "Comic Sans MS", "Impact", "Trebuchet MS"
@@ -261,41 +271,28 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
           <DropdownMenuItem 
-            onClick={() => {
-              const text = prompt("Link text:") || "";
-              const url = prompt("Link URL:");
-              if (url) onCommand('createLink', JSON.stringify({ text, url }));
-            }} 
+            onClick={() => setShowLinkDialog(true)}
             className="cursor-pointer hover:bg-accent"
           >
             <Link size={16} className="mr-2" />
             Link
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => {
-              const url = prompt("Image URL:");
-              if (url) onCommand('insertImage', url);
-            }} 
+            onClick={() => setShowImageDialog(true)}
             className="cursor-pointer hover:bg-accent"
           >
             <Image size={16} className="mr-2" />
             Image
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => {
-              const embedCode = prompt("Embed code or URL:");
-              if (embedCode) onCommand('insertEmbed', embedCode);
-            }} 
+            onClick={() => setShowMediaDialog(true)}
             className="cursor-pointer hover:bg-accent"
           >
             <Play size={16} className="mr-2" />
             Media/Embed
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => {
-              const name = prompt("Bookmark name:");
-              if (name) onCommand('insertBookmark', name);
-            }} 
+            onClick={() => setShowBookmarkDialog(true)}
             className="cursor-pointer hover:bg-accent"
           >
             <Bookmark size={16} className="mr-2" />
@@ -417,6 +414,32 @@ export const EditorToolbar = ({ onCommand, configuration = {} }: EditorToolbarPr
       >
         <Code2 size={16} />
       </Button>
+
+      {/* Dialog Components */}
+      <LinkDialog
+        open={showLinkDialog}
+        onOpenChange={setShowLinkDialog}
+        onInsertLink={(linkData) => onCommand('createLink', JSON.stringify(linkData))}
+        selectedText={selectedText}
+      />
+      
+      <ImageDialog
+        open={showImageDialog}
+        onOpenChange={setShowImageDialog}
+        onInsertImage={(imageData) => onCommand('insertImage', JSON.stringify(imageData))}
+      />
+      
+      <MediaDialog
+        open={showMediaDialog}
+        onOpenChange={setShowMediaDialog}
+        onInsertMedia={(mediaData) => onCommand('insertEmbed', JSON.stringify(mediaData))}
+      />
+      
+      <BookmarkDialog
+        open={showBookmarkDialog}
+        onOpenChange={setShowBookmarkDialog}
+        onInsertBookmark={(bookmarkData) => onCommand('insertBookmark', JSON.stringify(bookmarkData))}
+      />
     </div>
   );
 };
