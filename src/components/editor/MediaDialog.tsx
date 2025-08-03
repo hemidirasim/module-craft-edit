@@ -59,11 +59,11 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
     // Format dimensions to include 'px' if it's a number, otherwise use as-is (for percentages)
     const formatDimension = (value: string) => {
       const trimmedValue = value.trim();
-      // If it's just a number, add px
+      // If it's just a number without any unit, add px
       if (/^\d+$/.test(trimmedValue)) {
         return trimmedValue + 'px';
       }
-      // If it already has a unit (%, px, em, etc.) or is not a pure number, use as-is
+      // For everything else (including percentages like "100%"), use as-is
       return trimmedValue;
     };
 
