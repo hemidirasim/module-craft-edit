@@ -78,7 +78,7 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
 
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'detailed'>('grid');
   const [thumbnailMode, setThumbnailMode] = useState<'small' | 'medium' | 'large'>('medium');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -428,13 +428,15 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+          <select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value as 'grid' | 'list' | 'detailed')}
+            className="px-3 py-1 border rounded-md bg-background text-sm"
           >
-            {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
-          </Button>
+            <option value="grid">Grid View</option>
+            <option value="list">List View</option>
+            <option value="detailed">Detailed View</option>
+          </select>
         </div>
       </div>
 
@@ -516,23 +518,23 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
           </select>
 
           <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'name' | 'date' | 'size' | 'type')}
+            value={`${sortBy}-${sortOrder}`}
+            onChange={(e) => {
+              const [newSortBy, newSortOrder] = e.target.value.split('-');
+              setSortBy(newSortBy as 'name' | 'date' | 'size' | 'type');
+              setSortOrder(newSortOrder as 'asc' | 'desc');
+            }}
             className="px-3 py-2 border rounded-md bg-background"
           >
-            <option value="name">Sort by Name</option>
-            <option value="date">Sort by Date</option>
-            <option value="size">Sort by Size</option>
-            <option value="type">Sort by Type</option>
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="date-asc">Date (Oldest)</option>
+            <option value="date-desc">Date (Newest)</option>
+            <option value="size-asc">Size (Smallest)</option>
+            <option value="size-desc">Size (Largest)</option>
+            <option value="type-asc">Type (A-Z)</option>
+            <option value="type-desc">Type (Z-A)</option>
           </select>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          >
-            {sortOrder === 'asc' ? '↑' : '↓'}
-          </Button>
 
           <select
             value={thumbnailMode}
@@ -594,26 +596,43 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
           {getSubfolders().length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Folders</h3>
-              <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}>
+              <div className={
+                viewMode === 'grid' 
+                  ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' 
+                  : viewMode === 'detailed'
+                  ? 'grid grid-cols-1 gap-2'
+                  : 'space-y-2'
+              }>
                 {getSubfolders().map((folder) => (
                   <ContextMenu key={folder.id}>
                      <ContextMenuTrigger>
-                       <Card
-                         className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
-                           viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'
-                         }`}
+                        <Card
+                          className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                            viewMode === 'grid' ? 'text-center' : 'flex items-center justify-between'
+                          }`}
                          onClick={() => setCurrentFolderId(folder.id)}
                          draggable
                          onDragStart={(e) => handleFolderDragStart(e, folder)}
                          onDragOver={handleFolderDragOver}
                          onDrop={(e) => handleFolderDrop(e, folder.id)}
                        >
-                         <div className={`flex ${viewMode === 'list' ? 'items-center gap-3' : 'flex-col items-center gap-2'}`}>
-                           <FolderIcon className="w-8 h-8 text-blue-500" />
-                           <span className="text-sm font-medium truncate max-w-full block" title={folder.name}>
-                             {folder.name}
-                           </span>
-                         </div>
+                          <div className={`flex ${
+                            viewMode === 'grid' 
+                              ? 'flex-col items-center gap-2' 
+                              : 'items-center gap-3'
+                          }`}>
+                            <FolderIcon className="w-8 h-8 text-blue-500" />
+                            <div className={viewMode === 'grid' ? 'text-center' : 'flex-1 min-w-0'}>
+                              <span className="text-sm font-medium truncate max-w-full block" title={folder.name}>
+                                {folder.name}
+                              </span>
+                              {viewMode === 'detailed' && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Folder • Created: {new Date(folder.created_at).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
                        </Card>
                     </ContextMenuTrigger>
                     <ContextMenuContent>
@@ -660,41 +679,56 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
                 <p className="text-sm text-muted-foreground">Drag & drop files here or click Upload Files</p>
               </div>
             ) : (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}>
+              <div className={
+                viewMode === 'grid' 
+                  ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' 
+                  : viewMode === 'detailed'
+                  ? 'grid grid-cols-1 gap-2'
+                  : 'space-y-2'
+              }>
                 {getFilteredAndSortedFiles().map((file) => (
                   <ContextMenu key={file.id}>
                     <ContextMenuTrigger>
                        <Card
-                         className={`p-4 hover:bg-accent transition-colors ${
-                           selectMode ? 'cursor-pointer' : ''
-                         } ${viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'}`}
+                          className={`p-4 hover:bg-accent transition-colors ${
+                            selectMode ? 'cursor-pointer' : ''
+                          } ${viewMode === 'grid' ? 'text-center' : 'flex items-center justify-between'}`}
                          onClick={selectMode ? () => onSelectFile?.(file) : undefined}
                          draggable
                          onDragStart={(e) => handleFileDragStart(e, file)}
                        >
-                          <div className={`flex ${viewMode === 'list' ? 'items-center gap-3 flex-1' : 'flex-col items-center gap-2'}`}>
-                            {getFileThumbnail(file)}
-                           <div className={`${viewMode === 'list' ? 'flex-1 min-w-0' : 'w-full'}`}>
-                             <p className="text-sm font-medium truncate max-w-full" title={file.original_name}>
-                               {file.original_name}
-                             </p>
-                             {viewMode === 'list' && (
-                               <p className="text-xs text-muted-foreground">
-                                 {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}
-                               </p>
-                             )}
-                           </div>
-                           {viewMode === 'grid' && (
-                             <div className="text-center w-full mt-2">
-                               <Badge variant="secondary" className="text-xs mb-1">
-                                 {file.file_type}
-                               </Badge>
-                               <p className="text-xs text-muted-foreground">
-                                 {formatFileSize(file.file_size)}
-                               </p>
-                             </div>
-                           )}
-                         </div>
+                           <div className={`flex ${
+                             viewMode === 'grid' 
+                               ? 'flex-col items-center gap-2' 
+                               : 'items-center gap-3 flex-1'
+                           }`}>
+                             {viewMode === 'grid' || viewMode === 'detailed' ? getFileThumbnail(file) : getFileIcon(file.file_type, file.mime_type)}
+                            <div className={`${viewMode === 'grid' ? 'w-full' : 'flex-1 min-w-0'}`}>
+                              <p className="text-sm font-medium truncate max-w-full" title={file.original_name}>
+                                {file.original_name}
+                              </p>
+                              {(viewMode === 'list' || viewMode === 'detailed') && (
+                                <div className="text-xs text-muted-foreground">
+                                  <p>{formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}</p>
+                                  {viewMode === 'detailed' && (
+                                    <p className="mt-1">
+                                      Type: {file.file_type} • Modified: {new Date(file.updated_at).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {viewMode === 'grid' && (
+                              <div className="text-center w-full mt-2">
+                                <Badge variant="secondary" className="text-xs mb-1">
+                                  {file.file_type}
+                                </Badge>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatFileSize(file.file_size)}
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         
                         {!selectMode && (
                           <div className="flex gap-1">
