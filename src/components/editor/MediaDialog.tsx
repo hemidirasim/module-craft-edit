@@ -58,10 +58,13 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
   const generateEmbedCode = (videoInfo: { platform: string; id: string }) => {
     // Format dimensions to include 'px' if it's a number, otherwise use as-is (for percentages)
     const formatDimension = (value: string) => {
-      if (/^\d+$/.test(value)) {
-        return value + 'px';
+      const trimmedValue = value.trim();
+      // If it's just a number, add px
+      if (/^\d+$/.test(trimmedValue)) {
+        return trimmedValue + 'px';
       }
-      return value;
+      // If it already has a unit (%, px, em, etc.) or is not a pure number, use as-is
+      return trimmedValue;
     };
 
     const width = formatDimension(mediaWidth);
