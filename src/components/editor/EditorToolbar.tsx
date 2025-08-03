@@ -420,7 +420,9 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
         open={showLinkDialog}
         onOpenChange={setShowLinkDialog}
         onInsertLink={(linkData) => {
+          console.log('🔗 LinkDialog callback called with:', linkData);
           const linkHtml = `<a href="${linkData.url}"${linkData.target ? ` target="${linkData.target}"` : ''}${linkData.title ? ` title="${linkData.title}"` : ''}>${linkData.text}</a>`;
+          console.log('🔗 Generated HTML:', linkHtml);
           onCommand('insertHTML', linkHtml);
         }}
         selectedText={selectedText}

@@ -186,23 +186,40 @@ export const RichTextEditor = ({
       // Handle insertHTML command explicitly
       if (command === 'insertHTML') {
         if (value) {
+          console.log('🔍 insertHTML called with value:', value);
+          console.log('🔍 Editor ref exists:', !!editorRef.current);
+          console.log('🔍 Editor is focused:', document.activeElement === editorRef.current);
+          
           // Ensure editor is focused and has selection
-          editorRef.current.focus();
-          
-          // Get current selection or create one at the end
-          const selection = window.getSelection();
-          if (!selection || selection.rangeCount === 0) {
-            // If no selection, place cursor at the end
-            const range = document.createRange();
-            range.selectNodeContents(editorRef.current);
-            range.collapse(false);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
+          if (editorRef.current) {
+            editorRef.current.focus();
+            console.log('🔍 Editor focused, now active element:', document.activeElement === editorRef.current);
+            
+            // Get current selection or create one at the end
+            const selection = window.getSelection();
+            console.log('🔍 Selection exists:', !!selection);
+            console.log('🔍 Selection range count:', selection?.rangeCount || 0);
+            
+            if (!selection || selection.rangeCount === 0) {
+              console.log('🔍 Creating new selection at end');
+              // If no selection, place cursor at the end
+              const range = document.createRange();
+              range.selectNodeContents(editorRef.current);
+              range.collapse(false);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            }
+            
+            const result = document.execCommand('insertHTML', false, value);
+            console.log('🔍 execCommand result:', result);
+            console.log('🔍 Editor content after insert:', editorRef.current.innerHTML);
+            handleContentChange();
+            return;
+          } else {
+            console.error('🚨 Editor ref is null!');
           }
-          
-          document.execCommand('insertHTML', false, value);
-          handleContentChange();
-          return;
+        } else {
+          console.error('🚨 insertHTML called with empty value!');
         }
       }
 
