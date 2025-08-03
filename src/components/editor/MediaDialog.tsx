@@ -84,6 +84,7 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
     setVideoUrl(url);
     const videoInfo = extractVideoId(url);
     if (videoInfo) {
+      // URL dəyişəndə mövcud width/height qalsın, reset etməsin
       updateEmbedCode(videoInfo);
       
       // Generate preview URL
