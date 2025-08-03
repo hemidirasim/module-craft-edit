@@ -388,22 +388,32 @@ export const RichTextEditor = ({
         }
       } else if (command === "fontSize") {
         if (value) {
+          document.execCommand('styleWithCSS', false, 'true');
+          
+          // Create a temporary element to apply the font size
+          const tempSpan = document.createElement('span');
+          tempSpan.style.fontSize = value + 'px';
+          
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
-            const selectedContent = range.extractContents();
-            const span = document.createElement('span');
-            span.style.fontSize = value + 'px';
-            span.appendChild(selectedContent);
-            range.insertNode(span);
             
-            // Clear selection
-            selection.removeAllRanges();
-            const newRange = document.createRange();
-            newRange.selectNodeContents(span);
-            newRange.collapse(false);
-            selection.addRange(newRange);
+            if (range.collapsed) {
+              // If no text is selected, just set up the formatting for future typing
+              range.insertNode(tempSpan);
+              range.setStart(tempSpan, 0);
+              range.setEnd(tempSpan, 0);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            } else {
+              // If text is selected, wrap it with the span
+              const selectedContent = range.extractContents();
+              tempSpan.appendChild(selectedContent);
+              range.insertNode(tempSpan);
+            }
           }
+          
+          handleContentChange();
         }
       } else {
         document.execCommand(command, false, value);
