@@ -188,32 +188,37 @@ export const RichTextEditor = ({
         if (value) {
           console.log('🔍 insertHTML called with value:', value);
           console.log('🔍 Editor ref exists:', !!editorRef.current);
-          console.log('🔍 Editor is focused:', document.activeElement === editorRef.current);
           
-          // Ensure editor is focused and has selection
           if (editorRef.current) {
-            editorRef.current.focus();
-            console.log('🔍 Editor focused, now active element:', document.activeElement === editorRef.current);
-            
-            // Get current selection or create one at the end
-            const selection = window.getSelection();
-            console.log('🔍 Selection exists:', !!selection);
-            console.log('🔍 Selection range count:', selection?.rangeCount || 0);
-            
-            if (!selection || selection.rangeCount === 0) {
-              console.log('🔍 Creating new selection at end');
-              // If no selection, place cursor at the end
-              const range = document.createRange();
-              range.selectNodeContents(editorRef.current);
-              range.collapse(false);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            }
-            
-            const result = document.execCommand('insertHTML', false, value);
-            console.log('🔍 execCommand result:', result);
-            console.log('🔍 Editor content after insert:', editorRef.current.innerHTML);
-            handleContentChange();
+            // Force focus using setTimeout to ensure DOM is ready
+            setTimeout(() => {
+              if (editorRef.current) {
+                editorRef.current.focus();
+                
+                // Create a new range at the end of content
+                const selection = window.getSelection();
+                const range = document.createRange();
+                
+                // If editor is empty, just select the content
+                if (editorRef.current.innerHTML.trim() === '') {
+                  range.selectNodeContents(editorRef.current);
+                } else {
+                  // Place cursor at the end
+                  range.selectNodeContents(editorRef.current);
+                  range.collapse(false);
+                }
+                
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+                
+                console.log('🔍 About to insert HTML with focus');
+                const result = document.execCommand('insertHTML', false, value);
+                console.log('🔍 execCommand result:', result);
+                console.log('🔍 Editor content after insert:', editorRef.current.innerHTML);
+                
+                handleContentChange();
+              }
+            }, 0);
             return;
           } else {
             console.error('🚨 Editor ref is null!');
