@@ -79,8 +79,11 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [thumbnailMode, setThumbnailMode] = useState<'small' | 'medium' | 'large'>('medium');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'type'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [renameFileId, setRenameFileId] = useState<string | null>(null);
@@ -198,20 +201,79 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
     return folders.filter(f => f.parent_folder_id === currentFolderId);
   };
 
-  const getFilteredFiles = () => {
+  const getFilteredAndSortedFiles = () => {
     let filtered = files;
 
+    // Filter by type
     if (filterType !== 'all') {
       filtered = filtered.filter(f => f.file_type === filterType);
     }
 
+    // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(f => 
         f.original_name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
+    // Sort files
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'name':
+          aValue = a.original_name.toLowerCase();
+          bValue = b.original_name.toLowerCase();
+          break;
+        case 'date':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case 'size':
+          aValue = a.file_size;
+          bValue = b.file_size;
+          break;
+        case 'type':
+          aValue = a.file_type;
+          bValue = b.file_type;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
     return filtered;
+  };
+
+  // Get thumbnail for image files
+  const getFileThumbnail = (file: any) => {
+    if (file.file_type === 'image') {
+      return (
+        <div className={`relative overflow-hidden rounded ${
+          thumbnailMode === 'small' ? 'w-12 h-12' : 
+          thumbnailMode === 'medium' ? 'w-16 h-16' : 'w-20 h-20'
+        }`}>
+          <img 
+            src={`https://qgmluixnzhpthywyrytn.supabase.co/storage/v1/object/public/user-files/${file.storage_path}`}
+            alt={file.original_name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+              if (fallback) fallback.classList.remove('hidden');
+            }}
+          />
+          <div className="hidden w-full h-full flex items-center justify-center bg-muted">
+            {getFileIcon(file.file_type, file.mime_type)}
+          </div>
+        </div>
+      );
+    }
+    return getFileIcon(file.file_type, file.mime_type);
   };
 
   // Drag & Drop handlers
@@ -291,10 +353,12 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
 
   // Drag & Drop for moving files/folders
   const handleFileDragStart = (e: React.DragEvent, file: any) => {
+    console.log('File drag start:', file.id);
     e.dataTransfer.setData('application/json', JSON.stringify({ type: 'file', data: file }));
   };
 
   const handleFolderDragStart = (e: React.DragEvent, folder: any) => {
+    console.log('Folder drag start:', folder.id);
     e.dataTransfer.setData('application/json', JSON.stringify({ type: 'folder', data: folder }));
   };
 
@@ -307,18 +371,27 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
     e.stopPropagation();
     
     try {
-      const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+      const dragDataString = e.dataTransfer.getData('application/json');
+      console.log('Drop data:', dragDataString);
+      
+      if (!dragDataString) return;
+      
+      const dragData = JSON.parse(dragDataString);
+      console.log('Parsed drag data:', dragData);
       
       if (dragData.type === 'file') {
+        console.log('Moving file:', dragData.data.id, 'to folder:', targetFolderId);
         await moveFile(dragData.data.id, targetFolderId);
         toast.success('File moved successfully');
       } else if (dragData.type === 'folder') {
         if (dragData.data.id !== targetFolderId) {
+          console.log('Moving folder:', dragData.data.id, 'to folder:', targetFolderId);
           await moveFolder(dragData.data.id, targetFolderId);
           toast.success('Folder moved successfully');
         }
       }
     } catch (error) {
+      console.error('Drop error:', error);
       toast.error('Failed to move item');
     }
   };
@@ -441,6 +514,35 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
               </option>
             ))}
           </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'name' | 'date' | 'size' | 'type')}
+            className="px-3 py-2 border rounded-md bg-background"
+          >
+            <option value="name">Sort by Name</option>
+            <option value="date">Sort by Date</option>
+            <option value="size">Sort by Size</option>
+            <option value="type">Sort by Type</option>
+          </select>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+          >
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </Button>
+
+          <select
+            value={thumbnailMode}
+            onChange={(e) => setThumbnailMode(e.target.value as 'small' | 'medium' | 'large')}
+            className="px-3 py-2 border rounded-md bg-background"
+          >
+            <option value="small">Small Thumbnails</option>
+            <option value="medium">Medium Thumbnails</option>
+            <option value="large">Large Thumbnails</option>
+          </select>
         </div>
       </div>
 
@@ -551,7 +653,7 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
               <div className="text-center py-8">
                 <p className="text-muted-foreground">Loading...</p>
               </div>
-            ) : getFilteredFiles().length === 0 ? (
+            ) : getFilteredAndSortedFiles().length === 0 ? (
               <div className="text-center py-16">
                 <Upload className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground mb-2">No files found</p>
@@ -559,7 +661,7 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
               </div>
             ) : (
               <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}>
-                {getFilteredFiles().map((file) => (
+                {getFilteredAndSortedFiles().map((file) => (
                   <ContextMenu key={file.id}>
                     <ContextMenuTrigger>
                        <Card
@@ -570,8 +672,8 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
                          draggable
                          onDragStart={(e) => handleFileDragStart(e, file)}
                        >
-                         <div className={`flex ${viewMode === 'list' ? 'items-center gap-3 flex-1' : 'flex-col items-center gap-2'}`}>
-                           {getFileIcon(file.file_type, file.mime_type)}
+                          <div className={`flex ${viewMode === 'list' ? 'items-center gap-3 flex-1' : 'flex-col items-center gap-2'}`}>
+                            {getFileThumbnail(file)}
                            <div className={`${viewMode === 'list' ? 'flex-1 min-w-0' : 'w-full'}`}>
                              <p className="text-sm font-medium truncate max-w-full" title={file.original_name}>
                                {file.original_name}
