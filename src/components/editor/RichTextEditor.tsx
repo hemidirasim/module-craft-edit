@@ -821,83 +821,57 @@ export const RichTextEditor = ({
     // Handle Enter key in blockquote
     if (e.key === 'Enter') {
       const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        let currentElement = range.startContainer;
+      if (!selection || selection.rangeCount === 0) return;
+      
+      const range = selection.getRangeAt(0);
+      const blockquote = range.startContainer.parentElement?.closest('blockquote') || 
+                        (range.startContainer as Element)?.closest?.('blockquote');
+      
+      if (blockquote) {
+        e.preventDefault();
         
-        if (currentElement.nodeType === Node.TEXT_NODE) {
-          currentElement = currentElement.parentElement;
-        }
-        
-        const blockquote = (currentElement as Element)?.closest('blockquote');
-        if (blockquote) {
-          e.preventDefault();
-          
-          // If Shift+Enter, just add a line break and continue in blockquote
-          if (e.shiftKey) {
-            document.execCommand('insertHTML', false, '<br>');
-            handleContentChange();
-            return;
-          }
-          
-          // For normal Enter, get cursor position and check current line content
-          const selection = window.getSelection();
-          if (!selection || selection.rangeCount === 0) return;
-          
-          const range = selection.getRangeAt(0);
-          
-          // Check if cursor is at the end of an empty line or <br> element
-          const container = range.startContainer;
-          const offset = range.startOffset;
-          
-          let isEmptyLine = false;
-          
-          if (container.nodeType === Node.TEXT_NODE) {
-            // Check if text node has only whitespace before cursor
-            const textContent = container.textContent || '';
-            const beforeCursor = textContent.substring(0, offset);
-            const afterCursor = textContent.substring(offset);
-            
-            // If the line before cursor is empty/whitespace and we're at end of this text
-            isEmptyLine = beforeCursor.trim() === '' && afterCursor.trim() === '';
-          } else {
-            // If we're in an element node (like after a <br>)
-            const element = container as Element;
-            if (element === blockquote || element.closest('blockquote') === blockquote) {
-              // Check if the previous sibling is a BR or if this is an empty element
-              const prevSibling = element.previousSibling;
-              isEmptyLine = !prevSibling || 
-                          prevSibling.nodeName === 'BR' || 
-                          (element.textContent || '').trim() === '';
-            }
-          }
-          
-          if (isEmptyLine) {
-            // Exit blockquote - create new paragraph after it
-            const newParagraph = document.createElement('div');
-            newParagraph.style.margin = '16px 0';
-            newParagraph.innerHTML = '<br>';
-            
-            // Insert after blockquote
-            if (blockquote.parentNode) {
-              blockquote.parentNode.insertBefore(newParagraph, blockquote.nextSibling);
-              
-              // Move cursor to new paragraph
-              const newRange = document.createRange();
-              const newSelection = window.getSelection();
-              newRange.setStart(newParagraph, 0);
-              newRange.collapse(true);
-              newSelection?.removeAllRanges();
-              newSelection?.addRange(newRange);
-            }
-          } else {
-            // Continue in blockquote - add line break
-            document.execCommand('insertHTML', false, '<br>');
-          }
-          
+        // Shift+Enter: sadəcə line break əlavə et
+        if (e.shiftKey) {
+          document.execCommand('insertHTML', false, '<br>');
           handleContentChange();
           return;
         }
+        
+        // Normal Enter: yoxla ki boş sətirdəsəm
+        const currentNode = range.startContainer;
+        const offset = range.startOffset;
+        
+        // Əgər text node-dasam
+        if (currentNode.nodeType === Node.TEXT_NODE) {
+          const text = currentNode.textContent || '';
+          const beforeCursor = text.substring(0, offset);
+          const afterCursor = text.substring(offset);
+          
+          // Əgər cursor boş sətirdədir (sadəcə boşluqlar varsa)
+          if (beforeCursor.trim() === '' && afterCursor.trim() === '') {
+            // Quote-dan çıx
+            const newDiv = document.createElement('div');
+            newDiv.style.margin = '16px 0';
+            newDiv.innerHTML = '<br>';
+            
+            blockquote.parentNode?.insertBefore(newDiv, blockquote.nextSibling);
+            
+            // Cursor-u yeni div-ə köçür
+            const newRange = document.createRange();
+            newRange.setStart(newDiv, 0);
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+            
+            handleContentChange();
+            return;
+          }
+        }
+        
+        // Əks halda, sadəcə line break əlavə et (quote daxilində qal)
+        document.execCommand('insertHTML', false, '<br>');
+        handleContentChange();
+        return;
       }
     }
 
