@@ -185,8 +185,11 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
                       setMediaWidth(e.target.value);
                       setTimeout(handleDimensionChange, 100);
                     }}
-                    placeholder="560"
+                    placeholder="560px or 100%"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Enter pixel values (e.g., 560) or percentage (e.g., 100%)
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="video-height">Height</Label>
@@ -197,8 +200,11 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
                       setMediaHeight(e.target.value);
                       setTimeout(handleDimensionChange, 100);
                     }}
-                    placeholder="315"
+                    placeholder="315px or 100%"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Enter pixel values (e.g., 315) or percentage (e.g., 100%)
+                  </p>
                 </div>
               </div>
             )}
