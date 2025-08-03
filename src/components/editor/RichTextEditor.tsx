@@ -27,6 +27,84 @@ export const RichTextEditor = ({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; element: HTMLElement } | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeData, setResizeData] = useState<{ startX: number; startWidth: number; column: HTMLElement } | null>(null);
+  const [activeFormats, setActiveFormats] = useState<{
+    bold: boolean;
+    italic: boolean;
+    underline: boolean;
+    strikethrough: boolean;
+    justifyLeft: boolean;
+    justifyCenter: boolean;
+    justifyRight: boolean;
+    fontSize: string;
+    fontFamily: string;
+    blockFormat: string;
+  }>({
+    bold: false,
+    italic: false,
+    underline: false,
+    strikethrough: false,
+    justifyLeft: false,
+    justifyCenter: false,
+    justifyRight: false,
+    fontSize: '18px',
+    fontFamily: 'Arial',
+    blockFormat: 'p'
+  });
+
+  const updateActiveFormats = () => {
+    try {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+
+      // Check formatting commands
+      const formats = {
+        bold: document.queryCommandState('bold'),
+        italic: document.queryCommandState('italic'),
+        underline: document.queryCommandState('underline'),
+        strikethrough: document.queryCommandState('strikeThrough'),
+        justifyLeft: document.queryCommandState('justifyLeft'),
+        justifyCenter: document.queryCommandState('justifyCenter'),
+        justifyRight: document.queryCommandState('justifyRight'),
+        fontSize: '18px',
+        fontFamily: 'Arial',
+        blockFormat: 'p'
+      };
+
+      // Get font size and family from computed style
+      const range = selection.getRangeAt(0);
+      let element = range.commonAncestorContainer;
+      if (element.nodeType === Node.TEXT_NODE) {
+        element = element.parentElement;
+      }
+
+      if (element && element.nodeType === Node.ELEMENT_NODE) {
+        const computedStyle = window.getComputedStyle(element as Element);
+        formats.fontSize = computedStyle.fontSize;
+        formats.fontFamily = computedStyle.fontFamily.split(',')[0].replace(/['"]/g, '');
+
+        // Detect block format
+        const tagName = (element as Element).tagName.toLowerCase();
+        if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre'].includes(tagName)) {
+          formats.blockFormat = tagName;
+        } else {
+          formats.blockFormat = 'p';
+        }
+      }
+
+      setActiveFormats(formats);
+    } catch (error) {
+      console.warn('Error updating active formats:', error);
+    }
+  };
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      updateActiveFormats();
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, []);
 
   useEffect(() => {
     if (editorRef.current && content !== editorRef.current.innerHTML && !isHtmlView) {
@@ -911,7 +989,7 @@ export const RichTextEditor = ({
   return (
     <>
       <Card className="overflow-hidden shadow-card">
-        <EditorToolbar onCommand={handleCommand} configuration={configuration} />
+        <EditorToolbar onCommand={handleCommand} configuration={configuration} activeFormats={activeFormats} />
         {isHtmlView ? (
           <Textarea
             value={htmlContent}

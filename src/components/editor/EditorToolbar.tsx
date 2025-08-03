@@ -45,9 +45,21 @@ interface EditorToolbarProps {
   onCommand: (command: string, value?: string) => void;
   configuration?: any;
   selectedText?: string;
+  activeFormats?: {
+    bold: boolean;
+    italic: boolean;
+    underline: boolean;
+    strikethrough: boolean;
+    justifyLeft: boolean;
+    justifyCenter: boolean;
+    justifyRight: boolean;
+    fontSize: string;
+    fontFamily: string;
+    blockFormat: string;
+  };
 }
 
-export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = "" }: EditorToolbarProps) => {
+export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = "", activeFormats }: EditorToolbarProps) => {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showMediaDialog, setShowMediaDialog] = useState(false);
@@ -184,7 +196,10 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
           {/* Font Family */}
           <div className="px-2 py-1">
             <label className="text-xs text-muted-foreground">Font Family</label>
-            <Select onValueChange={(value) => onCommand("fontName", value)}>
+            <Select 
+              onValueChange={(value) => onCommand("fontName", value)}
+              value={activeFormats?.fontFamily || 'Arial'}
+            >
               <SelectTrigger className="h-8 w-full mt-1">
                 <SelectValue placeholder="Select font" />
               </SelectTrigger>
@@ -200,13 +215,16 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
           {/* Font Size */}
           <div className="px-2 py-1">
             <label className="text-xs text-muted-foreground">Font Size</label>
-            <Select onValueChange={(value) => onCommand("fontSize", value)}>
+            <Select 
+              onValueChange={(value) => onCommand("fontSize", value)}
+              value={activeFormats?.fontSize?.replace('px', '') || '18'}
+            >
               <SelectTrigger className="h-8 w-full mt-1">
                 <SelectValue placeholder="Size" />
               </SelectTrigger>
               <SelectContent>
                 {fontSizes.map((size) => (
-                  <SelectItem key={size} value={size}>
+                  <SelectItem key={size} value={size.replace('px', '')}>
                     {size}
                   </SelectItem>
                 ))}
@@ -315,7 +333,10 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
       </DropdownMenu>
 
       {/* Block Format */}
-      <Select onValueChange={(value) => onCommand("formatBlock", value)}>
+      <Select 
+        onValueChange={(value) => onCommand("formatBlock", value)}
+        value={activeFormats?.blockFormat || 'p'}
+      >
         <SelectTrigger className="h-8 w-32">
           <SelectValue placeholder="Paragraph" />
         </SelectTrigger>
@@ -335,7 +356,7 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
         <Button
           key={tool.command}
           type="button"
-          variant="ghost"
+          variant={activeFormats?.[tool.command as keyof typeof activeFormats] ? "default" : "ghost"}
           size="sm"
           className="h-8 w-8 p-0 hover:bg-accent"
           onClick={() => onCommand(tool.command)}
@@ -389,7 +410,7 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
         <Button
           key={tool.command}
           type="button"
-          variant="ghost"
+          variant={activeFormats?.[tool.command as keyof typeof activeFormats] ? "default" : "ghost"}
           size="sm"
           className="h-8 w-8 p-0 hover:bg-accent"
           onClick={() => onCommand(tool.command)}
