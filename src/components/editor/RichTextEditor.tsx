@@ -183,7 +183,16 @@ export const RichTextEditor = ({
         }
       }
 
-      // Handle standard commands  
+      // Handle insertHTML command explicitly
+      if (command === 'insertHTML') {
+        if (value) {
+          document.execCommand('insertHTML', false, value);
+          handleContentChange();
+          return;
+        }
+      }
+
+      // Handle standard commands
       if (command === "createLink") {
         const selection = window.getSelection();
         const selectedText = selection && selection.rangeCount > 0 ? selection.toString() : '';
