@@ -64,7 +64,45 @@ export const RichTextEditor = ({
     }
     
     if (command === "paste") {
-      document.execCommand("paste");
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(text => {
+          if (text && editorRef.current) {
+            editorRef.current.focus();
+            
+            // Insert the text at cursor position
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              range.deleteContents();
+              range.insertNode(document.createTextNode(text));
+              range.collapse(false);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            } else {
+              // Fallback: insert at the end
+              document.execCommand('insertText', false, text);
+            }
+            handleContentChange();
+          }
+        }).catch(err => {
+          console.warn('Clipboard read failed, using fallback:', err);
+          // Fallback to execCommand
+          try {
+            document.execCommand("paste");
+            handleContentChange();
+          } catch (error) {
+            console.error('Paste operation failed:', error);
+          }
+        });
+      } else {
+        // Fallback for older browsers
+        try {
+          document.execCommand("paste");
+          handleContentChange();
+        } catch (error) {
+          console.error('Paste operation failed:', error);
+        }
+      }
       return;
     }
     
