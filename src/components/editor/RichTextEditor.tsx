@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { EditorToolbar } from "./EditorToolbar";
 import { FindReplaceDialog } from "./FindReplaceDialog";
 import { TableContextMenu } from "./TableContextMenu";
+import { TextContextMenu } from "./TextContextMenu";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -755,34 +756,36 @@ export const RichTextEditor = ({
             placeholder="<p>Enter HTML here...</p>"
           />
         ) : (
-          <div
-            ref={editorRef}
-            contentEditable
-            className={`
-              min-h-[300px] p-4 outline-none text-foreground bg-background text-lg
-              prose prose-lg max-w-none
-              focus:ring-2 focus:ring-primary/20 focus:ring-inset
-              ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
-            `}
-            style={{
-              fontFamily: configuration.fontFamily || undefined,
-              fontSize: configuration.fontSize || undefined,
-              backgroundColor: configuration.backgroundColor || undefined,
-              color: configuration.textColor || undefined,
-              background: editorRef.current?.innerHTML === '' ? 
-                `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
-                'transparent'
-            }}
-            onInput={handleContentChange}
-            onFocus={() => setIsEditorFocused(true)}
-            onBlur={() => setIsEditorFocused(false)}
-            onKeyDown={handleKeyDown}
-            onContextMenu={handleContextMenu}
-            onMouseMove={handleMouseMove}
-            onMouseDown={handleMouseDown}
-            data-placeholder={placeholder}
-            suppressContentEditableWarning={true}
-          />
+          <TextContextMenu onCommand={handleCommand}>
+            <div
+              ref={editorRef}
+              contentEditable
+              className={`
+                min-h-[300px] p-4 outline-none text-foreground bg-background text-lg
+                prose prose-lg max-w-none
+                focus:ring-2 focus:ring-primary/20 focus:ring-inset
+                ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
+              `}
+              style={{
+                fontFamily: configuration.fontFamily || undefined,
+                fontSize: configuration.fontSize || undefined,
+                backgroundColor: configuration.backgroundColor || undefined,
+                color: configuration.textColor || undefined,
+                background: editorRef.current?.innerHTML === '' ? 
+                  `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
+                  'transparent'
+              }}
+              onInput={handleContentChange}
+              onFocus={() => setIsEditorFocused(true)}
+              onBlur={() => setIsEditorFocused(false)}
+              onKeyDown={handleKeyDown}
+              onContextMenu={handleContextMenu}
+              onMouseMove={handleMouseMove}
+              onMouseDown={handleMouseDown}
+              data-placeholder={placeholder}
+              suppressContentEditableWarning={true}
+            />
+          </TextContextMenu>
         )}
       </Card>
       
