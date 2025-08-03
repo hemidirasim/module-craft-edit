@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/context-menu';
 import { LinkDialog } from './LinkDialog';
 import { ImageDialog } from './ImageDialog';
-import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket, Link, Link2Off, Image } from 'lucide-react';
+import { DocumentDialog } from './DocumentDialog';
+import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket, Link, Link2Off, Image, FileText } from 'lucide-react';
 
 interface TextContextMenuProps {
   children: React.ReactNode;
@@ -21,6 +22,7 @@ interface TextContextMenuProps {
 export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCommand }) => {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
+  const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [savedSelection, setSavedSelection] = useState<Range | null>(null);
   const [isInLink, setIsInLink] = useState(false);
@@ -140,6 +142,125 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
     }
   };
 
+  const handleInsertDocument = (documentData: { src: string; name: string; type: string; size?: string }) => {
+    // Get current selection position
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      
+      // Create document link HTML with download functionality
+      const { src, name, type, size } = documentData;
+      const documentHTML = `
+        <div style="
+          display: inline-block; 
+          padding: 12px 16px; 
+          margin: 8px 0; 
+          border: 2px solid #e5e7eb; 
+          border-radius: 8px; 
+          background: #f9fafb;
+          text-decoration: none;
+          color: #374151;
+          transition: all 0.2s;
+          cursor: pointer;
+          max-width: 100%;
+        " 
+        onmouseover="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#eff6ff';" 
+        onmouseout="this.style.borderColor='#e5e7eb'; this.style.backgroundColor='#f9fafb';"
+        onclick="window.open('${src}', '_blank')">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="
+              padding: 8px; 
+              background: #3b82f6; 
+              border-radius: 6px; 
+              color: white; 
+              font-size: 14px; 
+              font-weight: 600;
+              min-width: 20px;
+              text-align: center;
+            ">📄</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 2px; word-break: break-all;">
+                ${name}
+              </div>
+              <div style="font-size: 12px; color: #6b7280;">
+                ${type}${size ? ` • ${size}` : ''}
+              </div>
+            </div>
+            <div style="
+              padding: 4px 8px; 
+              background: #e5e7eb; 
+              border-radius: 4px; 
+              font-size: 12px; 
+              color: #374151;
+              font-weight: 500;
+            ">Download</div>
+          </div>
+        </div>
+      `;
+      
+      // Insert the document at current cursor position
+      range.deleteContents();
+      range.insertNode(range.createContextualFragment(documentHTML));
+      
+      // Move cursor after the document
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else {
+      // Fallback: use execCommand if no selection
+      const { src, name, type, size } = documentData;
+      const documentHTML = `
+        <div style="
+          display: inline-block; 
+          padding: 12px 16px; 
+          margin: 8px 0; 
+          border: 2px solid #e5e7eb; 
+          border-radius: 8px; 
+          background: #f9fafb;
+          text-decoration: none;
+          color: #374151;
+          transition: all 0.2s;
+          cursor: pointer;
+          max-width: 100%;
+        " 
+        onmouseover="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#eff6ff';" 
+        onmouseout="this.style.borderColor='#e5e7eb'; this.style.backgroundColor='#f9fafb';"
+        onclick="window.open('${src}', '_blank')">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="
+              padding: 8px; 
+              background: #3b82f6; 
+              border-radius: 6px; 
+              color: white; 
+              font-size: 14px; 
+              font-weight: 600;
+              min-width: 20px;
+              text-align: center;
+            ">📄</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 2px; word-break: break-all;">
+                ${name}
+              </div>
+              <div style="font-size: 12px; color: #6b7280;">
+                ${type}${size ? ` • ${size}` : ''}
+              </div>
+            </div>
+            <div style="
+              padding: 4px 8px; 
+              background: #e5e7eb; 
+              border-radius: 4px; 
+              font-size: 12px; 
+              color: #374151;
+              font-weight: 500;
+            ">Download</div>
+          </div>
+        </div>
+      `;
+      
+      document.execCommand('insertHTML', false, documentHTML);
+    }
+  };
+
   const fontSizes = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
   const fontFamilies = [
     { name: 'Arial', value: 'Arial, sans-serif' },
@@ -206,6 +327,11 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
           <ContextMenuItem onClick={() => setShowImageDialog(true)}>
             <Image className="mr-2 h-4 w-4" />
             Insert Image
+          </ContextMenuItem>
+          
+          <ContextMenuItem onClick={() => setShowDocumentDialog(true)}>
+            <FileText className="mr-2 h-4 w-4" />
+            Insert Document
           </ContextMenuItem>
           
           <ContextMenuSeparator />
@@ -296,6 +422,12 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
         open={showImageDialog}
         onOpenChange={setShowImageDialog}
         onInsertImage={handleInsertImage}
+      />
+      
+      <DocumentDialog
+        open={showDocumentDialog}
+        onOpenChange={setShowDocumentDialog}
+        onInsertDocument={handleInsertDocument}
       />
     </>
   );
