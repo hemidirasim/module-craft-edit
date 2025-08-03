@@ -74,37 +74,39 @@ export const CropDialog = ({
       console.log('Image naturalHeight:', imageElement.naturalHeight);
       console.log('Image complete:', imageElement.complete);
       
-      // If image has signed URL, ensure it's still valid by testing it
-      const testImageLoad = () => {
-        const testImg = new Image();
-        testImg.crossOrigin = 'anonymous';
+      // Directly use the image dimensions if available
+      if (imageElement.naturalWidth > 0 && imageElement.naturalHeight > 0) {
+        console.log('✅ Using existing image dimensions');
+        setLoadedImageDimensions({ 
+          width: imageElement.naturalWidth, 
+          height: imageElement.naturalHeight 
+        });
+        setupCropArea();
+      } else {
+        console.log('⚠️ Image dimensions not available, trying to load...');
+        // Fallback: try to reload the image
+        const img = new Image();
+        // Remove crossOrigin to avoid CORS issues
         
-        testImg.onload = () => {
-          console.log('✅ Image URL is valid and loaded');
-          console.log('Loaded dimensions:', testImg.naturalWidth, 'x', testImg.naturalHeight);
-          // Store the loaded dimensions
+        img.onload = () => {
+          console.log('✅ Image reloaded successfully');
+          console.log('Reloaded dimensions:', img.naturalWidth, 'x', img.naturalHeight);
           setLoadedImageDimensions({ 
-            width: testImg.naturalWidth, 
-            height: testImg.naturalHeight 
+            width: img.naturalWidth, 
+            height: img.naturalHeight 
           });
           setupCropArea();
         };
         
-        testImg.onerror = (e) => {
-          console.error('❌ Image URL failed to load:', e);
-          console.log('Failed URL:', imageElement.src);
+        img.onerror = (e) => {
+          console.error('❌ Image reload failed:', e);
+          // Fallback to default dimensions
+          console.log('Using fallback dimensions...');
+          setLoadedImageDimensions({ width: 800, height: 600 });
+          setupCropArea();
         };
         
-        testImg.src = imageElement.src;
-      };
-      
-      // Check if image is already loaded or needs testing
-      if (!imageElement.complete || imageElement.naturalWidth === 0) {
-        console.log('Image not fully loaded, testing URL...');
-        testImageLoad();
-      } else {
-        console.log('Image already loaded, setting up crop area...');
-        setupCropArea();
+        img.src = imageElement.src;
       }
     }
   }, [imageElement, open]);
