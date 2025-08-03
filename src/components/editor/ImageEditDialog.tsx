@@ -51,6 +51,10 @@ export const ImageEditDialog = ({
   const [cropData, setCropData] = useState<{x: number, y: number, width: number, height: number}>({x: 0, y: 0, width: 100, height: 100});
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [croppedImageUrl, setCroppedImageUrl] = useState<string>("");
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{x: number, y: number}>({x: 0, y: 0});
+  const [imageDisplaySize, setImageDisplaySize] = useState<{width: number, height: number}>({width: 0, height: 0});
 
   useEffect(() => {
     if (imageElement && open) {
@@ -78,6 +82,11 @@ export const ImageEditDialog = ({
       
       // Store original width for percentage calculations
       setOriginalWidth(imageElement.naturalWidth);
+      
+      // Calculate display size for crop overlay
+      const displayWidth = Math.min(400, imageElement.naturalWidth);
+      const displayHeight = (displayWidth / imageElement.naturalWidth) * imageElement.naturalHeight;
+      setImageDisplaySize({ width: displayWidth, height: displayHeight });
     }
   }, [imageElement, open]);
 
@@ -123,12 +132,12 @@ export const ImageEditDialog = ({
   const handleCropToggle = () => {
     setShowCrop(!showCrop);
     if (!showCrop && imageElement) {
-      // Initialize crop area to center 80% of image
+      // Initialize crop area to center 50% of image
       setCropData({
-        x: 10,
-        y: 10,
-        width: 80,
-        height: 80
+        x: 25,
+        y: 25,
+        width: 50,
+        height: 50
       });
     }
   };
@@ -159,6 +168,50 @@ export const ImageEditDialog = ({
     );
     
     setCroppedImageUrl(canvas.toDataURL());
+  };
+
+  const handleCropMouseDown = (e: React.MouseEvent, action: 'drag' | 'resize') => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setDragStart({ x, y });
+    if (action === 'drag') {
+      setIsDragging(true);
+    } else {
+      setIsResizing(true);
+    }
+  };
+
+  const handleCropMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging && !isResizing) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const deltaX = x - dragStart.x;
+    const deltaY = y - dragStart.y;
+    
+    if (isDragging) {
+      const newX = Math.max(0, Math.min(100 - cropData.width, cropData.x + (deltaX / imageDisplaySize.width) * 100));
+      const newY = Math.max(0, Math.min(100 - cropData.height, cropData.y + (deltaY / imageDisplaySize.height) * 100));
+      
+      setCropData({ ...cropData, x: newX, y: newY });
+      setDragStart({ x, y });
+    } else if (isResizing) {
+      const newWidth = Math.max(10, Math.min(100 - cropData.x, cropData.width + (deltaX / imageDisplaySize.width) * 100));
+      const newHeight = Math.max(10, Math.min(100 - cropData.y, cropData.height + (deltaY / imageDisplaySize.height) * 100));
+      
+      setCropData({ ...cropData, width: newWidth, height: newHeight });
+      setDragStart({ x, y });
+    }
+  };
+
+  const handleCropMouseUp = () => {
+    setIsDragging(false);
+    setIsResizing(false);
   };
 
   return (
@@ -284,51 +337,58 @@ export const ImageEditDialog = ({
               </Button>
             </div>
             
-            {showCrop && (
+            {showCrop && imageElement && (
               <div className="space-y-3 p-3 border rounded">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs">X Position (%)</Label>
-                    <Slider
-                      value={[cropData.x]}
-                      onValueChange={(value) => setCropData({...cropData, x: value[0]})}
-                      max={100 - cropData.width}
-                      step={1}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Y Position (%)</Label>
-                    <Slider
-                      value={[cropData.y]}
-                      onValueChange={(value) => setCropData({...cropData, y: value[0]})}
-                      max={100 - cropData.height}
-                      step={1}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Width (%)</Label>
-                    <Slider
-                      value={[cropData.width]}
-                      onValueChange={(value) => setCropData({...cropData, width: value[0]})}
-                      min={10}
-                      max={100 - cropData.x}
-                      step={1}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Height (%)</Label>
-                    <Slider
-                      value={[cropData.height]}
-                      onValueChange={(value) => setCropData({...cropData, height: value[0]})}
-                      min={10}
-                      max={100 - cropData.y}
-                      step={1}
-                    />
+                <div className="relative bg-gray-100 rounded overflow-hidden" style={{ width: imageDisplaySize.width, height: imageDisplaySize.height }}>
+                  {/* Image preview */}
+                  <img 
+                    src={imageElement.src} 
+                    alt="Crop preview"
+                    className="w-full h-full object-contain"
+                    draggable={false}
+                  />
+                  
+                  {/* Crop overlay */}
+                  <div 
+                    className="absolute inset-0 bg-black bg-opacity-50"
+                    onMouseMove={handleCropMouseMove}
+                    onMouseUp={handleCropMouseUp}
+                    onMouseLeave={handleCropMouseUp}
+                  >
+                    {/* Crop area */}
+                    <div
+                      className="absolute border-2 border-white bg-transparent cursor-move"
+                      style={{
+                        left: `${cropData.x}%`,
+                        top: `${cropData.y}%`,
+                        width: `${cropData.width}%`,
+                        height: `${cropData.height}%`,
+                      }}
+                      onMouseDown={(e) => handleCropMouseDown(e, 'drag')}
+                    >
+                      {/* Clear area inside crop */}
+                      <div className="absolute inset-0 bg-white bg-opacity-0" />
+                      
+                      {/* Resize handle */}
+                      <div
+                        className="absolute bottom-0 right-0 w-3 h-3 bg-white border border-gray-400 cursor-se-resize"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          handleCropMouseDown(e, 'resize');
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-                <Button size="sm" onClick={applyCrop} className="w-full">
-                  Apply Crop
-                </Button>
+                
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={applyCrop} className="flex-1">
+                    Apply Crop
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowCrop(false)}>
+                    Cancel
+                  </Button>
+                </div>
               </div>
             )}
           </div>
