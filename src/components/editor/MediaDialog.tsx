@@ -59,21 +59,16 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
     // Format dimensions to include 'px' if it's a number, otherwise use as-is (for percentages)
     const formatDimension = (value: string) => {
       const trimmedValue = value.trim();
-      console.log('Original value:', value, 'Trimmed:', trimmedValue);
       // If it's just a number, add px
       if (/^\d+$/.test(trimmedValue)) {
-        console.log('Adding px to:', trimmedValue);
         return trimmedValue + 'px';
       }
       // If it already has a unit (%, px, em, etc.) or is not a pure number, use as-is
-      console.log('Using as-is:', trimmedValue);
       return trimmedValue;
     };
 
     const width = formatDimension(mediaWidth);
     const height = formatDimension(mediaHeight);
-    
-    console.log('Final dimensions - Width:', width, 'Height:', height);
 
     switch (videoInfo.platform) {
       case 'youtube':
@@ -201,8 +196,14 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
                     id="video-width"
                     value={mediaWidth}
                     onChange={(e) => {
-                      setMediaWidth(e.target.value);
-                      setTimeout(handleDimensionChange, 100);
+                      const value = e.target.value;
+                      setMediaWidth(value);
+                      
+                      const videoInfo = extractVideoId(videoUrl);
+                      if (videoInfo) {
+                        const embed = generateEmbedCode(videoInfo);
+                        setEmbedCode(embed);
+                      }
                     }}
                     placeholder="560px or 100%"
                   />
@@ -216,8 +217,14 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
                     id="video-height"
                     value={mediaHeight}
                     onChange={(e) => {
-                      setMediaHeight(e.target.value);
-                      setTimeout(handleDimensionChange, 100);
+                      const value = e.target.value;
+                      setMediaHeight(value);
+                      
+                      const videoInfo = extractVideoId(videoUrl);
+                      if (videoInfo) {
+                        const embed = generateEmbedCode(videoInfo);
+                        setEmbedCode(embed);
+                      }
                     }}
                     placeholder="315px or 100%"
                   />
