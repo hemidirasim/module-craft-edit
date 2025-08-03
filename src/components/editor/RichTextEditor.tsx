@@ -186,6 +186,20 @@ export const RichTextEditor = ({
       // Handle insertHTML command explicitly
       if (command === 'insertHTML') {
         if (value) {
+          // Ensure editor is focused and has selection
+          editorRef.current.focus();
+          
+          // Get current selection or create one at the end
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0) {
+            // If no selection, place cursor at the end
+            const range = document.createRange();
+            range.selectNodeContents(editorRef.current);
+            range.collapse(false);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
+          
           document.execCommand('insertHTML', false, value);
           handleContentChange();
           return;
