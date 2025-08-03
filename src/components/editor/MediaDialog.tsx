@@ -84,8 +84,7 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
     setVideoUrl(url);
     const videoInfo = extractVideoId(url);
     if (videoInfo) {
-      const embed = generateEmbedCode(videoInfo);
-      setEmbedCode(embed);
+      updateEmbedCode(videoInfo);
       
       // Generate preview URL
       if (videoInfo.platform === 'youtube') {
@@ -99,11 +98,15 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
     }
   };
 
+  const updateEmbedCode = (videoInfo: { platform: string; id: string }) => {
+    const embed = generateEmbedCode(videoInfo);
+    setEmbedCode(embed);
+  };
+
   const handleDimensionChange = () => {
     const videoInfo = extractVideoId(videoUrl);
     if (videoInfo) {
-      const embed = generateEmbedCode(videoInfo);
-      setEmbedCode(embed);
+      updateEmbedCode(videoInfo);
     }
   };
 
