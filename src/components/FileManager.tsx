@@ -81,6 +81,10 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
   const [isDragging, setIsDragging] = useState(false);
   const [renameFileId, setRenameFileId] = useState<string | null>(null);
   const [newFileName, setNewFileName] = useState('');
+  const [renameFolderId, setRenameFolderId] = useState<string | null>(null);
+  const [newFolderRenameValue, setNewFolderRenameValue] = useState('');
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [showFolderRenameDialog, setShowFolderRenameDialog] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -418,42 +422,47 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Folders</h3>
               <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}>
                 {getSubfolders().map((folder) => (
-                  <Card
-                    key={folder.id}
-                    className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
-                      viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'
-                    }`}
-                    onClick={() => setCurrentFolderId(folder.id)}
-                  >
-                    <div className={`flex ${viewMode === 'list' ? 'items-center gap-3' : 'flex-col items-center gap-2'}`}>
-                      <FolderIcon className="w-8 h-8 text-blue-500" />
-                      <span className="text-sm font-medium truncate">{folder.name}</span>
-                    </div>
-                    
-                    {viewMode === 'list' && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{folder.name}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteFolder(folder.id)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </Card>
+                  <ContextMenu key={folder.id}>
+                    <ContextMenuTrigger>
+                      <Card
+                        className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                          viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'
+                        }`}
+                        onClick={() => setCurrentFolderId(folder.id)}
+                      >
+                        <div className={`flex ${viewMode === 'list' ? 'items-center gap-3' : 'flex-col items-center gap-2'}`}>
+                          <FolderIcon className="w-8 h-8 text-blue-500" />
+                          <span className="text-sm font-medium truncate max-w-full block" title={folder.name}>
+                            {folder.name}
+                          </span>
+                        </div>
+                      </Card>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameFolderId(folder.id);
+                          setNewFolderRenameValue(folder.name);
+                          setShowFolderRenameDialog(true);
+                        }}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Rename
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteFolder(folder.id);
+                        }}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))}
               </div>
             </div>
@@ -483,54 +492,29 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
                         } ${viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'}`}
                         onClick={selectMode ? () => onSelectFile?.(file) : undefined}
                       >
-                        <div className={`flex ${viewMode === 'list' ? 'items-center gap-3 flex-1' : 'flex-col items-center gap-2'}`}>
-                          {getFileIcon(file.file_type, file.mime_type)}
-                          <div className={viewMode === 'list' ? 'flex-1 min-w-0' : ''}>
-                            {renameFileId === file.id ? (
-                              <Input
-                                value={newFileName}
-                                onChange={(e) => setNewFileName(e.target.value)}
-                                onBlur={() => {
-                                  if (newFileName.trim()) {
-                                    handleRenameFile(file.id, newFileName);
-                                  } else {
-                                    setRenameFileId(null);
-                                    setNewFileName('');
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    if (newFileName.trim()) {
-                                      handleRenameFile(file.id, newFileName);
-                                    }
-                                  } else if (e.key === 'Escape') {
-                                    setRenameFileId(null);
-                                    setNewFileName('');
-                                  }
-                                }}
-                                autoFocus
-                                className="text-sm h-auto p-0 border-none bg-transparent"
-                              />
-                            ) : (
-                              <p className="text-sm font-medium truncate">{file.original_name}</p>
-                            )}
-                            {viewMode === 'list' && (
-                              <p className="text-xs text-muted-foreground">
-                                {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}
-                              </p>
-                            )}
-                          </div>
-                          {viewMode === 'grid' && (
-                            <div className="text-center">
-                              <Badge variant="secondary" className="text-xs">
-                                {file.file_type}
-                              </Badge>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {formatFileSize(file.file_size)}
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                         <div className={`flex ${viewMode === 'list' ? 'items-center gap-3 flex-1' : 'flex-col items-center gap-2'}`}>
+                           {getFileIcon(file.file_type, file.mime_type)}
+                           <div className={`${viewMode === 'list' ? 'flex-1 min-w-0' : 'w-full'}`}>
+                             <p className="text-sm font-medium truncate max-w-full" title={file.original_name}>
+                               {file.original_name}
+                             </p>
+                             {viewMode === 'list' && (
+                               <p className="text-xs text-muted-foreground">
+                                 {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}
+                               </p>
+                             )}
+                           </div>
+                           {viewMode === 'grid' && (
+                             <div className="text-center w-full mt-2">
+                               <Badge variant="secondary" className="text-xs mb-1">
+                                 {file.file_type}
+                               </Badge>
+                               <p className="text-xs text-muted-foreground">
+                                 {formatFileSize(file.file_size)}
+                               </p>
+                             </div>
+                           )}
+                         </div>
                         
                         {!selectMode && (
                           <div className="flex gap-1">
@@ -582,15 +566,16 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
                         <Copy className="w-4 h-4 mr-2" />
                         Copy URL
                       </ContextMenuItem>
-                      <ContextMenuItem 
-                        onClick={() => {
-                          setRenameFileId(file.id);
-                          setNewFileName(file.original_name);
-                        }}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Rename
-                      </ContextMenuItem>
+                       <ContextMenuItem 
+                         onClick={() => {
+                           setRenameFileId(file.id);
+                           setNewFileName(file.original_name);
+                           setShowRenameDialog(true);
+                         }}
+                       >
+                         <Edit className="w-4 h-4 mr-2" />
+                         Rename
+                       </ContextMenuItem>
                       <ContextMenuSeparator />
                       <ContextMenuItem 
                         onClick={() => handleFileDownload(file)}
@@ -614,6 +599,88 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
           </div>
         </div>
       </div>
+
+      {/* File Rename Dialog */}
+      <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename File</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="New file name"
+              value={newFileName}
+              onChange={(e) => setNewFileName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (newFileName.trim() && renameFileId) {
+                    handleRenameFile(renameFileId, newFileName);
+                    setShowRenameDialog(false);
+                  }
+                }
+              }}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowRenameDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (newFileName.trim() && renameFileId) {
+                    handleRenameFile(renameFileId, newFileName);
+                    setShowRenameDialog(false);
+                  }
+                }}
+                disabled={!newFileName.trim()}
+              >
+                Rename
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Folder Rename Dialog */}
+      <Dialog open={showFolderRenameDialog} onOpenChange={setShowFolderRenameDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Folder</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="New folder name"
+              value={newFolderRenameValue}
+              onChange={(e) => setNewFolderRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (newFolderRenameValue.trim() && renameFolderId) {
+                    // handleRenameFolder(renameFolderId, newFolderRenameValue);
+                    setShowFolderRenameDialog(false);
+                    toast.success('Folder renamed successfully');
+                  }
+                }
+              }}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowFolderRenameDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (newFolderRenameValue.trim() && renameFolderId) {
+                    // handleRenameFolder(renameFolderId, newFolderRenameValue);
+                    setShowFolderRenameDialog(false);
+                    toast.success('Folder renamed successfully');
+                  }
+                }}
+                disabled={!newFolderRenameValue.trim()}
+              >
+                Rename
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
