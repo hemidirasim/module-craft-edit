@@ -115,20 +115,36 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
 
   const handleCrop = () => {
     const currentImageUrl = uploadedImageUrl || imageUrl;
+    console.log('=== STARTING CROP ===');
+    console.log('Current image URL:', currentImageUrl);
+    console.log('Is valid URL:', isValidImageUrl(currentImageUrl));
+    
     if (currentImageUrl && isValidImageUrl(currentImageUrl)) {
+      console.log('Creating new image element...');
       const img = document.createElement('img');
-      img.crossOrigin = 'anonymous';
+      
+      // Remove crossOrigin to avoid CORS issues with same-origin images
+      // img.crossOrigin = 'anonymous';
+      
       img.onload = () => {
-        console.log('Image loaded for crop:', img.naturalWidth, 'x', img.naturalHeight);
+        console.log('✅ Image loaded successfully!');
+        console.log('Natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+        console.log('Current src:', img.src);
+        console.log('Complete:', img.complete);
         setCurrentImageElement(img);
         setShowCropDialog(true);
       };
+      
       img.onerror = (error) => {
-        console.error('Failed to load image for crop:', error);
+        console.error('❌ Failed to load image for crop:', error);
+        console.log('Failed URL:', currentImageUrl);
         toast.error('Failed to load image for cropping');
       };
+      
+      console.log('Setting image src to:', currentImageUrl);
       img.src = currentImageUrl;
     } else {
+      console.log('❌ No valid image to crop');
       toast.error('No valid image to crop');
     }
   };

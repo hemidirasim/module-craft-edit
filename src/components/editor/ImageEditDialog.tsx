@@ -94,20 +94,32 @@ export const ImageEditDialog = ({
   };
 
   const handleCrop = () => {
+    console.log('=== IMAGE EDIT DIALOG CROP ===');
+    console.log('Image element:', imageElement);
+    console.log('Image src:', imageElement?.src);
+    
     if (imageElement) {
+      console.log('Creating new image element from existing...');
       const img = document.createElement('img');
-      img.crossOrigin = 'anonymous';
+      
+      // Remove crossOrigin for same-origin images  
+      // img.crossOrigin = 'anonymous';
+      
       img.onload = () => {
-        console.log('Image loaded for crop:', img.naturalWidth, 'x', img.naturalHeight);
+        console.log('✅ Image edit dialog - Image loaded!');
+        console.log('Natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
         setCurrentImageElement(img);
         setShowCropDialog(true);
       };
+      
       img.onerror = (error) => {
-        console.error('Failed to load image for crop:', error);
+        console.error('❌ Image edit dialog - Failed to load:', error);
         toast.error('Failed to load image for cropping');
       };
+      
       img.src = imageElement.src;
     } else {
+      console.log('❌ No image element selected');
       toast.error('No image selected');
     }
   };

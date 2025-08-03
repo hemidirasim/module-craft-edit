@@ -66,34 +66,67 @@ export const CropDialog = ({
 
   useEffect(() => {
     if (imageElement && containerRef.current && open) {
-      console.log('Setting up crop for image:', imageElement.src, imageElement.naturalWidth, 'x', imageElement.naturalHeight);
+      console.log('=== CROP DIALOG DEBUG ===');
+      console.log('Image element:', imageElement);
+      console.log('Image src:', imageElement.src);
+      console.log('Image naturalWidth:', imageElement.naturalWidth);
+      console.log('Image naturalHeight:', imageElement.naturalHeight);
+      console.log('Image complete:', imageElement.complete);
       
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const maxWidth = Math.min(500, containerRect.width - 40);
-      const maxHeight = 400;
-      
-      const aspectRatio = imageElement.naturalWidth / imageElement.naturalHeight;
-      let displayWidth = maxWidth;
-      let displayHeight = displayWidth / aspectRatio;
-      
-      if (displayHeight > maxHeight) {
-        displayHeight = maxHeight;
-        displayWidth = displayHeight * aspectRatio;
+      // Wait for image to be fully loaded if not already
+      if (!imageElement.complete || imageElement.naturalWidth === 0) {
+        console.log('Image not fully loaded, waiting...');
+        
+        const handleImageLoad = () => {
+          console.log('Image loaded! Setting up crop area...');
+          setupCropArea();
+        };
+        
+        imageElement.addEventListener('load', handleImageLoad);
+        imageElement.addEventListener('error', (e) => {
+          console.error('Image failed to load:', e);
+        });
+        
+        return () => {
+          imageElement.removeEventListener('load', handleImageLoad);
+        };
+      } else {
+        console.log('Image already loaded, setting up crop area...');
+        setupCropArea();
       }
-      
-      console.log('Display size:', displayWidth, 'x', displayHeight);
-      setImageSize({ width: displayWidth, height: displayHeight });
-      
-      // Initialize crop to center
-      const initialSize = Math.min(displayWidth, displayHeight) * 0.6;
-      setCropData({
-        x: (displayWidth - initialSize) / 2,
-        y: (displayHeight - initialSize) / 2,
-        width: initialSize,
-        height: initialSize
-      });
     }
   }, [imageElement, open]);
+
+  const setupCropArea = () => {
+    if (!imageElement || !containerRef.current) return;
+    
+    console.log('Setting up crop area with image:', imageElement.naturalWidth, 'x', imageElement.naturalHeight);
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const maxWidth = Math.min(500, containerRect.width - 40);
+    const maxHeight = 400;
+    
+    const aspectRatio = imageElement.naturalWidth / imageElement.naturalHeight;
+    let displayWidth = maxWidth;
+    let displayHeight = displayWidth / aspectRatio;
+    
+    if (displayHeight > maxHeight) {
+      displayHeight = maxHeight;
+      displayWidth = displayHeight * aspectRatio;
+    }
+    
+    console.log('Display size calculated:', displayWidth, 'x', displayHeight);
+    setImageSize({ width: displayWidth, height: displayHeight });
+    
+    // Initialize crop to center
+    const initialSize = Math.min(displayWidth, displayHeight) * 0.6;
+    setCropData({
+      x: (displayWidth - initialSize) / 2,
+      y: (displayHeight - initialSize) / 2,
+      width: initialSize,
+      height: initialSize
+    });
+  };
 
   const handleMouseDown = (e: React.MouseEvent, action: 'drag' | 'resize', handle?: string) => {
     e.preventDefault();
