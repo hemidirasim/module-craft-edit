@@ -74,6 +74,9 @@ export const CropDialog = ({
       setIsReady(false);
       
       const img = new Image();
+      // Add crossOrigin to avoid tainted canvas
+      img.crossOrigin = 'anonymous';
+      
       img.onload = () => {
         console.log('✅ Image loaded for crop');
         console.log('Dimensions:', img.naturalWidth, 'x', img.naturalHeight);
@@ -234,6 +237,18 @@ export const CropDialog = ({
     setIsProcessing(true);
     
     try {
+      // Create a new image with proper CORS settings
+      const corsImage = new Image();
+      corsImage.crossOrigin = 'anonymous';
+      
+      await new Promise<void>((resolve, reject) => {
+        corsImage.onload = () => resolve();
+        corsImage.onerror = () => reject(new Error('Failed to load CORS image'));
+        corsImage.src = imageUrl;
+      });
+      
+      console.log('✅ CORS image loaded successfully');
+      
       console.log('Canvas and context setup...');
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
@@ -241,13 +256,13 @@ export const CropDialog = ({
         throw new Error('Canvas context not available');
       }
 
-      console.log('Image dimensions:', imageElement.naturalWidth, 'x', imageElement.naturalHeight);
+      console.log('Image dimensions:', corsImage.naturalWidth, 'x', corsImage.naturalHeight);
       console.log('Display dimensions:', displaySize.width, 'x', displaySize.height);
       console.log('Crop data:', cropData);
 
       // Calculate scale factor between display size and natural size
-      const scaleX = imageElement.naturalWidth / displaySize.width;
-      const scaleY = imageElement.naturalHeight / displaySize.height;
+      const scaleX = corsImage.naturalWidth / displaySize.width;
+      const scaleY = corsImage.naturalHeight / displaySize.height;
       
       console.log('Scale factors:', { scaleX, scaleY });
 
@@ -261,9 +276,9 @@ export const CropDialog = ({
       canvas.height = cropHeight;
 
       console.log('Drawing cropped image to canvas...');
-      // Draw the cropped portion
+      // Draw the cropped portion using CORS image
       ctx.drawImage(
-        imageElement,
+        corsImage,
         cropData.x * scaleX, // source x
         cropData.y * scaleY, // source y
         cropWidth, // source width
