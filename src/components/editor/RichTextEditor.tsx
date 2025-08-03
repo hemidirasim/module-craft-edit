@@ -232,20 +232,39 @@ export const RichTextEditor = ({
       if (command === 'insertOrderedList') {
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
-          const selectedText = selection.toString();
-          if (selectedText.trim()) {
-            // Split selected text by lines and create list items
-            const lines = selectedText.split('\n').filter(line => line.trim());
-            let listHTML = '<ol style="margin: 16px 0; padding-left: 20px;">';
-            lines.forEach(line => {
-              listHTML += `<li>${line.trim()}</li>`;
-            });
-            listHTML += '</ol>';
-            document.execCommand('insertHTML', false, listHTML);
+          const range = selection.getRangeAt(0);
+          const listItem = range.commonAncestorContainer.parentElement?.closest('li');
+          const list = listItem?.closest('ol, ul');
+          
+          if (listItem && list) {
+            // Toggle off: convert list item back to regular paragraph
+            const listItemText = listItem.textContent || '';
+            const paragraph = document.createElement('p');
+            paragraph.textContent = listItemText;
+            
+            if (list.children.length === 1) {
+              // Only one item, remove the entire list
+              list.parentNode?.replaceChild(paragraph, list);
+            } else {
+              // Multiple items, just remove this one
+              listItem.parentNode?.replaceChild(paragraph, listItem);
+            }
           } else {
-            // No selection, insert empty list
-            const listHTML = '<ol style="margin: 16px 0; padding-left: 20px;"><li>List item</li></ol>';
-            document.execCommand('insertHTML', false, listHTML);
+            const selectedText = selection.toString();
+            if (selectedText.trim()) {
+              // Split selected text by lines and create list items
+              const lines = selectedText.split('\n').filter(line => line.trim());
+              let listHTML = '<ol style="margin: 16px 0; padding-left: 20px;">';
+              lines.forEach(line => {
+                listHTML += `<li>${line.trim()}</li>`;
+              });
+              listHTML += '</ol>';
+              document.execCommand('insertHTML', false, listHTML);
+            } else {
+              // No selection, insert empty list
+              const listHTML = '<ol style="margin: 16px 0; padding-left: 20px;"><li>List item</li></ol>';
+              document.execCommand('insertHTML', false, listHTML);
+            }
           }
         } else {
           const listHTML = '<ol style="margin: 16px 0; padding-left: 20px;"><li>List item</li></ol>';
@@ -258,20 +277,39 @@ export const RichTextEditor = ({
       if (command === 'insertUnorderedList') {
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
-          const selectedText = selection.toString();
-          if (selectedText.trim()) {
-            // Split selected text by lines and create list items
-            const lines = selectedText.split('\n').filter(line => line.trim());
-            let listHTML = '<ul style="margin: 16px 0; padding-left: 20px;">';
-            lines.forEach(line => {
-              listHTML += `<li>${line.trim()}</li>`;
-            });
-            listHTML += '</ul>';
-            document.execCommand('insertHTML', false, listHTML);
+          const range = selection.getRangeAt(0);
+          const listItem = range.commonAncestorContainer.parentElement?.closest('li');
+          const list = listItem?.closest('ol, ul');
+          
+          if (listItem && list) {
+            // Toggle off: convert list item back to regular paragraph
+            const listItemText = listItem.textContent || '';
+            const paragraph = document.createElement('p');
+            paragraph.textContent = listItemText;
+            
+            if (list.children.length === 1) {
+              // Only one item, remove the entire list
+              list.parentNode?.replaceChild(paragraph, list);
+            } else {
+              // Multiple items, just remove this one
+              listItem.parentNode?.replaceChild(paragraph, listItem);
+            }
           } else {
-            // No selection, insert empty list
-            const listHTML = '<ul style="margin: 16px 0; padding-left: 20px;"><li>List item</li></ul>';
-            document.execCommand('insertHTML', false, listHTML);
+            const selectedText = selection.toString();
+            if (selectedText.trim()) {
+              // Split selected text by lines and create list items
+              const lines = selectedText.split('\n').filter(line => line.trim());
+              let listHTML = '<ul style="margin: 16px 0; padding-left: 20px;">';
+              lines.forEach(line => {
+                listHTML += `<li>${line.trim()}</li>`;
+              });
+              listHTML += '</ul>';
+              document.execCommand('insertHTML', false, listHTML);
+            } else {
+              // No selection, insert empty list
+              const listHTML = '<ul style="margin: 16px 0; padding-left: 20px;"><li>List item</li></ul>';
+              document.execCommand('insertHTML', false, listHTML);
+            }
           }
         } else {
           const listHTML = '<ul style="margin: 16px 0; padding-left: 20px;"><li>List item</li></ul>';
