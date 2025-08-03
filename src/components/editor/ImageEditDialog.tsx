@@ -305,7 +305,7 @@ export const ImageEditDialog = ({
         <CropDialog
           open={showCropDialog}
           onOpenChange={setShowCropDialog}
-          imageElement={currentImageElement}
+          imageUrl={imageElement?.src || ''}
           onApplyChanges={handleCropComplete}
         />
       </DialogContent>

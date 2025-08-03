@@ -27,7 +27,7 @@ interface CropData {
 interface CropDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  imageElement: HTMLImageElement | null;
+  imageUrl: string;
   onApplyChanges: (newImageSrc: string) => void;
 }
 
@@ -44,7 +44,7 @@ const aspectRatios: AspectRatio[] = [
 export const CropDialog = ({ 
   open, 
   onOpenChange, 
-  imageElement, 
+  imageUrl, 
   onApplyChanges 
 }: CropDialogProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +55,7 @@ export const CropDialog = ({
   const [resizeHandle, setResizeHandle] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
 
   // Crop data and display settings
   const [cropData, setCropData] = useState<CropData>({
@@ -69,41 +70,55 @@ export const CropDialog = ({
 
   // Initialize when dialog opens
   useEffect(() => {
-    if (open && imageElement && containerRef.current) {
-      console.log('🎯 Initializing crop dialog');
-      console.log('Image dimensions:', imageElement.naturalWidth, 'x', imageElement.naturalHeight);
+    if (open && imageUrl) {
+      console.log('🎯 Loading image for crop:', imageUrl);
+      setIsReady(false);
       
-      // Calculate display size
-      const containerWidth = 600; // Fixed container width
-      const containerHeight = 400; // Fixed container height
+      const img = new Image();
+      img.onload = () => {
+        console.log('✅ Image loaded for crop');
+        console.log('Dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+        
+        // Calculate display size
+        const containerWidth = 600;
+        const containerHeight = 400;
+        
+        const imageAspect = img.naturalWidth / img.naturalHeight;
+        
+        let displayWidth = containerWidth;
+        let displayHeight = displayWidth / imageAspect;
+        
+        if (displayHeight > containerHeight) {
+          displayHeight = containerHeight;
+          displayWidth = displayHeight * imageAspect;
+        }
+        
+        setDisplaySize({ width: displayWidth, height: displayHeight });
+        
+        // Center the crop area
+        const cropSize = Math.min(displayWidth, displayHeight) * 0.6;
+        setCropData({
+          x: (displayWidth - cropSize) / 2,
+          y: (displayHeight - cropSize) / 2,
+          width: cropSize,
+          height: cropSize
+        });
+        
+        setImageElement(img);
+        setIsReady(true);
+      };
       
-      const imageAspect = imageElement.naturalWidth / imageElement.naturalHeight;
+      img.onerror = () => {
+        console.error('❌ Failed to load image for crop');
+        toast.error('Failed to load image for cropping');
+      };
       
-      let displayWidth = containerWidth;
-      let displayHeight = displayWidth / imageAspect;
-      
-      if (displayHeight > containerHeight) {
-        displayHeight = containerHeight;
-        displayWidth = displayHeight * imageAspect;
-      }
-      
-      setDisplaySize({ width: displayWidth, height: displayHeight });
-      
-      // Center the crop area
-      const cropSize = Math.min(displayWidth, displayHeight) * 0.6;
-      setCropData({
-        x: (displayWidth - cropSize) / 2,
-        y: (displayHeight - cropSize) / 2,
-        width: cropSize,
-        height: cropSize
-      });
-      
-      setIsReady(true);
-      console.log('✅ Crop dialog ready');
+      img.src = imageUrl;
     } else if (!open) {
       setIsReady(false);
+      setImageElement(null);
     }
-  }, [open, imageElement]);
+  }, [open, imageUrl]);
 
   const handleMouseDown = (e: React.MouseEvent, action: 'drag' | 'resize', handle?: string) => {
     e.preventDefault();
@@ -286,7 +301,7 @@ export const CropDialog = ({
     }
   };
 
-  if (!imageElement) return null;
+  if (!imageUrl) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -328,7 +343,7 @@ export const CropDialog = ({
               >
                 {/* Image */}
                 <img
-                  src={imageElement.src}
+                  src={imageUrl}
                   alt="Crop preview"
                   className="absolute inset-0 w-full h-full object-contain"
                   draggable={false}

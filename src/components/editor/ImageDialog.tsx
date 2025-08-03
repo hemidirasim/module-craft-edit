@@ -396,7 +396,7 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
         <CropDialog
           open={showCropDialog}
           onOpenChange={setShowCropDialog}
-          imageElement={currentImageElement}
+          imageUrl={uploadedImageUrl || imageUrl}
           onApplyChanges={handleCropComplete}
         />
         
