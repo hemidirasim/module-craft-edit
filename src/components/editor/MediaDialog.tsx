@@ -206,7 +206,9 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
                     value={mediaWidth}
                     onChange={(e) => {
                       const value = e.target.value;
-                      setMediaWidth(value);
+                      // Hack: boşluq əlavə edib sil
+                      setMediaWidth(value + " ");
+                      setTimeout(() => setMediaWidth(value), 1);
                       
                       const videoInfo = extractVideoId(videoUrl);
                       if (videoInfo) {
@@ -227,7 +229,9 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
                     value={mediaHeight}
                     onChange={(e) => {
                       const value = e.target.value;
-                      setMediaHeight(value);
+                      // Hack: boşluq əlavə edib sil
+                      setMediaHeight(value + " ");
+                      setTimeout(() => setMediaHeight(value), 1);
                       
                       const videoInfo = extractVideoId(videoUrl);
                       if (videoInfo) {
