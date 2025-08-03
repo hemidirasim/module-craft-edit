@@ -12,12 +12,21 @@ import { supabase } from "@/integrations/supabase/client";
 interface DocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onInsertDocument: (documentData: { src: string; name: string; type: string; size?: string }) => void;
+  onInsertDocument: (documentData: { 
+    src: string; 
+    name: string; 
+    type: string; 
+    size?: string;
+    downloadText: string;
+    documentText: string;
+  }) => void;
 }
 
 export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: DocumentDialogProps) => {
   const [documentUrl, setDocumentUrl] = useState("");
   const [documentName, setDocumentName] = useState("");
+  const [downloadText, setDownloadText] = useState("Download");
+  const [documentText, setDocumentText] = useState("Document");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedDocumentUrl, setUploadedDocumentUrl] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
@@ -29,6 +38,8 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
     if (open) {
       setDocumentUrl("");
       setDocumentName("");
+      setDownloadText("Download");
+      setDocumentText("Document");
       setSelectedFile(null);
       setUploadedDocumentUrl("");
       
@@ -107,7 +118,7 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
 
   const handleInsert = () => {
     const src = uploadedDocumentUrl || documentUrl;
-    if (!src || !documentName.trim()) return;
+    if (!src || !documentName.trim() || !downloadText.trim() || !documentText.trim()) return;
     
     const fileType = getFileType(src);
     
@@ -115,7 +126,9 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
       src,
       name: documentName.trim(),
       type: fileType,
-      size: selectedFile ? formatFileSize(selectedFile.size) : undefined
+      size: selectedFile ? formatFileSize(selectedFile.size) : undefined,
+      downloadText: downloadText.trim(),
+      documentText: documentText.trim()
     });
     
     handleClose();
@@ -156,6 +169,8 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
   const handleClose = () => {
     setDocumentUrl("");
     setDocumentName("");
+    setDownloadText("Download");
+    setDocumentText("Document");
     setSelectedFile(null);
     setUploadedDocumentUrl("");
     onOpenChange(false);
@@ -211,7 +226,7 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
 
   const canInsert = () => {
     const hasSource = uploadedDocumentUrl || (documentUrl && isValidDocumentUrl(documentUrl));
-    return hasSource && documentName.trim();
+    return hasSource && documentName.trim() && downloadText.trim() && documentText.trim();
   };
 
   return (
@@ -306,12 +321,32 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
         {/* Document Properties */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="document-name">Document Name (required)</Label>
+            <Label htmlFor="document-name">Fayl Adı (required)</Label>
             <Input
               id="document-name"
               value={documentName}
               onChange={(e) => setDocumentName(e.target.value)}
-              placeholder="Enter document name"
+              placeholder="Fayl adını daxil edin"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="download-text">Download Düyməsindəki Yazı (required)</Label>
+            <Input
+              id="download-text"
+              value={downloadText}
+              onChange={(e) => setDownloadText(e.target.value)}
+              placeholder="Məsələn: Yüklə, Download, İndir"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="document-text">Document Sözü Əvəzinə Yazı (required)</Label>
+            <Input
+              id="document-text"
+              value={documentText}
+              onChange={(e) => setDocumentText(e.target.value)}
+              placeholder="Məsələn: Sənəd, Fayl, Dokument"
             />
           </div>
 
