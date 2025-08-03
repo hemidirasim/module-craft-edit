@@ -67,6 +67,10 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
     createFolder,
     deleteFolder,
     deleteFile,
+    renameFolder,
+    renameFile,
+    moveFile,
+    moveFolder,
     uploadFile,
     getSignedUrl,
     refresh
@@ -256,13 +260,23 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
 
   const handleRenameFile = async (fileId: string, newName: string) => {
     try {
-      // You'll need to add a rename function to the useFileManager hook
-      await refresh(); // For now, just refresh
+      await renameFile(fileId, newName);
       toast.success('File renamed successfully');
       setRenameFileId(null);
       setNewFileName('');
     } catch (error) {
       toast.error('Failed to rename file');
+    }
+  };
+
+  const handleRenameFolder = async (folderId: string, newName: string) => {
+    try {
+      await renameFolder(folderId, newName);
+      toast.success('Folder renamed successfully');
+      setRenameFolderId(null);
+      setNewFolderRenameValue('');
+    } catch (error) {
+      toast.error('Failed to rename folder');
     }
   };
 
@@ -272,6 +286,40 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
       window.open(signedUrl, '_blank');
     } catch (error) {
       toast.error('Failed to preview file');
+    }
+  };
+
+  // Drag & Drop for moving files/folders
+  const handleFileDragStart = (e: React.DragEvent, file: any) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'file', data: file }));
+  };
+
+  const handleFolderDragStart = (e: React.DragEvent, folder: any) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'folder', data: folder }));
+  };
+
+  const handleFolderDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleFolderDrop = async (e: React.DragEvent, targetFolderId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+      
+      if (dragData.type === 'file') {
+        await moveFile(dragData.data.id, targetFolderId);
+        toast.success('File moved successfully');
+      } else if (dragData.type === 'folder') {
+        if (dragData.data.id !== targetFolderId) {
+          await moveFolder(dragData.data.id, targetFolderId);
+          toast.success('Folder moved successfully');
+        }
+      }
+    } catch (error) {
+      toast.error('Failed to move item');
     }
   };
 
@@ -405,6 +453,30 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
         className={`min-h-[400px] border-2 border-dashed rounded-lg transition-colors ${
           isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
         }`}
+        onDragOverCapture={(e) => {
+          // Allow dropping files/folders to root when not in a specific folder
+          const dragData = e.dataTransfer?.types.includes('application/json');
+          if (dragData) {
+            e.preventDefault();
+          }
+        }}
+        onDropCapture={async (e) => {
+          const dragDataString = e.dataTransfer?.getData('application/json');
+          if (dragDataString) {
+            try {
+              const dragData = JSON.parse(dragDataString);
+              if (dragData.type === 'file') {
+                await moveFile(dragData.data.id, null); // Move to root
+                toast.success('File moved to root folder');
+              } else if (dragData.type === 'folder') {
+                await moveFolder(dragData.data.id, null); // Move to root
+                toast.success('Folder moved to root folder');
+              }
+            } catch (error) {
+              console.error('Drop error:', error);
+            }
+          }
+        }}
       >
         {isDragging && (
           <div className="absolute inset-0 flex items-center justify-center bg-primary/5 rounded-lg z-10">
@@ -423,20 +495,24 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
               <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}>
                 {getSubfolders().map((folder) => (
                   <ContextMenu key={folder.id}>
-                    <ContextMenuTrigger>
-                      <Card
-                        className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
-                          viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'
-                        }`}
-                        onClick={() => setCurrentFolderId(folder.id)}
-                      >
-                        <div className={`flex ${viewMode === 'list' ? 'items-center gap-3' : 'flex-col items-center gap-2'}`}>
-                          <FolderIcon className="w-8 h-8 text-blue-500" />
-                          <span className="text-sm font-medium truncate max-w-full block" title={folder.name}>
-                            {folder.name}
-                          </span>
-                        </div>
-                      </Card>
+                     <ContextMenuTrigger>
+                       <Card
+                         className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                           viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'
+                         }`}
+                         onClick={() => setCurrentFolderId(folder.id)}
+                         draggable
+                         onDragStart={(e) => handleFolderDragStart(e, folder)}
+                         onDragOver={handleFolderDragOver}
+                         onDrop={(e) => handleFolderDrop(e, folder.id)}
+                       >
+                         <div className={`flex ${viewMode === 'list' ? 'items-center gap-3' : 'flex-col items-center gap-2'}`}>
+                           <FolderIcon className="w-8 h-8 text-blue-500" />
+                           <span className="text-sm font-medium truncate max-w-full block" title={folder.name}>
+                             {folder.name}
+                           </span>
+                         </div>
+                       </Card>
                     </ContextMenuTrigger>
                     <ContextMenuContent>
                       <ContextMenuItem 
@@ -486,12 +562,14 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
                 {getFilteredFiles().map((file) => (
                   <ContextMenu key={file.id}>
                     <ContextMenuTrigger>
-                      <Card
-                        className={`p-4 hover:bg-accent transition-colors ${
-                          selectMode ? 'cursor-pointer' : ''
-                        } ${viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'}`}
-                        onClick={selectMode ? () => onSelectFile?.(file) : undefined}
-                      >
+                       <Card
+                         className={`p-4 hover:bg-accent transition-colors ${
+                           selectMode ? 'cursor-pointer' : ''
+                         } ${viewMode === 'list' ? 'flex items-center justify-between' : 'text-center'}`}
+                         onClick={selectMode ? () => onSelectFile?.(file) : undefined}
+                         draggable
+                         onDragStart={(e) => handleFileDragStart(e, file)}
+                       >
                          <div className={`flex ${viewMode === 'list' ? 'items-center gap-3 flex-1' : 'flex-col items-center gap-2'}`}>
                            {getFileIcon(file.file_type, file.mime_type)}
                            <div className={`${viewMode === 'list' ? 'flex-1 min-w-0' : 'w-full'}`}>
@@ -652,27 +730,25 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
               value={newFolderRenameValue}
               onChange={(e) => setNewFolderRenameValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (newFolderRenameValue.trim() && renameFolderId) {
-                    // handleRenameFolder(renameFolderId, newFolderRenameValue);
-                    setShowFolderRenameDialog(false);
-                    toast.success('Folder renamed successfully');
-                  }
-                }
-              }}
-            />
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowFolderRenameDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={() => {
-                  if (newFolderRenameValue.trim() && renameFolderId) {
-                    // handleRenameFolder(renameFolderId, newFolderRenameValue);
-                    setShowFolderRenameDialog(false);
-                    toast.success('Folder renamed successfully');
-                  }
-                }}
+                 if (e.key === 'Enter') {
+                   if (newFolderRenameValue.trim() && renameFolderId) {
+                     handleRenameFolder(renameFolderId, newFolderRenameValue);
+                     setShowFolderRenameDialog(false);
+                   }
+                 }
+               }}
+             />
+             <div className="flex gap-2 justify-end">
+               <Button variant="outline" onClick={() => setShowFolderRenameDialog(false)}>
+                 Cancel
+               </Button>
+               <Button 
+                 onClick={() => {
+                   if (newFolderRenameValue.trim() && renameFolderId) {
+                     handleRenameFolder(renameFolderId, newFolderRenameValue);
+                     setShowFolderRenameDialog(false);
+                   }
+                 }}
                 disabled={!newFolderRenameValue.trim()}
               >
                 Rename

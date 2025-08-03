@@ -92,6 +92,70 @@ export const useFileManager = () => {
     }
   };
 
+  const renameFolder = async (folderId: string, newName: string) => {
+    try {
+      const { error } = await supabase
+        .from('folders')
+        .update({ name: newName })
+        .eq('id', folderId);
+
+      if (error) throw error;
+      
+      await fetchFolders();
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      throw error;
+    }
+  };
+
+  const renameFile = async (fileId: string, newName: string) => {
+    try {
+      const { error } = await supabase
+        .from('files')
+        .update({ original_name: newName })
+        .eq('id', fileId);
+
+      if (error) throw error;
+      
+      await fetchFiles(currentFolderId);
+    } catch (error) {
+      console.error('Error renaming file:', error);
+      throw error;
+    }
+  };
+
+  const moveFile = async (fileId: string, newFolderId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('files')
+        .update({ folder_id: newFolderId })
+        .eq('id', fileId);
+
+      if (error) throw error;
+      
+      await fetchFiles(currentFolderId);
+    } catch (error) {
+      console.error('Error moving file:', error);
+      throw error;
+    }
+  };
+
+  const moveFolder = async (folderId: string, newParentId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('folders')
+        .update({ parent_folder_id: newParentId })
+        .eq('id', folderId);
+
+      if (error) throw error;
+      
+      await fetchFolders();
+    } catch (error) {
+      console.error('Error moving folder:', error);
+      throw error;
+    }
+  };
+
   const deleteFile = async (fileId: string, storagePath: string) => {
     try {
       // Delete from storage
@@ -143,6 +207,9 @@ export const useFileManager = () => {
     } catch (error) {
       console.error('Error uploading file:', error);
       throw error;
+    } finally {
+      // Ensure we refresh the current folder after upload
+      await fetchFiles(folderId);
     }
   };
 
@@ -182,6 +249,10 @@ export const useFileManager = () => {
     createFolder,
     deleteFolder,
     deleteFile,
+    renameFolder,
+    renameFile,
+    moveFile,
+    moveFolder,
     uploadFile,
     getSignedUrl,
     refresh: () => {
