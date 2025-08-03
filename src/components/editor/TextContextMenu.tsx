@@ -10,7 +10,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { LinkDialog } from './LinkDialog';
-import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket, Link } from 'lucide-react';
+import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket, Link, Link2Off } from 'lucide-react';
 
 interface TextContextMenuProps {
   children: React.ReactNode;
@@ -21,6 +21,24 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [savedSelection, setSavedSelection] = useState<Range | null>(null);
+  const [isInLink, setIsInLink] = useState(false);
+
+  const checkIfInLink = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      let element = range.commonAncestorContainer;
+      
+      // If it's a text node, get the parent element
+      if (element.nodeType === Node.TEXT_NODE) {
+        element = element.parentElement;
+      }
+      
+      // Check if we're inside a link
+      const linkElement = (element as Element).closest('a');
+      setIsInLink(!!linkElement);
+    }
+  };
 
   const handleCreateLink = () => {
     const selection = window.getSelection();
@@ -50,6 +68,27 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
         
         // Clear the saved selection
         setSavedSelection(null);
+      }
+    }
+  };
+
+  const handleRemoveLink = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      let element = range.commonAncestorContainer;
+      
+      // If it's a text node, get the parent element
+      if (element.nodeType === Node.TEXT_NODE) {
+        element = element.parentElement;
+      }
+      
+      // Find the link element
+      const linkElement = (element as Element).closest('a') as HTMLAnchorElement;
+      if (linkElement) {
+        // Replace the link with its text content
+        const textNode = document.createTextNode(linkElement.textContent || '');
+        linkElement.parentNode?.replaceChild(textNode, linkElement);
       }
     }
   };
@@ -86,7 +125,11 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
   return (
     <>
       <ContextMenu>
-        <ContextMenuTrigger>{children}</ContextMenuTrigger>
+        <ContextMenuTrigger 
+          onContextMenu={checkIfInLink}
+        >
+          {children}
+        </ContextMenuTrigger>
         <ContextMenuContent className="w-56">
           <ContextMenuItem onClick={() => onCommand('bold')}>
             <Bold className="mr-2 h-4 w-4" />
@@ -100,10 +143,18 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
             <Underline className="mr-2 h-4 w-4" />
             Underline
           </ContextMenuItem>
-          <ContextMenuItem onClick={handleCreateLink}>
-            <Link className="mr-2 h-4 w-4" />
-            Add Link
-          </ContextMenuItem>
+          
+          {isInLink ? (
+            <ContextMenuItem onClick={handleRemoveLink}>
+              <Link2Off className="mr-2 h-4 w-4" />
+              Remove Link
+            </ContextMenuItem>
+          ) : (
+            <ContextMenuItem onClick={handleCreateLink}>
+              <Link className="mr-2 h-4 w-4" />
+              Add Link
+            </ContextMenuItem>
+          )}
           
           <ContextMenuSeparator />
           
