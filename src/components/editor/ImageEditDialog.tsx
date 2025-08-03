@@ -107,19 +107,19 @@ export const ImageEditDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Şəkil Parametrləri</DialogTitle>
+          <DialogTitle>Image Settings</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
           {/* Width Control */}
           <div className="space-y-2">
-            <Label>Genişlik</Label>
+            <Label>Width</Label>
             <div className="flex gap-2 items-center">
               <Input
                 type="number"
                 value={width}
                 onChange={(e) => handleWidthChange(e.target.value)}
-                placeholder="Piksel"
+                placeholder="Pixels"
                 className="flex-1"
               />
               <span className="text-sm text-muted-foreground">px</span>
@@ -158,7 +158,7 @@ export const ImageEditDialog = ({
 
           {/* Rotation Control */}
           <div className="space-y-2">
-            <Label>Dönmə</Label>
+            <Label>Rotation</Label>
             <div className="flex gap-2 items-center">
               <Button
                 variant="outline"
@@ -187,7 +187,7 @@ export const ImageEditDialog = ({
 
           {/* Alignment Control */}
           <div className="space-y-2">
-            <Label>Düzləşdirmə</Label>
+            <Label>Alignment</Label>
             <div className="flex gap-1">
               <Button
                 variant={alignment === 'left' ? 'default' : 'outline'}
@@ -215,32 +215,32 @@ export const ImageEditDialog = ({
 
           {/* Caption */}
           <div className="space-y-2">
-            <Label>Başlıq</Label>
+            <Label>Caption</Label>
             <Textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Şəkil başlığı daxil edin..."
+              placeholder="Enter image caption..."
               rows={2}
             />
           </div>
 
           {/* Alt Text */}
           <div className="space-y-2">
-            <Label>Alt Mətn</Label>
+            <Label>Alt Text</Label>
             <Input
               value={alt}
               onChange={(e) => setAlt(e.target.value)}
-              placeholder="Şəkil təsviri daxil edin..."
+              placeholder="Enter image description..."
             />
           </div>
 
           {/* Action Buttons */}
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Ləğv et
+              Cancel
             </Button>
             <Button onClick={handleApply}>
-              Tətbiq et
+              Apply
             </Button>
           </div>
         </div>

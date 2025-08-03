@@ -1073,8 +1073,29 @@ export const RichTextEditor = ({
     // Apply alignment changes
     if (changes.alignment) {
       const parent = selectedImage.parentElement;
-      if (parent) {
-        parent.style.textAlign = changes.alignment;
+      
+      if (changes.alignment === 'center') {
+        // For center alignment, wrap in a div with center alignment
+        let wrapper = selectedImage.parentElement;
+        if (!wrapper || wrapper.tagName !== 'DIV' || !wrapper.style.textAlign) {
+          wrapper = document.createElement('div');
+          wrapper.style.textAlign = 'center';
+          wrapper.style.margin = '16px 0';
+          selectedImage.parentNode?.insertBefore(wrapper, selectedImage);
+          wrapper.appendChild(selectedImage);
+        }
+        wrapper.style.textAlign = 'center';
+      } else {
+        // For left/right alignment, apply to parent or create wrapper
+        if (parent) {
+          parent.style.textAlign = changes.alignment;
+        } else {
+          const wrapper = document.createElement('div');
+          wrapper.style.textAlign = changes.alignment;
+          wrapper.style.margin = '16px 0';
+          selectedImage.parentNode?.insertBefore(wrapper, selectedImage);
+          wrapper.appendChild(selectedImage);
+        }
       }
     }
     
