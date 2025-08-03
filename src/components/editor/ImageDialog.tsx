@@ -170,8 +170,15 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
           body: JSON.stringify({ expiresIn: 3600 })
         });
         
-        const { signedURL } = await response.json();
-        const fullUrl = `https://qgmluixnzhpthywyrytn.supabase.co/storage/v1${signedURL}`;
+        const result = await response.json();
+        console.log('File manager signed URL response:', result);
+        
+        const signedPath = result.signedURL;
+        const fullUrl = signedPath?.startsWith('http') 
+          ? signedPath 
+          : `https://qgmluixnzhpthywyrytn.supabase.co/storage/v1${signedPath}`;
+        
+        console.log('Final image URL:', fullUrl);
         
         setUploadedImageUrl(fullUrl);
         setPreviewUrl(fullUrl);
