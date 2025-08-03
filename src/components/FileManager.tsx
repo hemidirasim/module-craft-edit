@@ -258,13 +258,19 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
           thumbnailMode === 'medium' ? 'w-16 h-16' : 'w-20 h-20'
         }`}>
           <img 
-            src={`https://qgmluixnzhpthywyrytn.supabase.co/storage/v1/object/public/user-files/${file.storage_path}`}
+            src={file.public_url || `https://qgmluixnzhpthywyrytn.supabase.co/storage/v1/object/public/user-files/${file.storage_path}`}
             alt={file.original_name}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-              if (fallback) fallback.classList.remove('hidden');
+            className="w-full h-full object-cover cursor-pointer"
+            onClick={() => handlePreviewFile(file)}
+            onError={async (e) => {
+              try {
+                const signedUrl = await getSignedUrl(file.storage_path);
+                e.currentTarget.src = signedUrl;
+              } catch (error) {
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                if (fallback) fallback.classList.remove('hidden');
+              }
             }}
           />
           <div className="hidden w-full h-full flex items-center justify-center bg-muted">
@@ -381,13 +387,17 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
       
       if (dragData.type === 'file') {
         console.log('Moving file:', dragData.data.id, 'to folder:', targetFolderId);
-        await moveFile(dragData.data.id, targetFolderId);
-        toast.success('File moved successfully');
+        const result = await moveFile(dragData.data.id, targetFolderId);
+        if (result.success) {
+          toast.success('File moved successfully');
+        }
       } else if (dragData.type === 'folder') {
         if (dragData.data.id !== targetFolderId) {
           console.log('Moving folder:', dragData.data.id, 'to folder:', targetFolderId);
-          await moveFolder(dragData.data.id, targetFolderId);
-          toast.success('Folder moved successfully');
+          const result = await moveFolder(dragData.data.id, targetFolderId);
+          if (result.success) {
+            toast.success('Folder moved successfully');
+          }
         }
       }
     } catch (error) {
@@ -570,14 +580,19 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
             try {
               const dragData = JSON.parse(dragDataString);
               if (dragData.type === 'file') {
-                await moveFile(dragData.data.id, null); // Move to root
-                toast.success('File moved to root folder');
+                const result = await moveFile(dragData.data.id, null); // Move to root
+                if (result.success) {
+                  toast.success('File moved to root folder');
+                }
               } else if (dragData.type === 'folder') {
-                await moveFolder(dragData.data.id, null); // Move to root
-                toast.success('Folder moved to root folder');
+                const result = await moveFolder(dragData.data.id, null); // Move to root
+                if (result.success) {
+                  toast.success('Folder moved to root folder');
+                }
               }
             } catch (error) {
               console.error('Drop error:', error);
+              toast.error('Failed to move item');
             }
           }
         }}

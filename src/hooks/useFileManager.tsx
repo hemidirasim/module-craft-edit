@@ -133,7 +133,13 @@ export const useFileManager = () => {
 
       if (error) throw error;
       
-      await fetchFiles(currentFolderId);
+      // Refresh both current and target folder data
+      await Promise.all([
+        fetchFiles(currentFolderId),
+        fetchFolders()
+      ]);
+      
+      return { success: true };
     } catch (error) {
       console.error('Error moving file:', error);
       throw error;
@@ -149,7 +155,10 @@ export const useFileManager = () => {
 
       if (error) throw error;
       
+      // Refresh folders data
       await fetchFolders();
+      
+      return { success: true };
     } catch (error) {
       console.error('Error moving folder:', error);
       throw error;
