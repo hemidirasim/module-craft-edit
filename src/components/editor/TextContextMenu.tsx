@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -9,6 +9,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { LinkDialog } from './LinkDialog';
 import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket, Link } from 'lucide-react';
 
 interface TextContextMenuProps {
@@ -17,6 +18,22 @@ interface TextContextMenuProps {
 }
 
 export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCommand }) => {
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
+
+  const handleCreateLink = () => {
+    const selection = window.getSelection();
+    const text = selection?.toString() || '';
+    setSelectedText(text);
+    setShowLinkDialog(true);
+  };
+
+  const handleInsertLink = (linkData: { text: string; url: string; target?: string; title?: string }) => {
+    const { text, url, target, title } = linkData;
+    const linkHTML = `<a href="${url}"${target ? ` target="${target}"` : ''}${title ? ` title="${title}"` : ''} style="color: #007cba; text-decoration: underline;">${text}</a>`;
+    onCommand('insertHTML', linkHTML);
+  };
+
   const fontSizes = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
   const fontFamilies = [
     { name: 'Arial', value: 'Arial, sans-serif' },
@@ -47,101 +64,110 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
   ];
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger>{children}</ContextMenuTrigger>
-      <ContextMenuContent className="w-56">
-        <ContextMenuItem onClick={() => onCommand('bold')}>
-          <Bold className="mr-2 h-4 w-4" />
-          Bold
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => onCommand('italic')}>
-          <Italic className="mr-2 h-4 w-4" />
-          Italic
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => onCommand('underline')}>
-          <Underline className="mr-2 h-4 w-4" />
-          Underline
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => onCommand('createLink')}>
-          <Link className="mr-2 h-4 w-4" />
-          Add Link
-        </ContextMenuItem>
-        
-        <ContextMenuSeparator />
-        
-        <ContextMenuSub>
-          <ContextMenuSubTrigger>
-            <Type className="mr-2 h-4 w-4" />
-            Font Size
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent>
-            {fontSizes.map((size) => (
-              <ContextMenuItem key={size} onClick={() => onCommand('fontSize', size.replace('px', ''))}>
-                {size}
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger>{children}</ContextMenuTrigger>
+        <ContextMenuContent className="w-56">
+          <ContextMenuItem onClick={() => onCommand('bold')}>
+            <Bold className="mr-2 h-4 w-4" />
+            Bold
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onCommand('italic')}>
+            <Italic className="mr-2 h-4 w-4" />
+            Italic
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onCommand('underline')}>
+            <Underline className="mr-2 h-4 w-4" />
+            Underline
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleCreateLink}>
+            <Link className="mr-2 h-4 w-4" />
+            Add Link
+          </ContextMenuItem>
+          
+          <ContextMenuSeparator />
+          
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <Type className="mr-2 h-4 w-4" />
+              Font Size
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {fontSizes.map((size) => (
+                <ContextMenuItem key={size} onClick={() => onCommand('fontSize', size.replace('px', ''))}>
+                  {size}
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
 
-        <ContextMenuSub>
-          <ContextMenuSubTrigger>
-            <Type className="mr-2 h-4 w-4" />
-            Font Family
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent>
-            {fontFamilies.map((font) => (
-              <ContextMenuItem key={font.value} onClick={() => onCommand('fontName', font.value)}>
-                <span style={{ fontFamily: font.value }}>{font.name}</span>
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <Type className="mr-2 h-4 w-4" />
+              Font Family
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {fontFamilies.map((font) => (
+                <ContextMenuItem key={font.value} onClick={() => onCommand('fontName', font.value)}>
+                  <span style={{ fontFamily: font.value }}>{font.name}</span>
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
 
-        <ContextMenuSub>
-          <ContextMenuSubTrigger>
-            <Palette className="mr-2 h-4 w-4" />
-            Font Color
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent>
-            {colors.map((color) => (
-              <ContextMenuItem key={color.value} onClick={() => onCommand('foreColor', color.value)}>
-                <div className="mr-2 h-4 w-4 rounded border" style={{ backgroundColor: color.value }} />
-                {color.name}
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <Palette className="mr-2 h-4 w-4" />
+              Font Color
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {colors.map((color) => (
+                <ContextMenuItem key={color.value} onClick={() => onCommand('foreColor', color.value)}>
+                  <div className="mr-2 h-4 w-4 rounded border" style={{ backgroundColor: color.value }} />
+                  {color.name}
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
 
-        <ContextMenuSub>
-          <ContextMenuSubTrigger>
-            <PaintBucket className="mr-2 h-4 w-4" />
-            Background Color
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent>
-            {backgroundColors.map((color) => (
-              <ContextMenuItem key={color.value} onClick={() => onCommand('hiliteColor', color.value)}>
-                <div className="mr-2 h-4 w-4 rounded border" style={{ backgroundColor: color.value }} />
-                {color.name}
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <PaintBucket className="mr-2 h-4 w-4" />
+              Background Color
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {backgroundColors.map((color) => (
+                <ContextMenuItem key={color.value} onClick={() => onCommand('hiliteColor', color.value)}>
+                  <div className="mr-2 h-4 w-4 rounded border" style={{ backgroundColor: color.value }} />
+                  {color.name}
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
 
-        <ContextMenuSeparator />
+          <ContextMenuSeparator />
 
-        <ContextMenuItem onClick={() => onCommand('justifyLeft')}>
-          <AlignLeft className="mr-2 h-4 w-4" />
-          Align Left
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => onCommand('justifyCenter')}>
-          <AlignCenter className="mr-2 h-4 w-4" />
-          Align Center
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => onCommand('justifyRight')}>
-          <AlignRight className="mr-2 h-4 w-4" />
-          Align Right
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+          <ContextMenuItem onClick={() => onCommand('justifyLeft')}>
+            <AlignLeft className="mr-2 h-4 w-4" />
+            Align Left
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onCommand('justifyCenter')}>
+            <AlignCenter className="mr-2 h-4 w-4" />
+            Align Center
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onCommand('justifyRight')}>
+            <AlignRight className="mr-2 h-4 w-4" />
+            Align Right
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+      
+      <LinkDialog
+        open={showLinkDialog}
+        onOpenChange={setShowLinkDialog}
+        onInsertLink={handleInsertLink}
+        selectedText={selectedText}
+      />
+    </>
   );
 };
