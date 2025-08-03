@@ -386,6 +386,22 @@ export const RichTextEditor = ({
         if (color) {
           document.execCommand("hiliteColor", false, color);
         }
+      } else if (command === "fontSize") {
+        if (value) {
+          document.execCommand('styleWithCSS', false, 'true');
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const span = document.createElement('span');
+            span.style.fontSize = value + 'px';
+            try {
+              range.surroundContents(span);
+            } catch (e) {
+              span.appendChild(range.extractContents());
+              range.insertNode(span);
+            }
+          }
+        }
       } else {
         document.execCommand(command, false, value);
       }

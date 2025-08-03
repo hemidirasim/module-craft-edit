@@ -9,7 +9,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline } from 'lucide-react';
+import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket } from 'lucide-react';
 
 interface TextContextMenuProps {
   children: React.ReactNode;
@@ -17,7 +17,7 @@ interface TextContextMenuProps {
 }
 
 export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCommand }) => {
-  const fontSizes = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px'];
+  const fontSizes = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
   const fontFamilies = [
     { name: 'Arial', value: 'Arial, sans-serif' },
     { name: 'Georgia', value: 'Georgia, serif' },
@@ -33,6 +33,17 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
     { name: 'Green', value: '#16a34a' },
     { name: 'Purple', value: '#9333ea' },
     { name: 'Orange', value: '#ea580c' },
+    { name: 'Yellow', value: '#eab308' },
+    { name: 'Gray', value: '#6b7280' },
+  ];
+  const backgroundColors = [
+    { name: 'None', value: 'transparent' },
+    { name: 'Yellow', value: '#fef3c7' },
+    { name: 'Green', value: '#d1fae5' },
+    { name: 'Blue', value: '#dbeafe' },
+    { name: 'Red', value: '#fee2e2' },
+    { name: 'Purple', value: '#e9d5ff' },
+    { name: 'Gray', value: '#f3f4f6' },
   ];
 
   return (
@@ -61,7 +72,7 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
           </ContextMenuSubTrigger>
           <ContextMenuSubContent>
             {fontSizes.map((size) => (
-              <ContextMenuItem key={size} onClick={() => onCommand('fontSize', size)}>
+              <ContextMenuItem key={size} onClick={() => onCommand('fontSize', size.replace('px', ''))}>
                 {size}
               </ContextMenuItem>
             ))}
@@ -90,6 +101,21 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
           <ContextMenuSubContent>
             {colors.map((color) => (
               <ContextMenuItem key={color.value} onClick={() => onCommand('foreColor', color.value)}>
+                <div className="mr-2 h-4 w-4 rounded border" style={{ backgroundColor: color.value }} />
+                {color.name}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <PaintBucket className="mr-2 h-4 w-4" />
+            Background Color
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            {backgroundColors.map((color) => (
+              <ContextMenuItem key={color.value} onClick={() => onCommand('hiliteColor', color.value)}>
                 <div className="mr-2 h-4 w-4 rounded border" style={{ backgroundColor: color.value }} />
                 {color.name}
               </ContextMenuItem>
