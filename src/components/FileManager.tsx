@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   Folder as FolderIcon, 
   File, 
@@ -249,33 +249,42 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
     return filtered;
   };
 
-  // Get thumbnail for image files
+  // Get thumbnail for image files with proper signed URL
   const getFileThumbnail = (file: any) => {
     if (file.file_type === 'image') {
+      const [imageUrl, setImageUrl] = useState<string>('');
+      const [imageError, setImageError] = useState(false);
+
+      // Load signed URL on component mount
+      useEffect(() => {
+        const loadSignedUrl = async () => {
+          try {
+            const signedUrl = await getSignedUrl(file.storage_path);
+            setImageUrl(signedUrl);
+          } catch (error) {
+            console.error('Error loading signed URL:', error);
+            setImageError(true);
+          }
+        };
+        loadSignedUrl();
+      }, [file.storage_path]);
+
+      if (imageError || !imageUrl) {
+        return getFileIcon(file.file_type, file.mime_type);
+      }
+
       return (
         <div className={`relative overflow-hidden rounded ${
           thumbnailMode === 'small' ? 'w-12 h-12' : 
           thumbnailMode === 'medium' ? 'w-16 h-16' : 'w-20 h-20'
         }`}>
           <img 
-            src={file.public_url || `https://qgmluixnzhpthywyrytn.supabase.co/storage/v1/object/public/user-files/${file.storage_path}`}
+            src={imageUrl}
             alt={file.original_name}
             className="w-full h-full object-cover cursor-pointer"
             onClick={() => handlePreviewFile(file)}
-            onError={async (e) => {
-              try {
-                const signedUrl = await getSignedUrl(file.storage_path);
-                e.currentTarget.src = signedUrl;
-              } catch (error) {
-                e.currentTarget.style.display = 'none';
-                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                if (fallback) fallback.classList.remove('hidden');
-              }
-            }}
+            onError={() => setImageError(true)}
           />
-          <div className="hidden w-full h-full flex items-center justify-center bg-muted">
-            {getFileIcon(file.file_type, file.mime_type)}
-          </div>
         </div>
       );
     }

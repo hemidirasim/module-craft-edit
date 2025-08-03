@@ -229,7 +229,14 @@ export const useFileManager = () => {
         .createSignedUrl(filePath, 3600); // 1 hour expiry
 
       if (error) throw error;
-      return data.signedUrl;
+      
+      // Supabase returns relative path, we need to make it absolute
+      const baseUrl = 'https://qgmluixnzhpthywyrytn.supabase.co/storage/v1';
+      const fullUrl = data.signedUrl.startsWith('http') 
+        ? data.signedUrl 
+        : `${baseUrl}${data.signedUrl}`;
+        
+      return fullUrl;
     } catch (error) {
       console.error('Error getting signed URL:', error);
       throw error;
