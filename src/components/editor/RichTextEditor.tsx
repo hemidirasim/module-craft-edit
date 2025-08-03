@@ -1,9 +1,10 @@
 import { useRef, useState, useEffect } from "react";
 import { EditorToolbar } from "./EditorToolbar";
-import { FindReplaceDialog } from "./FindReplaceDialog";
+import { ImageResizer } from "./ImageResizer";
 import { TableContextMenu } from "./TableContextMenu";
 import { TextContextMenu } from "./TextContextMenu";
 import { ImageEditDialog } from "./ImageEditDialog";
+import { FindReplaceDialog } from "./FindReplaceDialog";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -29,6 +30,7 @@ export const RichTextEditor = ({
   const [isResizing, setIsResizing] = useState(false);
   const [resizeData, setResizeData] = useState<{ startX: number; startWidth: number; column: HTMLElement } | null>(null);
   const [showImageEdit, setShowImageEdit] = useState(false);
+  const [showImageResizer, setShowImageResizer] = useState(false);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const [activeFormats, setActiveFormats] = useState<{
     bold: boolean;
@@ -1051,8 +1053,23 @@ export const RichTextEditor = ({
     if (target.tagName === 'IMG') {
       e.preventDefault();
       setSelectedImage(target as HTMLImageElement);
-      setShowImageEdit(true);
+      setShowImageResizer(true);
+      
+      // Double click opens edit dialog
+      if (e.detail === 2) {
+        setShowImageEdit(true);
+        setShowImageResizer(false);
+      }
+    } else {
+      // Click elsewhere - hide image selection
+      setSelectedImage(null);
+      setShowImageResizer(false);
     }
+  };
+
+  const handleImageResize = (width: number, height: number) => {
+    // Optional: Add any additional logic when image is resized via drag
+    console.log('Image resized to:', width, 'x', height);
   };
 
   const handleImageChanges = (changes: any) => {
@@ -1196,6 +1213,11 @@ export const RichTextEditor = ({
         open={showFindReplace} 
         onOpenChange={setShowFindReplace}
         editorRef={editorRef}
+      />
+      
+      <ImageResizer
+        imageElement={showImageResizer ? selectedImage : null}
+        onResize={handleImageResize}
       />
       
       <ImageEditDialog
