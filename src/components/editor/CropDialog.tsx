@@ -135,6 +135,8 @@ export const CropDialog = ({
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!containerRef.current || (!isDragging && !isResizing)) return;
 
+    console.log('Mouse move - selectedRatio:', selectedRatio, 'isDragging:', isDragging, 'isResizing:', isResizing);
+
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -165,10 +167,12 @@ export const CropDialog = ({
         newCrop.height = newHeight;
       }
 
+      console.log('Before constraint - selectedRatio:', selectedRatio, 'newCrop:', newCrop);
+      
       // Apply aspect ratio constraint ONLY if selectedRatio is not null and greater than 0
       // null = freeform, no constraints
       if (selectedRatio !== null && selectedRatio > 0) {
-        console.log('Applying aspect ratio constraint:', selectedRatio);
+        console.log('🔒 Applying aspect ratio constraint:', selectedRatio);
         if (resizeHandle.includes('right') || resizeHandle.includes('left')) {
           newCrop.height = newCrop.width / selectedRatio;
         } else {
@@ -185,11 +189,13 @@ export const CropDialog = ({
           newCrop.width = newCrop.height * selectedRatio;
         }
       } else {
-        console.log('Freeform mode - no aspect ratio constraints applied');
+        console.log('🆓 Freeform mode - no aspect ratio constraints applied');
         // In freeform mode, just ensure boundaries are respected
         newCrop.width = Math.min(newCrop.width, displaySize.width - newCrop.x);
         newCrop.height = Math.min(newCrop.height, displaySize.height - newCrop.y);
       }
+      
+      console.log('After constraint - newCrop:', newCrop);
 
       setCropData(newCrop);
     }
