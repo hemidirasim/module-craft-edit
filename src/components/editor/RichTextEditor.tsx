@@ -388,18 +388,21 @@ export const RichTextEditor = ({
         }
       } else if (command === "fontSize") {
         if (value) {
-          document.execCommand('styleWithCSS', false, 'true');
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
+            const selectedContent = range.extractContents();
             const span = document.createElement('span');
             span.style.fontSize = value + 'px';
-            try {
-              range.surroundContents(span);
-            } catch (e) {
-              span.appendChild(range.extractContents());
-              range.insertNode(span);
-            }
+            span.appendChild(selectedContent);
+            range.insertNode(span);
+            
+            // Clear selection
+            selection.removeAllRanges();
+            const newRange = document.createRange();
+            newRange.selectNodeContents(span);
+            newRange.collapse(false);
+            selection.addRange(newRange);
           }
         }
       } else {
