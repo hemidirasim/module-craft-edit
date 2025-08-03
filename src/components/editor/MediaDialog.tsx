@@ -16,8 +16,8 @@ interface MediaDialogProps {
 export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogProps) => {
   const [videoUrl, setVideoUrl] = useState("");
   const [embedCode, setEmbedCode] = useState("");
-  const [mediaWidth, setMediaWidth] = useState("560");
-  const [mediaHeight, setMediaHeight] = useState("315");
+  const [mediaWidth, setMediaWidth] = useState("");
+  const [mediaHeight, setMediaHeight] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const urlInputRef = useRef<HTMLInputElement>(null);
 
@@ -25,8 +25,8 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
     if (open) {
       setVideoUrl("");
       setEmbedCode("");
-      setMediaWidth("560");
-      setMediaHeight("315");
+      setMediaWidth("");
+      setMediaHeight("");
       setPreviewUrl("");
       
       setTimeout(() => {
@@ -138,8 +138,8 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
   const handleClose = () => {
     setVideoUrl("");
     setEmbedCode("");
-    setMediaWidth("560");
-    setMediaHeight("315");
+    setMediaWidth("");
+    setMediaHeight("");
     setPreviewUrl("");
     onOpenChange(false);
   };
