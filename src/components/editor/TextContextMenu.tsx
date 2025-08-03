@@ -10,7 +10,8 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { LinkDialog } from './LinkDialog';
-import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket, Link, Link2Off } from 'lucide-react';
+import { ImageDialog } from './ImageDialog';
+import { Type, Palette, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, PaintBucket, Link, Link2Off, Image } from 'lucide-react';
 
 interface TextContextMenuProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ interface TextContextMenuProps {
 
 export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCommand }) => {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [showImageDialog, setShowImageDialog] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [savedSelection, setSavedSelection] = useState<Range | null>(null);
   const [isInLink, setIsInLink] = useState(false);
@@ -93,6 +95,51 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
     }
   };
 
+  const handleInsertImage = (imageData: { src: string; alt: string; width?: string; height?: string }) => {
+    // Get current selection position
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      
+      // Create image HTML
+      const { src, alt, width, height } = imageData;
+      let imageHTML = `<img src="${src}" alt="${alt}" style="max-width: 100%; height: auto;`;
+      
+      if (width) {
+        imageHTML += ` width: ${width};`;
+      }
+      if (height) {
+        imageHTML += ` height: ${height};`;
+      }
+      
+      imageHTML += `" />`;
+      
+      // Insert the image at current cursor position
+      range.deleteContents();
+      range.insertNode(range.createContextualFragment(imageHTML));
+      
+      // Move cursor after the image
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else {
+      // Fallback: use execCommand if no selection
+      const { src, alt, width, height } = imageData;
+      let imageHTML = `<img src="${src}" alt="${alt}" style="max-width: 100%; height: auto;`;
+      
+      if (width) {
+        imageHTML += ` width: ${width};`;
+      }
+      if (height) {
+        imageHTML += ` height: ${height};`;
+      }
+      
+      imageHTML += `" />`;
+      
+      document.execCommand('insertHTML', false, imageHTML);
+    }
+  };
+
   const fontSizes = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
   const fontFamilies = [
     { name: 'Arial', value: 'Arial, sans-serif' },
@@ -155,6 +202,11 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
               Add Link
             </ContextMenuItem>
           )}
+          
+          <ContextMenuItem onClick={() => setShowImageDialog(true)}>
+            <Image className="mr-2 h-4 w-4" />
+            Insert Image
+          </ContextMenuItem>
           
           <ContextMenuSeparator />
           
@@ -238,6 +290,12 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
         onOpenChange={setShowLinkDialog}
         onInsertLink={handleInsertLink}
         selectedText={selectedText}
+      />
+      
+      <ImageDialog
+        open={showImageDialog}
+        onOpenChange={setShowImageDialog}
+        onInsertImage={handleInsertImage}
       />
     </>
   );
