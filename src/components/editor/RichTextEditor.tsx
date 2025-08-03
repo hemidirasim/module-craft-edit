@@ -80,7 +80,67 @@ export const RichTextEditor = ({
     try {
       // Handle special commands first
       if (command === 'insertTodoList') {
-        document.execCommand('insertHTML', false, '<ul style="list-style-type: none;"><li><input type="checkbox" style="margin-right: 8px;"> Todo item</li></ul>');
+        document.execCommand('insertHTML', false, '<ul class="todo-list"><li><input type="checkbox" style="margin-right: 8px;"> Todo item</li></ul>');
+        handleContentChange();
+        return;
+      }
+
+      if (command === 'indent') {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const parentElement = range.commonAncestorContainer.nodeType === Node.TEXT_NODE 
+            ? range.commonAncestorContainer.parentElement 
+            : range.commonAncestorContainer as HTMLElement;
+          
+          if (parentElement) {
+            const listItem = parentElement.closest('li');
+            if (listItem) {
+              // If we're in a list item, increase its padding
+              const currentPadding = parseInt(getComputedStyle(listItem).paddingLeft) || 0;
+              listItem.style.paddingLeft = `${currentPadding + 20}px`;
+            } else {
+              // Otherwise, wrap in a div with padding
+              const currentContent = range.extractContents();
+              const div = document.createElement('div');
+              div.style.marginLeft = '20px';
+              div.appendChild(currentContent);
+              range.insertNode(div);
+            }
+          }
+        }
+        handleContentChange();
+        return;
+      }
+
+      if (command === 'outdent') {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const parentElement = range.commonAncestorContainer.nodeType === Node.TEXT_NODE 
+            ? range.commonAncestorContainer.parentElement 
+            : range.commonAncestorContainer as HTMLElement;
+          
+          if (parentElement) {
+            const listItem = parentElement.closest('li');
+            if (listItem) {
+              // If we're in a list item, decrease its padding
+              const currentPadding = parseInt(getComputedStyle(listItem).paddingLeft) || 0;
+              if (currentPadding > 0) {
+                listItem.style.paddingLeft = `${Math.max(0, currentPadding - 20)}px`;
+              }
+            } else {
+              // Otherwise, reduce margin of closest div
+              const div = parentElement.closest('div[style*="margin-left"]') as HTMLElement;
+              if (div) {
+                const currentMargin = parseInt(getComputedStyle(div).marginLeft) || 0;
+                if (currentMargin > 0) {
+                  div.style.marginLeft = `${Math.max(0, currentMargin - 20)}px`;
+                }
+              }
+            }
+          }
+        }
         handleContentChange();
         return;
       }

@@ -138,6 +138,76 @@ All colors MUST be HSL.
     content: none;
   }
 
+  /* List styles for rich text editor */
+  [contenteditable="true"] ul,
+  [contenteditable="true"] ol {
+    margin: 16px 0;
+    padding-left: 24px;
+  }
+
+  [contenteditable="true"] ul li {
+    list-style-type: disc;
+    margin: 4px 0;
+    padding-left: 8px;
+  }
+
+  [contenteditable="true"] ol li {
+    list-style-type: decimal;
+    margin: 4px 0;
+    padding-left: 8px;
+  }
+
+  [contenteditable="true"] ul.todo-list {
+    list-style: none;
+    padding-left: 16px;
+  }
+
+  [contenteditable="true"] ul.todo-list li {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    padding-left: 0;
+  }
+
+  [contenteditable="true"] ul.todo-list li input[type="checkbox"] {
+    margin-right: 8px;
+    margin-top: 2px;
+    cursor: pointer;
+  }
+
+  /* Blockquote styles */
+  [contenteditable="true"] blockquote {
+    border-left: 4px solid hsl(var(--primary));
+    padding-left: 16px;
+    margin: 16px 0;
+    font-style: italic;
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--muted) / 0.3);
+    padding: 12px 16px;
+    border-radius: 4px;
+  }
+
+  /* Table styles */
+  [contenteditable="true"] table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+    border: 1px solid hsl(var(--border));
+  }
+
+  [contenteditable="true"] table td,
+  [contenteditable="true"] table th {
+    border: 1px solid hsl(var(--border));
+    padding: 8px 12px;
+    min-height: 40px;
+    vertical-align: top;
+  }
+
+  [contenteditable="true"] table th {
+    background-color: hsl(var(--muted));
+    font-weight: 600;
+  }
+
   /* Smooth animations for all interactive elements */
   .transition-smooth {
     transition: var(--transition-smooth);
