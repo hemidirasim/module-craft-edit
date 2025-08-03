@@ -69,6 +69,17 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
     "#800000", "#008000", "#000080", "#808000", "#800080", "#008080"
   ];
 
+  const blockTypes = [
+    { label: "Paragraph", value: "p", tag: "div" },
+    { label: "Heading 1", value: "h1", tag: "h1" },
+    { label: "Heading 2", value: "h2", tag: "h2" },
+    { label: "Heading 3", value: "h3", tag: "h3" },
+    { label: "Heading 4", value: "h4", tag: "h4" },
+    { label: "Heading 5", value: "h5", tag: "h5" },
+    { label: "Heading 6", value: "h6", tag: "h6" },
+    { label: "Preformatted", value: "pre", tag: "pre" },
+  ];
+
   const editTools = [
     { icon: Undo2, command: "undo", tooltip: "Undo (Ctrl+Z)", enabled: true },
     { icon: Redo2, command: "redo", tooltip: "Redo (Ctrl+Y)", enabled: true },
@@ -302,6 +313,20 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Block Format */}
+      <Select onValueChange={(value) => onCommand("formatBlock", value)}>
+        <SelectTrigger className="h-8 w-32">
+          <SelectValue placeholder="Paragraph" />
+        </SelectTrigger>
+        <SelectContent>
+          {blockTypes.map((block) => (
+            <SelectItem key={block.value} value={block.value}>
+              {block.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <div className="w-px h-6 bg-border mx-1 self-center" />
 

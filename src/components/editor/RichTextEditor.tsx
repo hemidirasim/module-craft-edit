@@ -217,13 +217,57 @@ export const RichTextEditor = ({
         }
       }
 
-      if (command === 'formatBlock' && value === 'blockquote') {
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          const selectedText = range.toString() || '';
-          const blockquoteHTML = `<blockquote style="border-left: 4px solid #007cba; padding-left: 16px; margin: 16px 0; font-style: italic; color: #666;">${selectedText}</blockquote>`;
-          document.execCommand('insertHTML', false, blockquoteHTML);
+      if (command === 'formatBlock') {
+        if (value === 'blockquote') {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString() || '';
+            const blockquoteHTML = `<blockquote style="border-left: 4px solid #007cba; padding-left: 16px; margin: 16px 0; font-style: italic; color: #666;">${selectedText}</blockquote>`;
+            document.execCommand('insertHTML', false, blockquoteHTML);
+          }
+        } else {
+          // Handle heading and paragraph formatting
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString() || '';
+            
+            let elementHTML = '';
+            switch (value) {
+              case 'h1':
+                elementHTML = `<h1 style="font-size: 2em; font-weight: bold; margin: 0.67em 0;">${selectedText || 'Heading 1'}</h1>`;
+                break;
+              case 'h2':
+                elementHTML = `<h2 style="font-size: 1.5em; font-weight: bold; margin: 0.75em 0;">${selectedText || 'Heading 2'}</h2>`;
+                break;
+              case 'h3':
+                elementHTML = `<h3 style="font-size: 1.3em; font-weight: bold; margin: 0.83em 0;">${selectedText || 'Heading 3'}</h3>`;
+                break;
+              case 'h4':
+                elementHTML = `<h4 style="font-size: 1.1em; font-weight: bold; margin: 1.12em 0;">${selectedText || 'Heading 4'}</h4>`;
+                break;
+              case 'h5':
+                elementHTML = `<h5 style="font-size: 0.9em; font-weight: bold; margin: 1.5em 0;">${selectedText || 'Heading 5'}</h5>`;
+                break;
+              case 'h6':
+                elementHTML = `<h6 style="font-size: 0.8em; font-weight: bold; margin: 1.67em 0;">${selectedText || 'Heading 6'}</h6>`;
+                break;
+              case 'pre':
+                elementHTML = `<pre style="font-family: monospace; background: #f5f5f5; padding: 16px; border-radius: 4px; white-space: pre-wrap; margin: 16px 0;">${selectedText || 'Preformatted text'}</pre>`;
+                break;
+              case 'p':
+              default:
+                elementHTML = `<div style="margin: 16px 0;">${selectedText || 'Paragraph'}</div>`;
+                break;
+            }
+            
+            if (selectedText) {
+              document.execCommand('insertHTML', false, elementHTML);
+            } else {
+              document.execCommand('insertHTML', false, elementHTML + '<br>');
+            }
+          }
         }
         handleContentChange();
         return;
