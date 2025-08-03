@@ -26,7 +26,10 @@ export const EmojiPicker = ({
   }, {} as Record<string, string[]>);
   return <Popover>
       <PopoverTrigger asChild>
-        
+        <Button variant="outline" className="h-8 w-full justify-start">
+          <Smile size={16} className="mr-2" />
+          Insert Emoji
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4 bg-background border border-border shadow-lg z-50">
         <div className="space-y-3">
