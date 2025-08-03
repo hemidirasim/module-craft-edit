@@ -231,6 +231,12 @@ export const RichTextEditor = ({
         return;
       }
 
+      if (command === 'insertHTML') {
+        document.execCommand('insertHTML', false, value);
+        handleContentChange();
+        return;
+      }
+
       if (command === 'indent') {
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
@@ -572,50 +578,6 @@ export const RichTextEditor = ({
         }
       }
 
-      // Handle insertHTML command explicitly
-      if (command === 'insertHTML') {
-        if (value) {
-          console.log('🔍 insertHTML called with value:', value);
-          console.log('🔍 Editor ref exists:', !!editorRef.current);
-          
-          if (editorRef.current) {
-            // Force focus using setTimeout to ensure DOM is ready
-            setTimeout(() => {
-              if (editorRef.current) {
-                editorRef.current.focus();
-                
-                // Create a new range at the end of content
-                const selection = window.getSelection();
-                const range = document.createRange();
-                
-                // If editor is empty, just select the content
-                if (editorRef.current.innerHTML.trim() === '') {
-                  range.selectNodeContents(editorRef.current);
-                } else {
-                  // Place cursor at the end
-                  range.selectNodeContents(editorRef.current);
-                  range.collapse(false);
-                }
-                
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-                
-                console.log('🔍 About to insert HTML with focus');
-                const result = document.execCommand('insertHTML', false, value);
-                console.log('🔍 execCommand result:', result);
-                console.log('🔍 Editor content after insert:', editorRef.current.innerHTML);
-                
-                handleContentChange();
-              }
-            }, 0);
-            return;
-          } else {
-            console.error('🚨 Editor ref is null!');
-          }
-        } else {
-          console.error('🚨 insertHTML called with empty value!');
-        }
-      }
 
       // Handle standard commands
       if (command === "createLink") {
