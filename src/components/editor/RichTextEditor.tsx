@@ -597,9 +597,17 @@ export const RichTextEditor = ({
         }
       } else {
         // Handle normal text cursor positioning in table cells
+        console.log('🔍 Table cell clicked, attempting to position cursor');
+        console.log('🔍 Cell:', cell);
+        console.log('🔍 Cell contentEditable:', cell.contentEditable);
+        console.log('🔍 Click coordinates:', { x: e.clientX, y: e.clientY });
+        
         setTimeout(() => {
           const selection = window.getSelection();
+          console.log('🔍 Selection available:', !!selection);
+          
           if (selection && cell && cell.contentEditable === 'true') {
+            console.log('🔍 Focusing cell and positioning cursor');
             cell.focus();
             
             // Create proper cursor position based on click location
@@ -608,27 +616,36 @@ export const RichTextEditor = ({
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
             
+            console.log('🔍 Click position relative to cell:', { clickX, clickY });
+            
             try {
               // Use document.caretPositionFromPoint for more precise positioning
               if ((document as any).caretPositionFromPoint) {
+                console.log('🔍 Using caretPositionFromPoint');
                 const caretPos = (document as any).caretPositionFromPoint(e.clientX, e.clientY);
                 if (caretPos) {
+                  console.log('🔍 Caret position found:', caretPos);
                   range.setStart(caretPos.offsetNode, caretPos.offset);
                   range.collapse(true);
                 }
               } else if ((document as any).caretRangeFromPoint) {
+                console.log('🔍 Using caretRangeFromPoint');
                 // Fallback for browsers that support caretRangeFromPoint
                 const caretRange = (document as any).caretRangeFromPoint(e.clientX, e.clientY);
                 if (caretRange) {
+                  console.log('🔍 Caret range found:', caretRange);
                   range.setStart(caretRange.startContainer, caretRange.startOffset);
                   range.collapse(true);
                 }
               } else {
+                console.log('🔍 Using fallback positioning');
                 // Final fallback - position cursor based on text content
                 const textNodes = Array.from(cell.childNodes).filter(node => 
                   node.nodeType === Node.TEXT_NODE || 
                   (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName !== 'BR')
                 );
+                
+                console.log('🔍 Text nodes found:', textNodes.length);
                 
                 if (textNodes.length > 0) {
                   const lastTextNode = textNodes[textNodes.length - 1];
@@ -645,14 +662,17 @@ export const RichTextEditor = ({
               
               selection.removeAllRanges();
               selection.addRange(range);
+              console.log('🔍 Cursor positioned successfully');
             } catch (error) {
               // If positioning fails, just put cursor at the end of the cell
-              console.warn('Cursor positioning failed, using fallback:', error);
+              console.warn('🚨 Cursor positioning failed, using fallback:', error);
               range.selectNodeContents(cell);
               range.collapse(false);
               selection.removeAllRanges();
               selection.addRange(range);
             }
+          } else {
+            console.log('🚨 Cell focus failed - selection or cell not available');
           }
         }, 0);
       }
