@@ -63,6 +63,7 @@ export const CropDialog = ({
   });
 
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [loadedImageDimensions, setLoadedImageDimensions] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     if (imageElement && containerRef.current && open) {
@@ -73,23 +74,34 @@ export const CropDialog = ({
       console.log('Image naturalHeight:', imageElement.naturalHeight);
       console.log('Image complete:', imageElement.complete);
       
-      // Wait for image to be fully loaded if not already
-      if (!imageElement.complete || imageElement.naturalWidth === 0) {
-        console.log('Image not fully loaded, waiting...');
+      // If image has signed URL, ensure it's still valid by testing it
+      const testImageLoad = () => {
+        const testImg = new Image();
+        testImg.crossOrigin = 'anonymous';
         
-        const handleImageLoad = () => {
-          console.log('Image loaded! Setting up crop area...');
+        testImg.onload = () => {
+          console.log('✅ Image URL is valid and loaded');
+          console.log('Loaded dimensions:', testImg.naturalWidth, 'x', testImg.naturalHeight);
+          // Store the loaded dimensions
+          setLoadedImageDimensions({ 
+            width: testImg.naturalWidth, 
+            height: testImg.naturalHeight 
+          });
           setupCropArea();
         };
         
-        imageElement.addEventListener('load', handleImageLoad);
-        imageElement.addEventListener('error', (e) => {
-          console.error('Image failed to load:', e);
-        });
-        
-        return () => {
-          imageElement.removeEventListener('load', handleImageLoad);
+        testImg.onerror = (e) => {
+          console.error('❌ Image URL failed to load:', e);
+          console.log('Failed URL:', imageElement.src);
         };
+        
+        testImg.src = imageElement.src;
+      };
+      
+      // Check if image is already loaded or needs testing
+      if (!imageElement.complete || imageElement.naturalWidth === 0) {
+        console.log('Image not fully loaded, testing URL...');
+        testImageLoad();
       } else {
         console.log('Image already loaded, setting up crop area...');
         setupCropArea();
@@ -98,15 +110,28 @@ export const CropDialog = ({
   }, [imageElement, open]);
 
   const setupCropArea = () => {
-    if (!imageElement || !containerRef.current) return;
+    if (!containerRef.current) return;
     
-    console.log('Setting up crop area with image:', imageElement.naturalWidth, 'x', imageElement.naturalHeight);
+    // Use loaded dimensions or fallback to imageElement dimensions
+    const naturalWidth = loadedImageDimensions.width > 0 
+      ? loadedImageDimensions.width 
+      : imageElement?.naturalWidth || 0;
+    const naturalHeight = loadedImageDimensions.height > 0 
+      ? loadedImageDimensions.height 
+      : imageElement?.naturalHeight || 0;
+    
+    if (naturalWidth === 0 || naturalHeight === 0) {
+      console.log('⚠️ No valid image dimensions available');
+      return;
+    }
+    
+    console.log('Setting up crop area with dimensions:', naturalWidth, 'x', naturalHeight);
     
     const containerRect = containerRef.current.getBoundingClientRect();
     const maxWidth = Math.min(500, containerRect.width - 40);
     const maxHeight = 400;
     
-    const aspectRatio = imageElement.naturalWidth / imageElement.naturalHeight;
+    const aspectRatio = naturalWidth / naturalHeight;
     let displayWidth = maxWidth;
     let displayHeight = displayWidth / aspectRatio;
     
@@ -234,8 +259,15 @@ export const CropDialog = ({
       if (!ctx) throw new Error('Canvas context not available');
 
       // Calculate scale factor between display size and natural size
-      const scaleX = imageElement.naturalWidth / imageSize.width;
-      const scaleY = imageElement.naturalHeight / imageSize.height;
+      const naturalWidth = loadedImageDimensions.width > 0 
+        ? loadedImageDimensions.width 
+        : imageElement.naturalWidth;
+      const naturalHeight = loadedImageDimensions.height > 0 
+        ? loadedImageDimensions.height 
+        : imageElement.naturalHeight;
+        
+      const scaleX = naturalWidth / imageSize.width;
+      const scaleY = naturalHeight / imageSize.height;
 
       // Set canvas size to crop dimensions in natural image coordinates
       const cropWidth = cropData.width * scaleX;
