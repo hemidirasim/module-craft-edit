@@ -340,8 +340,24 @@ export const RichTextEditor = ({
               selectedHTML = selectedHTML.replace(/\n/g, '<br>');
             }
             
-            const blockquoteHTML = `<blockquote style="border-left: 4px solid #007cba; padding-left: 16px; margin: 16px 0; font-style: italic; color: #666;">${selectedHTML}</blockquote>`;
+            const blockquoteHTML = `<blockquote style="border-left: 4px solid #007cba; padding-left: 16px; margin: 16px 0; font-style: italic; color: #666;">${selectedHTML}</blockquote><div><br></div>`;
             document.execCommand('insertHTML', false, blockquoteHTML);
+            
+            // Move cursor to the div after blockquote
+            setTimeout(() => {
+              const selection = window.getSelection();
+              if (selection && editorRef.current) {
+                const blockquotes = editorRef.current.querySelectorAll('blockquote');
+                const lastBlockquote = blockquotes[blockquotes.length - 1];
+                if (lastBlockquote && lastBlockquote.nextElementSibling) {
+                  const range = document.createRange();
+                  range.setStart(lastBlockquote.nextElementSibling, 0);
+                  range.collapse(true);
+                  selection.removeAllRanges();
+                  selection.addRange(range);
+                }
+              }
+            }, 10);
           }
         } else {
           // Handle heading and paragraph formatting
