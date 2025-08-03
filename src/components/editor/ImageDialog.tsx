@@ -157,11 +157,29 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
     setShowCropDialog(false);
   };
 
-  const handleFileSelect = (file: any) => {
+  const handleFileSelect = async (file: any) => {
     if (file.file_type === 'image') {
-      setUploadedImageUrl(file.public_url);
-      setPreviewUrl(file.public_url);
-      setImageAlt(file.original_name.replace(/\.[^/.]+$/, ""));
+      try {
+        // Use signed URL for private storage
+        const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/storage/v1/object/sign/user-files/${file.storage_path}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lyeXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzMyNDEsImV4cCI6MjA2OTcwOTI0MX0.sfEeN4RhfGUYa6a2iMG6ofAHbdt85YQ1FMVuXBao8-Q`,
+          },
+          body: JSON.stringify({ expiresIn: 3600 })
+        });
+        
+        const { signedURL } = await response.json();
+        const fullUrl = `https://qgmluixnzhpthywyrytn.supabase.co/storage/v1${signedURL}`;
+        
+        setUploadedImageUrl(fullUrl);
+        setPreviewUrl(fullUrl);
+        setImageAlt(file.original_name.replace(/\.[^/.]+$/, ""));
+      } catch (error) {
+        console.error('Error getting signed URL:', error);
+        toast.error('Failed to load image');
+      }
     } else {
       toast.error('Please select an image file');
     }

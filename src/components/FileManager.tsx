@@ -575,31 +575,37 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
           isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
         }`}
         onDragOverCapture={(e) => {
-          // Allow dropping files/folders to root when not in a specific folder
+          // Allow dropping files/folders to root when not in a specific folder  
           const dragData = e.dataTransfer?.types.includes('application/json');
-          if (dragData) {
+          if (dragData && !currentFolderId) {
             e.preventDefault();
           }
         }}
         onDropCapture={async (e) => {
-          const dragDataString = e.dataTransfer?.getData('application/json');
-          if (dragDataString) {
-            try {
-              const dragData = JSON.parse(dragDataString);
-              if (dragData.type === 'file') {
-                const result = await moveFile(dragData.data.id, null); // Move to root
-                if (result.success) {
-                  toast.success('File moved to root folder');
+          // Only handle drops to root folder when we're in root
+          if (!currentFolderId) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const dragDataString = e.dataTransfer?.getData('application/json');
+            if (dragDataString) {
+              try {
+                const dragData = JSON.parse(dragDataString);
+                if (dragData.type === 'file') {
+                  const result = await moveFile(dragData.data.id, null);
+                  if (result.success) {
+                    toast.success('File moved to root folder');
+                  }
+                } else if (dragData.type === 'folder') {
+                  const result = await moveFolder(dragData.data.id, null);
+                  if (result.success) {
+                    toast.success('Folder moved to root folder');
+                  }
                 }
-              } else if (dragData.type === 'folder') {
-                const result = await moveFolder(dragData.data.id, null); // Move to root
-                if (result.success) {
-                  toast.success('Folder moved to root folder');
-                }
+              } catch (error) {
+                console.error('Drop error:', error);
+                toast.error('Failed to move item');
               }
-            } catch (error) {
-              console.error('Drop error:', error);
-              toast.error('Failed to move item');
             }
           }
         }}
@@ -634,10 +640,17 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
                           }`}
                          onClick={() => setCurrentFolderId(folder.id)}
                          draggable
-                         onDragStart={(e) => handleFolderDragStart(e, folder)}
-                         onDragOver={handleFolderDragOver}
-                         onDrop={(e) => handleFolderDrop(e, folder.id)}
-                       >
+                          onDragStart={(e) => handleFolderDragStart(e, folder)}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleFolderDrop(e, folder.id);
+                          }}
+                        >
                           <div className={`flex ${
                             viewMode === 'grid' 
                               ? 'flex-col items-center gap-2' 
