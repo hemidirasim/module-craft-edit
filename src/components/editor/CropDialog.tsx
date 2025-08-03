@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Crop, Square, Monitor, Smartphone, Upload } from "lucide-react";
+import { Crop, Square, Monitor, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -48,7 +48,6 @@ export const CropDialog = ({
   imageElement, 
   onApplyChanges 
 }: CropDialogProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedRatio, setSelectedRatio] = useState<number | null>(null);
@@ -56,7 +55,6 @@ export const CropDialog = ({
   const [isResizing, setIsResizing] = useState(false);
   const [resizeHandle, setResizeHandle] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadMode, setUploadMode] = useState<'crop' | 'upload'>('crop');
   const [cropData, setCropData] = useState<CropData>({
     x: 0,
     y: 0,
@@ -189,41 +187,6 @@ export const CropDialog = ({
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsProcessing(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/upload-image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lyeXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzMyNDEsImV4cCI6MjA2OTcwOTI0MX0.sfEeN4RhfGUYa6a2iMG6ofAHbdt85YQ1FMVuXBao8-Q`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const result = await response.json();
-      toast.success('Image uploaded successfully!');
-      onApplyChanges(result.url);
-      onOpenChange(false);
-      
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const cropAndUploadImage = async () => {
     if (!imageElement || !canvasRef.current) return;
 
@@ -265,8 +228,26 @@ export const CropDialog = ({
         }, 'image/jpeg', 0.9);
       });
 
-      // Create file from blob for upload
-      const file = new File([blob], `cropped-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      // Extract filename from original URL to replace it
+      const originalUrl = imageElement.src;
+      const filename = originalUrl.split('/').pop();
+      
+      if (filename) {
+        // Delete the old image first
+        try {
+          const deleteResponse = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/storage/v1/object/editor-media/${filename}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lyeXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzMyNDEsImV4cCI6MjA2OTcwOTI0MX0.sfEeN4RhfGUYa6a2iMG6ofAHbdt85YQ1FMVuXBao8-Q`,
+            },
+          });
+        } catch (error) {
+          console.log('Old file not found or already deleted:', error);
+        }
+      }
+
+      // Create file from blob for upload with same filename
+      const file = new File([blob], filename || `cropped-${Date.now()}.jpg`, { type: 'image/jpeg' });
       const formData = new FormData();
       formData.append('file', file);
 
@@ -301,122 +282,77 @@ export const CropDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Image Options</DialogTitle>
+          <DialogTitle>Crop Image</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Mode selection */}
-          <div className="flex gap-2">
-            <Button
-              variant={uploadMode === 'upload' ? 'default' : 'outline'}
-              onClick={() => setUploadMode('upload')}
-              className="flex-1"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload New Image
-            </Button>
-            <Button
-              variant={uploadMode === 'crop' ? 'default' : 'outline'}
-              onClick={() => setUploadMode('crop')}
-              className="flex-1"
-              disabled={!imageElement}
-            >
-              <Crop className="w-4 h-4 mr-2" />
-              Crop Existing
-            </Button>
+
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Aspect Ratio</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {aspectRatios.map((ratio) => (
+                <Button
+                  key={ratio.label}
+                  variant={selectedRatio === ratio.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleAspectRatioChange(ratio.value)}
+                  className="flex flex-col items-center gap-1 h-auto p-2"
+                >
+                  {ratio.icon || <div className="w-4 h-4" />}
+                  <span className="text-xs">{ratio.label}</span>
+                </Button>
+              ))}
+            </div>
           </div>
 
-          {uploadMode === 'upload' ? (
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
+          {imageElement && (
+            <div
+              ref={containerRef}
+              className="relative border border-border rounded-lg overflow-hidden bg-muted"
+              style={{ height: imageSize.height + 40 }}
+            >
+              <img
+                src={imageElement.src}
+                alt="Crop preview"
+                className="absolute top-5 left-5"
+                style={{
+                  width: imageSize.width,
+                  height: imageSize.height,
+                  objectFit: 'contain'
+                }}
+                draggable={false}
               />
-              <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-lg font-medium mb-2">Upload Image</p>
-              <p className="text-muted-foreground mb-4">
-                Select an image file to upload directly to server
-              </p>
-              <Button 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isProcessing}
+              
+              {/* Crop overlay */}
+              <div
+                className="absolute border-2 border-primary bg-primary/20 cursor-move"
+                style={{
+                  left: cropData.x + 20,
+                  top: cropData.y + 20,
+                  width: cropData.width,
+                  height: cropData.height,
+                }}
+                onMouseDown={(e) => handleMouseDown(e, 'drag')}
               >
-                {isProcessing ? 'Uploading...' : 'Choose File'}
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Aspect Ratio</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {aspectRatios.map((ratio) => (
-                    <Button
-                      key={ratio.label}
-                      variant={selectedRatio === ratio.value ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handleAspectRatioChange(ratio.value)}
-                      className="flex flex-col items-center gap-1 h-auto p-2"
-                    >
-                      {ratio.icon || <div className="w-4 h-4" />}
-                      <span className="text-xs">{ratio.label}</span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {imageElement && (
+                {/* Resize handles */}
                 <div
-                  ref={containerRef}
-                  className="relative border border-border rounded-lg overflow-hidden bg-muted"
-                  style={{ height: imageSize.height + 40 }}
-                >
-                  <img
-                    src={imageElement.src}
-                    alt="Crop preview"
-                    className="absolute top-5 left-5"
-                    style={{
-                      width: imageSize.width,
-                      height: imageSize.height,
-                      objectFit: 'contain'
-                    }}
-                    draggable={false}
-                  />
-                  
-                  {/* Crop overlay */}
-                  <div
-                    className="absolute border-2 border-primary bg-primary/20 cursor-move"
-                    style={{
-                      left: cropData.x + 20,
-                      top: cropData.y + 20,
-                      width: cropData.width,
-                      height: cropData.height,
-                    }}
-                    onMouseDown={(e) => handleMouseDown(e, 'drag')}
-                  >
-                    {/* Resize handles */}
-                    <div
-                      className="absolute -top-1 -left-1 w-3 h-3 bg-primary border border-background cursor-nw-resize"
-                      onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-left')}
-                    />
-                    <div
-                      className="absolute -top-1 -right-1 w-3 h-3 bg-primary border border-background cursor-ne-resize"
-                      onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-right')}
-                    />
-                    <div
-                      className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary border border-background cursor-sw-resize"
-                      onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-left')}
-                    />
-                    <div
-                      className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary border border-background cursor-se-resize"
-                      onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-right')}
-                    />
-                  </div>
-                </div>
-              )}
-            </>
+                  className="absolute -top-1 -left-1 w-3 h-3 bg-primary border border-background cursor-nw-resize"
+                  onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-left')}
+                />
+                <div
+                  className="absolute -top-1 -right-1 w-3 h-3 bg-primary border border-background cursor-ne-resize"
+                  onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-right')}
+                />
+                <div
+                  className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary border border-background cursor-sw-resize"
+                  onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-left')}
+                />
+                <div
+                  className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary border border-background cursor-se-resize"
+                  onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-right')}
+                />
+              </div>
+            </div>
           )}
 
           {/* Hidden canvas for cropping */}
@@ -427,11 +363,9 @@ export const CropDialog = ({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            {uploadMode === 'crop' && (
-              <Button onClick={cropAndUploadImage} disabled={isProcessing || !imageElement}>
-                {isProcessing ? 'Processing...' : 'Crop & Upload'}
-              </Button>
-            )}
+            <Button onClick={cropAndUploadImage} disabled={isProcessing || !imageElement}>
+              {isProcessing ? 'Processing...' : 'Crop & Upload'}
+            </Button>
           </div>
         </div>
       </DialogContent>
