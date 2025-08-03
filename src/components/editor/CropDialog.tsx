@@ -353,57 +353,77 @@ export const CropDialog = ({
             </div>
           </div>
 
-          {imageElement && imageSize.width > 0 && imageSize.height > 0 ? (
+          {/* Always show crop area if we have imageElement, regardless of imageSize */}
+          {imageElement ? (
             <div
               ref={containerRef}
-              className="relative border border-border rounded-lg overflow-hidden bg-muted"
-              style={{ height: imageSize.height + 40 }}
+              className="relative border border-border rounded-lg overflow-hidden bg-muted flex items-center justify-center"
+              style={{ 
+                height: imageSize.height > 0 ? imageSize.height + 40 : 500,
+                minHeight: 400
+              }}
             >
               <img
                 src={imageElement.src}
                 alt="Crop preview"
-                className="absolute top-5 left-5"
+                className="absolute"
                 style={{
-                  width: imageSize.width,
-                  height: imageSize.height,
-                  objectFit: 'contain'
+                  width: imageSize.width > 0 ? imageSize.width : 'auto',
+                  height: imageSize.height > 0 ? imageSize.height : 'auto',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)'
                 }}
                 draggable={false}
+                onLoad={() => {
+                  console.log('Image in crop dialog loaded');
+                  if (imageSize.width === 0) {
+                    setupCropArea();
+                  }
+                }}
               />
               
-              {/* Crop overlay */}
-              <div
-                className="absolute border-2 border-primary bg-primary/20 cursor-move"
-                style={{
-                  left: cropData.x + 20,
-                  top: cropData.y + 20,
-                  width: cropData.width,
-                  height: cropData.height,
-                }}
-                onMouseDown={(e) => handleMouseDown(e, 'drag')}
-              >
-                {/* Resize handles */}
+              {/* Only show crop overlay if imageSize is set */}
+              {imageSize.width > 0 && imageSize.height > 0 && (
                 <div
-                  className="absolute -top-1 -left-1 w-3 h-3 bg-primary border border-background cursor-nw-resize"
-                  onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-left')}
-                />
-                <div
-                  className="absolute -top-1 -right-1 w-3 h-3 bg-primary border border-background cursor-ne-resize"
-                  onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-right')}
-                />
-                <div
-                  className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary border border-background cursor-sw-resize"
-                  onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-left')}
-                />
-                <div
-                  className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary border border-background cursor-se-resize"
-                  onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-right')}
-                />
-              </div>
-            </div>
-          ) : imageElement ? (
-            <div className="border border-border rounded-lg p-8 text-center bg-muted">
-              <p className="text-muted-foreground">Loading image for cropping...</p>
+                  className="absolute border-2 border-primary bg-primary/20 cursor-move"
+                  style={{
+                    left: cropData.x + 20,
+                    top: cropData.y + 20,
+                    width: cropData.width,
+                    height: cropData.height,
+                  }}
+                  onMouseDown={(e) => handleMouseDown(e, 'drag')}
+                >
+                  {/* Resize handles */}
+                  <div
+                    className="absolute -top-1 -left-1 w-3 h-3 bg-primary border border-background cursor-nw-resize"
+                    onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-left')}
+                  />
+                  <div
+                    className="absolute -top-1 -right-1 w-3 h-3 bg-primary border border-background cursor-ne-resize"
+                    onMouseDown={(e) => handleMouseDown(e, 'resize', 'top-right')}
+                  />
+                  <div
+                    className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary border border-background cursor-sw-resize"
+                    onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-left')}
+                  />
+                  <div
+                    className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary border border-background cursor-se-resize"
+                    onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-right')}
+                  />
+                </div>
+              )}
+              
+              {/* Loading message if crop area not setup yet */}
+              {imageSize.width === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
+                  <p className="text-muted-foreground">Setting up crop area...</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="border border-border rounded-lg p-8 text-center bg-muted">
