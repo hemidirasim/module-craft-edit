@@ -57,13 +57,19 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
       setIsUploading(true);
       
       try {
+        // Get session for authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('User not authenticated');
+
         const formData = new FormData();
         formData.append('file', file);
+        // Don't set folder_id so it goes to root folder in file manager
 
-        const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/upload-image`, {
+        // Use file-upload function (same as FileManager) instead of upload-image
+        const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/file-upload`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lyeXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzMyNDEsImV4cCI6MjA2OTcwOTI0MX0.sfEeN4RhfGUYa6a2iMG6ofAHbdt85YQ1FMVuXBao8-Q`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
           body: formData,
         });
@@ -73,9 +79,19 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
         }
 
         const result = await response.json();
-        setUploadedImageUrl(result.url);
-        setPreviewUrl(result.url);
-        toast.success('Image uploaded successfully!');
+        console.log('Upload result:', result);
+        
+        // Get signed URL for the uploaded file
+        const { data, error } = await supabase.storage
+          .from('user-files')
+          .createSignedUrl(result.file.storage_path, 3600);
+
+        if (error) throw error;
+
+        const signedUrl = data.signedUrl;
+        setUploadedImageUrl(signedUrl);
+        setPreviewUrl(signedUrl);
+        toast.success('Image uploaded successfully and added to File Manager!');
         
         // Set default alt text from filename
         setImageAlt(file.name.replace(/\.[^/.]+$/, ""));
