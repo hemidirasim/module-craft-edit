@@ -66,11 +66,17 @@ export const CropDialog = ({
   const [loadedImageDimensions, setLoadedImageDimensions] = useState({ width: 0, height: 0 });
 
   const setupCropArea = useCallback(() => {
-    if (!containerRef.current || !imageElement) return;
+    console.log('setupCropArea called');
+    if (!containerRef.current || !imageElement) {
+      console.log('Missing container or imageElement');
+      return;
+    }
     
     // Use imageElement dimensions directly
     const naturalWidth = imageElement.naturalWidth || 0;
     const naturalHeight = imageElement.naturalHeight || 0;
+    
+    console.log('Image dimensions from setupCropArea:', { naturalWidth, naturalHeight });
     
     if (naturalWidth === 0 || naturalHeight === 0) {
       console.log('⚠️ No valid image dimensions available');
@@ -103,9 +109,12 @@ export const CropDialog = ({
       width: initialSize,
       height: initialSize
     });
+    
+    console.log('Crop area setup completed');
   }, [imageElement]);
 
   useEffect(() => {
+    console.log('CropDialog useEffect triggered:', { imageElement, open });
     if (imageElement && containerRef.current && open) {
       console.log('=== CROP DIALOG DEBUG ===');
       console.log('Image element:', imageElement);
@@ -114,12 +123,20 @@ export const CropDialog = ({
       console.log('Image naturalHeight:', imageElement.naturalHeight);
       console.log('Image complete:', imageElement.complete);
       
-      // Wait a bit for image to be fully loaded, then setup crop area
-      const timer = setTimeout(() => {
+      // If image already has dimensions, setup immediately
+      if (imageElement.naturalWidth > 0 && imageElement.naturalHeight > 0) {
+        console.log('✅ Using existing image dimensions, setting up crop area');
         setupCropArea();
-      }, 100);
-      
-      return () => clearTimeout(timer);
+      } else {
+        console.log('⚠️ Image dimensions not available, waiting...');
+        // Wait a bit for image to be fully loaded, then setup crop area
+        const timer = setTimeout(() => {
+          console.log('Timer triggered, attempting setup again');
+          setupCropArea();
+        }, 200);
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, [imageElement, open, setupCropArea]);
 
