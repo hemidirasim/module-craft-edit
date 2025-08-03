@@ -298,19 +298,15 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
             <Bookmark size={16} className="mr-2" />
             Bookmark
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => onCommand('insertTable', '3x3')}
-            className="cursor-pointer hover:bg-accent"
-          >
-            <Table size={16} className="mr-2" />
-            Table
+          <DropdownMenuItem asChild>
+            <div className="w-full">
+              <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
+            </div>
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => onCommand('insertEmoji', '😊')}
-            className="cursor-pointer hover:bg-accent"
-          >
-            <Smile size={16} className="mr-2" />
-            Emoji
+          <DropdownMenuItem asChild>
+            <div className="w-full">
+              <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
+            </div>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
