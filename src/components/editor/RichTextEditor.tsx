@@ -820,18 +820,30 @@ export const RichTextEditor = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Handle Enter key in blockquote
     if (e.key === 'Enter') {
+      console.log('🔍 Enter key pressed, shiftKey:', e.shiftKey);
+      
       const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) return;
+      if (!selection || selection.rangeCount === 0) {
+        console.log('❌ No selection found');
+        return;
+      }
       
       const range = selection.getRangeAt(0);
       const blockquote = range.startContainer.parentElement?.closest('blockquote') || 
                         (range.startContainer as Element)?.closest?.('blockquote');
       
+      console.log('🎯 Blockquote found:', !!blockquote);
+      console.log('📍 Current node type:', range.startContainer.nodeType);
+      console.log('📍 Current node:', range.startContainer);
+      console.log('📍 Cursor offset:', range.startOffset);
+      
       if (blockquote) {
         e.preventDefault();
+        console.log('🚫 Default prevented');
         
         // Shift+Enter: sadəcə line break əlavə et
         if (e.shiftKey) {
+          console.log('⬇️ Shift+Enter: adding line break');
           document.execCommand('insertHTML', false, '<br>');
           handleContentChange();
           return;
@@ -841,14 +853,22 @@ export const RichTextEditor = ({
         const currentNode = range.startContainer;
         const offset = range.startOffset;
         
+        console.log('🔍 Checking if empty line...');
+        
         // Əgər text node-dasam
         if (currentNode.nodeType === Node.TEXT_NODE) {
           const text = currentNode.textContent || '';
           const beforeCursor = text.substring(0, offset);
           const afterCursor = text.substring(offset);
           
+          console.log('📝 Text before cursor:', JSON.stringify(beforeCursor));
+          console.log('📝 Text after cursor:', JSON.stringify(afterCursor));
+          console.log('🔍 Before trimmed:', JSON.stringify(beforeCursor.trim()));
+          console.log('🔍 After trimmed:', JSON.stringify(afterCursor.trim()));
+          
           // Əgər cursor boş sətirdədir (sadəcə boşluqlar varsa)
           if (beforeCursor.trim() === '' && afterCursor.trim() === '') {
+            console.log('✅ Empty line detected - exiting blockquote');
             // Quote-dan çıx
             const newDiv = document.createElement('div');
             newDiv.style.margin = '16px 0';
@@ -868,6 +888,7 @@ export const RichTextEditor = ({
           }
         }
         
+        console.log('➡️ Adding line break within blockquote');
         // Əks halda, sadəcə line break əlavə et (quote daxilində qal)
         document.execCommand('insertHTML', false, '<br>');
         handleContentChange();
