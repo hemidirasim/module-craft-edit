@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,13 +26,7 @@ interface ImageChanges {
   alignment?: 'left' | 'center' | 'right';
   caption?: string;
   alt?: string;
-  cropData?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    imageUrl?: string;
-  };
+  cropData?: any;
 }
 
 export const ImageEditDialog = ({ 
@@ -47,14 +41,6 @@ export const ImageEditDialog = ({
   const [caption, setCaption] = useState<string>("");
   const [alt, setAlt] = useState<string>("");
   const [originalWidth, setOriginalWidth] = useState<number>(0);
-  const [showCrop, setShowCrop] = useState<boolean>(false);
-  const [cropData, setCropData] = useState<{x: number, y: number, width: number, height: number}>({x: 0, y: 0, width: 100, height: 100});
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [croppedImageUrl, setCroppedImageUrl] = useState<string>("");
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [isResizing, setIsResizing] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{x: number, y: number}>({x: 0, y: 0});
-  const [imageDisplaySize, setImageDisplaySize] = useState<{width: number, height: number}>({width: 0, height: 0});
 
   useEffect(() => {
     if (imageElement && open) {
@@ -82,11 +68,6 @@ export const ImageEditDialog = ({
       
       // Store original width for percentage calculations
       setOriginalWidth(imageElement.naturalWidth);
-      
-      // Calculate display size for crop overlay
-      const displayWidth = Math.min(400, imageElement.naturalWidth);
-      const displayHeight = (displayWidth / imageElement.naturalWidth) * imageElement.naturalHeight;
-      setImageDisplaySize({ width: displayWidth, height: displayHeight });
     }
   }, [imageElement, open]);
 
@@ -96,14 +77,7 @@ export const ImageEditDialog = ({
       rotation,
       alignment,
       caption,
-      alt,
-      cropData: showCrop && croppedImageUrl ? { 
-        x: cropData.x, 
-        y: cropData.y, 
-        width: cropData.width, 
-        height: cropData.height,
-        imageUrl: croppedImageUrl 
-      } : undefined
+      alt
     };
     
     onApplyChanges(changes);
@@ -129,108 +103,23 @@ export const ImageEditDialog = ({
     }
   };
 
-  const handleCropToggle = () => {
-    setShowCrop(!showCrop);
-    if (!showCrop && imageElement) {
-      // Initialize crop area to center 50% of image
-      setCropData({
-        x: 25,
-        y: 25,
-        width: 50,
-        height: 50
-      });
-    }
-  };
-
-  const applyCrop = () => {
-    if (!imageElement || !canvasRef.current) return;
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const imgWidth = imageElement.naturalWidth;
-    const imgHeight = imageElement.naturalHeight;
-    
-    // Calculate actual crop dimensions
-    const cropX = (cropData.x / 100) * imgWidth;
-    const cropY = (cropData.y / 100) * imgHeight;
-    const cropWidth = (cropData.width / 100) * imgWidth;
-    const cropHeight = (cropData.height / 100) * imgHeight;
-    
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
-    
-    ctx.drawImage(
-      imageElement,
-      cropX, cropY, cropWidth, cropHeight,
-      0, 0, cropWidth, cropHeight
-    );
-    
-    setCroppedImageUrl(canvas.toDataURL());
-  };
-
-  const handleCropMouseDown = (e: React.MouseEvent, action: 'drag' | 'resize') => {
-    e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setDragStart({ x, y });
-    if (action === 'drag') {
-      setIsDragging(true);
-    } else {
-      setIsResizing(true);
-    }
-  };
-
-  const handleCropMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging && !isResizing) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const deltaX = x - dragStart.x;
-    const deltaY = y - dragStart.y;
-    
-    if (isDragging) {
-      const newX = Math.max(0, Math.min(100 - cropData.width, cropData.x + (deltaX / imageDisplaySize.width) * 100));
-      const newY = Math.max(0, Math.min(100 - cropData.height, cropData.y + (deltaY / imageDisplaySize.height) * 100));
-      
-      setCropData({ ...cropData, x: newX, y: newY });
-      setDragStart({ x, y });
-    } else if (isResizing) {
-      const newWidth = Math.max(10, Math.min(100 - cropData.x, cropData.width + (deltaX / imageDisplaySize.width) * 100));
-      const newHeight = Math.max(10, Math.min(100 - cropData.y, cropData.height + (deltaY / imageDisplaySize.height) * 100));
-      
-      setCropData({ ...cropData, width: newWidth, height: newHeight });
-      setDragStart({ x, y });
-    }
-  };
-
-  const handleCropMouseUp = () => {
-    setIsDragging(false);
-    setIsResizing(false);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Image Settings</DialogTitle>
+          <DialogTitle>Şəkil Parametrləri</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
           {/* Width Control */}
           <div className="space-y-2">
-            <Label>Width</Label>
+            <Label>Genişlik</Label>
             <div className="flex gap-2 items-center">
               <Input
                 type="number"
                 value={width}
                 onChange={(e) => handleWidthChange(e.target.value)}
-                placeholder="Pixels"
+                placeholder="Piksel"
                 className="flex-1"
               />
               <span className="text-sm text-muted-foreground">px</span>
@@ -269,7 +158,7 @@ export const ImageEditDialog = ({
 
           {/* Rotation Control */}
           <div className="space-y-2">
-            <Label>Rotation</Label>
+            <Label>Dönmə</Label>
             <div className="flex gap-2 items-center">
               <Button
                 variant="outline"
@@ -298,7 +187,7 @@ export const ImageEditDialog = ({
 
           {/* Alignment Control */}
           <div className="space-y-2">
-            <Label>Alignment</Label>
+            <Label>Düzləşdirmə</Label>
             <div className="flex gap-1">
               <Button
                 variant={alignment === 'left' ? 'default' : 'outline'}
@@ -324,109 +213,37 @@ export const ImageEditDialog = ({
             </div>
           </div>
 
-          {/* Crop Control */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label>Crop</Label>
-              <Button
-                variant={showCrop ? "default" : "outline"}
-                size="sm"
-                onClick={handleCropToggle}
-              >
-                <Crop className="w-4 h-4" />
-              </Button>
-            </div>
-            
-            {showCrop && imageElement && (
-              <div className="space-y-3 p-3 border rounded">
-                <div className="relative bg-gray-100 rounded overflow-hidden" style={{ width: imageDisplaySize.width, height: imageDisplaySize.height }}>
-                  {/* Image preview */}
-                  <img 
-                    src={imageElement.src} 
-                    alt="Crop preview"
-                    className="w-full h-full object-contain"
-                    draggable={false}
-                  />
-                  
-                  {/* Crop overlay */}
-                  <div 
-                    className="absolute inset-0 bg-black bg-opacity-50"
-                    onMouseMove={handleCropMouseMove}
-                    onMouseUp={handleCropMouseUp}
-                    onMouseLeave={handleCropMouseUp}
-                  >
-                    {/* Crop area */}
-                    <div
-                      className="absolute border-2 border-white bg-transparent cursor-move"
-                      style={{
-                        left: `${cropData.x}%`,
-                        top: `${cropData.y}%`,
-                        width: `${cropData.width}%`,
-                        height: `${cropData.height}%`,
-                      }}
-                      onMouseDown={(e) => handleCropMouseDown(e, 'drag')}
-                    >
-                      {/* Clear area inside crop */}
-                      <div className="absolute inset-0 bg-white bg-opacity-0" />
-                      
-                      {/* Resize handle */}
-                      <div
-                        className="absolute bottom-0 right-0 w-3 h-3 bg-white border border-gray-400 cursor-se-resize"
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                          handleCropMouseDown(e, 'resize');
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={applyCrop} className="flex-1">
-                    Apply Crop
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setShowCrop(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Caption */}
           <div className="space-y-2">
-            <Label>Caption</Label>
+            <Label>Başlıq</Label>
             <Textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Enter image caption..."
+              placeholder="Şəkil başlığı daxil edin..."
               rows={2}
             />
           </div>
 
           {/* Alt Text */}
           <div className="space-y-2">
-            <Label>Alt Text</Label>
+            <Label>Alt Mətn</Label>
             <Input
               value={alt}
               onChange={(e) => setAlt(e.target.value)}
-              placeholder="Enter image description..."
+              placeholder="Şəkil təsviri daxil edin..."
             />
           </div>
 
           {/* Action Buttons */}
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              Ləğv et
             </Button>
             <Button onClick={handleApply}>
-              Apply
+              Tətbiq et
             </Button>
           </div>
         </div>
-        
-        {/* Hidden canvas for crop functionality */}
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
       </DialogContent>
     </Dialog>
   );
