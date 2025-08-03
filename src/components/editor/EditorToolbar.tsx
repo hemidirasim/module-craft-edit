@@ -201,7 +201,9 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
               value={activeFormats?.fontFamily || ""}
             >
               <SelectTrigger className="h-8 w-full mt-1">
-                <SelectValue placeholder="Select font" />
+                <SelectValue placeholder="Select font">
+                  {activeFormats?.fontFamily || "Select font"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {fontFamilies.map((font) => (
