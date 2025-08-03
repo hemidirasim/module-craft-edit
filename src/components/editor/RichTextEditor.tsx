@@ -1072,31 +1072,33 @@ export const RichTextEditor = ({
     
     // Apply alignment changes
     if (changes.alignment) {
-      const parent = selectedImage.parentElement;
-      
-      if (changes.alignment === 'center') {
-        // For center alignment, wrap in a div with center alignment
-        let wrapper = selectedImage.parentElement;
-        if (!wrapper || wrapper.tagName !== 'DIV' || !wrapper.style.textAlign) {
-          wrapper = document.createElement('div');
-          wrapper.style.textAlign = 'center';
-          wrapper.style.margin = '16px 0';
-          selectedImage.parentNode?.insertBefore(wrapper, selectedImage);
-          wrapper.appendChild(selectedImage);
-        }
-        wrapper.style.textAlign = 'center';
-      } else {
-        // For left/right alignment, apply to parent or create wrapper
-        if (parent) {
-          parent.style.textAlign = changes.alignment;
+      // Remove any existing wrapper divs first
+      let currentParent = selectedImage.parentElement;
+      while (currentParent && currentParent.tagName === 'DIV' && currentParent.children.length === 1) {
+        const grandParent = currentParent.parentElement;
+        if (grandParent) {
+          grandParent.insertBefore(selectedImage, currentParent);
+          grandParent.removeChild(currentParent);
+          currentParent = grandParent;
+          break;
         } else {
-          const wrapper = document.createElement('div');
-          wrapper.style.textAlign = changes.alignment;
-          wrapper.style.margin = '16px 0';
-          selectedImage.parentNode?.insertBefore(wrapper, selectedImage);
-          wrapper.appendChild(selectedImage);
+          break;
         }
       }
+      
+      // Create new wrapper with proper alignment
+      const wrapper = document.createElement('div');
+      wrapper.style.textAlign = changes.alignment;
+      wrapper.style.margin = '16px 0';
+      wrapper.style.width = '100%';
+      
+      if (changes.alignment === 'center') {
+        wrapper.style.display = 'flex';
+        wrapper.style.justifyContent = 'center';
+      }
+      
+      selectedImage.parentNode?.insertBefore(wrapper, selectedImage);
+      wrapper.appendChild(selectedImage);
     }
     
     // Apply alt text changes
@@ -1135,6 +1137,11 @@ export const RichTextEditor = ({
           figcaption.remove();
         }
       }
+    }
+    
+    // Apply crop changes
+    if (changes.cropData && changes.cropData.imageUrl) {
+      selectedImage.src = changes.cropData.imageUrl;
     }
     
     handleContentChange();

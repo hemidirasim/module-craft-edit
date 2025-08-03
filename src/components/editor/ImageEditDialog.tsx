@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,13 @@ interface ImageChanges {
   alignment?: 'left' | 'center' | 'right';
   caption?: string;
   alt?: string;
-  cropData?: any;
+  cropData?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    imageUrl?: string;
+  };
 }
 
 export const ImageEditDialog = ({ 
@@ -41,6 +47,10 @@ export const ImageEditDialog = ({
   const [caption, setCaption] = useState<string>("");
   const [alt, setAlt] = useState<string>("");
   const [originalWidth, setOriginalWidth] = useState<number>(0);
+  const [showCrop, setShowCrop] = useState<boolean>(false);
+  const [cropData, setCropData] = useState<{x: number, y: number, width: number, height: number}>({x: 0, y: 0, width: 100, height: 100});
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [croppedImageUrl, setCroppedImageUrl] = useState<string>("");
 
   useEffect(() => {
     if (imageElement && open) {
@@ -77,7 +87,14 @@ export const ImageEditDialog = ({
       rotation,
       alignment,
       caption,
-      alt
+      alt,
+      cropData: showCrop && croppedImageUrl ? { 
+        x: cropData.x, 
+        y: cropData.y, 
+        width: cropData.width, 
+        height: cropData.height,
+        imageUrl: croppedImageUrl 
+      } : undefined
     };
     
     onApplyChanges(changes);
@@ -101,6 +118,47 @@ export const ImageEditDialog = ({
     if (originalWidth) {
       setWidth(Math.round((originalWidth * percentage) / 100).toString());
     }
+  };
+
+  const handleCropToggle = () => {
+    setShowCrop(!showCrop);
+    if (!showCrop && imageElement) {
+      // Initialize crop area to center 80% of image
+      setCropData({
+        x: 10,
+        y: 10,
+        width: 80,
+        height: 80
+      });
+    }
+  };
+
+  const applyCrop = () => {
+    if (!imageElement || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const imgWidth = imageElement.naturalWidth;
+    const imgHeight = imageElement.naturalHeight;
+    
+    // Calculate actual crop dimensions
+    const cropX = (cropData.x / 100) * imgWidth;
+    const cropY = (cropData.y / 100) * imgHeight;
+    const cropWidth = (cropData.width / 100) * imgWidth;
+    const cropHeight = (cropData.height / 100) * imgHeight;
+    
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    
+    ctx.drawImage(
+      imageElement,
+      cropX, cropY, cropWidth, cropHeight,
+      0, 0, cropWidth, cropHeight
+    );
+    
+    setCroppedImageUrl(canvas.toDataURL());
   };
 
   return (
@@ -213,6 +271,68 @@ export const ImageEditDialog = ({
             </div>
           </div>
 
+          {/* Crop Control */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label>Crop</Label>
+              <Button
+                variant={showCrop ? "default" : "outline"}
+                size="sm"
+                onClick={handleCropToggle}
+              >
+                <Crop className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {showCrop && (
+              <div className="space-y-3 p-3 border rounded">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">X Position (%)</Label>
+                    <Slider
+                      value={[cropData.x]}
+                      onValueChange={(value) => setCropData({...cropData, x: value[0]})}
+                      max={100 - cropData.width}
+                      step={1}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Y Position (%)</Label>
+                    <Slider
+                      value={[cropData.y]}
+                      onValueChange={(value) => setCropData({...cropData, y: value[0]})}
+                      max={100 - cropData.height}
+                      step={1}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Width (%)</Label>
+                    <Slider
+                      value={[cropData.width]}
+                      onValueChange={(value) => setCropData({...cropData, width: value[0]})}
+                      min={10}
+                      max={100 - cropData.x}
+                      step={1}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Height (%)</Label>
+                    <Slider
+                      value={[cropData.height]}
+                      onValueChange={(value) => setCropData({...cropData, height: value[0]})}
+                      min={10}
+                      max={100 - cropData.y}
+                      step={1}
+                    />
+                  </div>
+                </div>
+                <Button size="sm" onClick={applyCrop} className="w-full">
+                  Apply Crop
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Caption */}
           <div className="space-y-2">
             <Label>Caption</Label>
@@ -244,6 +364,9 @@ export const ImageEditDialog = ({
             </Button>
           </div>
         </div>
+        
+        {/* Hidden canvas for crop functionality */}
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
       </DialogContent>
     </Dialog>
   );
