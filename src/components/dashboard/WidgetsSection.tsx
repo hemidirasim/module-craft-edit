@@ -353,6 +353,8 @@ export const WidgetsSection = () => {
                 <RichTextEditor 
                   placeholder="This is how your widget will look..." 
                   configuration={formData.configuration}
+                  content=""
+                  onChange={() => {}} // Empty handler to prevent data loss
                 />
               </div>
 
