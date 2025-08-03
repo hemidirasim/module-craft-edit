@@ -298,24 +298,6 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
             <Bookmark size={16} className="mr-2" />
             Bookmark
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <div className="w-full p-2">
-              <div className="flex items-center mb-2">
-                <Table size={16} className="mr-2" />
-                Table
-              </div>
-              <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
-            </div>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <div className="w-full p-2">
-              <div className="flex items-center mb-2">
-                <Smile size={16} className="mr-2" />
-                Emoji
-              </div>
-              <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
-            </div>
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -414,6 +396,13 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
       >
         <Code2 size={16} />
       </Button>
+
+      <div className="w-px h-6 bg-border mx-1 self-center" />
+
+      {/* Table and Emoji selectors */}
+      <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
+      
+      <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
 
       {/* Dialog Components */}
       <LinkDialog
