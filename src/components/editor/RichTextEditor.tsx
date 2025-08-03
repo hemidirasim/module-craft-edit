@@ -810,7 +810,7 @@ export const RichTextEditor = ({
               contentEditable
               className={`
                 min-h-[300px] p-4 outline-none text-foreground bg-background
-                prose prose-lg max-w-none
+                max-w-none
                 focus:ring-2 focus:ring-primary/20 focus:ring-inset
                 ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
               `}

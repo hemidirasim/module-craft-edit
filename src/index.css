@@ -128,8 +128,12 @@ All colors MUST be HSL.
 @layer components {
   /* Rich Text Editor Styles */
   [contenteditable="true"] {
-    font-size: 18px;
+    font-size: 18px !important;
     line-height: 1.6;
+  }
+  
+  [contenteditable="true"] * {
+    font-size: inherit;
   }
   
   [contenteditable="true"]:empty:before {
