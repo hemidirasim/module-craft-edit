@@ -296,33 +296,20 @@ export const CropDialog = ({
         }, 'image/jpeg', 0.9);
       });
 
-      // Extract filename from original URL to replace it
-      const originalUrl = imageElement.src;
-      const filename = originalUrl.split('/').pop();
-      
-      if (filename) {
-        // Delete the old image first
-        try {
-          const deleteResponse = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/storage/v1/object/editor-media/${filename}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lyeXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzMyNDEsImV4cCI6MjA2OTcwOTI0MX0.sfEeN4RhfGUYa6a2iMG6ofAHbdt85YQ1FMVuXBao8-Q`,
-            },
-          });
-        } catch (error) {
-          console.log('Old file not found or already deleted:', error);
-        }
-      }
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('User not authenticated');
 
-      // Create file from blob for upload with same filename
-      const file = new File([blob], filename || `cropped-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      // Create file from blob for upload
+      const file = new File([blob], `cropped-${Date.now()}.jpg`, { type: 'image/jpeg' });
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/upload-image`, {
+      // Use file-upload function (same as ImageDialog and FileManager)
+      const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/file-upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lyeXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzMyNDEsImV4cCI6MjA2OTcwOTI0MX0.sfEeN4RhfGUYa6a2iMG6ofAHbdt85YQ1FMVuXBao8-Q`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: formData,
       });
@@ -332,8 +319,18 @@ export const CropDialog = ({
       }
 
       const result = await response.json();
+      console.log('Crop upload result:', result);
+      
+      // Get signed URL for the uploaded cropped file
+      const { data, error } = await supabase.storage
+        .from('user-files')
+        .createSignedUrl(result.file.storage_path, 3600);
+
+      if (error) throw error;
+
+      const signedUrl = data.signedUrl;
       toast.success('Image cropped and uploaded successfully!');
-      onApplyChanges(result.url);
+      onApplyChanges(signedUrl);
       onOpenChange(false);
       
     } catch (error) {
