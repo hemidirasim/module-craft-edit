@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Image, Upload, Link2, X, Crop } from "lucide-react";
+import { Image, Upload, Link2, X, Files, Crop } from "lucide-react";
 import { CropDialog } from "./CropDialog";
+import { FileManagerDialog } from "./FileManagerDialog";
 import { toast } from "sonner";
 
 interface ImageDialogProps {
@@ -25,6 +26,7 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
   const [isUploading, setIsUploading] = useState(false);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [currentImageElement, setCurrentImageElement] = useState<HTMLImageElement | null>(null);
+  const [showFileManager, setShowFileManager] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +49,7 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
     }
   }, [open]);
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       setSelectedFile(file);
@@ -155,6 +157,16 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
     setShowCropDialog(false);
   };
 
+  const handleFileSelect = (file: any) => {
+    if (file.file_type === 'image') {
+      setUploadedImageUrl(file.public_url);
+      setPreviewUrl(file.public_url);
+      setImageAlt(file.original_name.replace(/\.[^/.]+$/, ""));
+    } else {
+      toast.error('Please select an image file');
+    }
+  };
+
   const handleClose = () => {
     setImageUrl("");
     setImageAlt("");
@@ -191,8 +203,12 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
           </DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue="url" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="filemanager" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="filemanager" className="flex items-center gap-2">
+              <Files size={16} />
+              File Manager
+            </TabsTrigger>
             <TabsTrigger value="url" className="flex items-center gap-2">
               <Link2 size={16} />
               From URL
@@ -202,6 +218,19 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
               Upload File
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="filemanager" className="space-y-4">
+            <div className="text-center p-8 border border-dashed border-border rounded-lg">
+              <Files className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-lg font-medium mb-2">Choose from File Manager</p>
+              <p className="text-muted-foreground mb-4">
+                Select an image from your uploaded files
+              </p>
+              <Button onClick={() => setShowFileManager(true)}>
+                Open File Manager
+              </Button>
+            </div>
+          </TabsContent>
           
           <TabsContent value="url" className="space-y-4">
             <div className="space-y-2">
@@ -242,7 +271,7 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={handleFileSelect}
+                  onChange={handleFileUpload}
                   className="hidden"
                 />
               </div>
@@ -329,6 +358,12 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
           onOpenChange={setShowCropDialog}
           imageElement={currentImageElement}
           onApplyChanges={handleCropComplete}
+        />
+        
+        <FileManagerDialog
+          open={showFileManager}
+          onOpenChange={setShowFileManager}
+          onSelectFile={handleFileSelect}
         />
       </DialogContent>
     </Dialog>

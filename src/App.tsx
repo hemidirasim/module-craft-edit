@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import { Dashboard } from "./pages/Dashboard";
+import FileManager from "./pages/FileManager";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const AppContent = () => {
       <Route path="/" element={user ? <Dashboard /> : <Index />} />
       <Route path="/auth" element={!user ? <Auth /> : <Dashboard />} />
       <Route path="/dashboard" element={user ? <Dashboard /> : <Auth />} />
+      <Route path="/file-manager" element={user ? <FileManager /> : <Auth />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
