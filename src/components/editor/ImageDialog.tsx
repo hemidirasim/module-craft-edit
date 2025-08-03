@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Image, Upload, Link2, X } from "lucide-react";
+import { Image, Upload, Link2, X, Crop } from "lucide-react";
+import { CropDialog } from "./CropDialog";
+import { toast } from "sonner";
 
 interface ImageDialogProps {
   open: boolean;
@@ -19,6 +21,10 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
   const [imageHeight, setImageHeight] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [showCropDialog, setShowCropDialog] = useState(false);
+  const [currentImageElement, setCurrentImageElement] = useState<HTMLImageElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,6 +36,8 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
       setImageHeight("");
       setSelectedFile(null);
       setPreviewUrl("");
+      setUploadedImageUrl("");
+      setCurrentImageElement(null);
       
       setTimeout(() => {
         if (urlInputRef.current) {
@@ -39,18 +47,41 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
     }
   }, [open]);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewUrl(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      setIsUploading(true);
       
-      // Set default alt text from filename
-      setImageAlt(file.name.replace(/\.[^/.]+$/, ""));
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/upload-image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lyeXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzMyNDEsImV4cCI6MjA2OTcwOTI0MX0.sfEeN4RhfGUYa6a2iMG6ofAHbdt85YQ1FMVuXBao8-Q`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const result = await response.json();
+        setUploadedImageUrl(result.url);
+        setPreviewUrl(result.url);
+        toast.success('Image uploaded successfully!');
+        
+        // Set default alt text from filename
+        setImageAlt(file.name.replace(/\.[^/.]+$/, ""));
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        toast.error('Failed to upload image');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -69,7 +100,7 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
   };
 
   const handleInsert = () => {
-    const src = selectedFile ? previewUrl : imageUrl;
+    const src = uploadedImageUrl || imageUrl;
     if (!src || !imageAlt.trim()) return;
     
     onInsertImage({
@@ -82,6 +113,23 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
     handleClose();
   };
 
+  const handleCrop = () => {
+    if (uploadedImageUrl || (imageUrl && isValidImageUrl(imageUrl))) {
+      const img = document.createElement('img');
+      img.onload = () => {
+        setCurrentImageElement(img);
+        setShowCropDialog(true);
+      };
+      img.src = uploadedImageUrl || imageUrl;
+    }
+  };
+
+  const handleCropComplete = (croppedImageUrl: string) => {
+    setUploadedImageUrl(croppedImageUrl);
+    setPreviewUrl(croppedImageUrl);
+    setShowCropDialog(false);
+  };
+
   const handleClose = () => {
     setImageUrl("");
     setImageAlt("");
@@ -89,6 +137,8 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
     setImageHeight("");
     setSelectedFile(null);
     setPreviewUrl("");
+    setUploadedImageUrl("");
+    setCurrentImageElement(null);
     onOpenChange(false);
   };
 
@@ -102,7 +152,7 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
   };
 
   const canInsert = () => {
-    const hasSource = selectedFile || (imageUrl && isValidImageUrl(imageUrl));
+    const hasSource = uploadedImageUrl || (imageUrl && isValidImageUrl(imageUrl));
     return hasSource && imageAlt.trim();
   };
 
@@ -158,9 +208,10 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
                   className="flex-1"
+                  disabled={isUploading}
                 >
                   <Upload size={16} className="mr-2" />
-                  {selectedFile ? selectedFile.name : "Choose File"}
+                  {isUploading ? "Uploading..." : selectedFile ? selectedFile.name : "Choose File"}
                 </Button>
                 <input
                   ref={fileInputRef}
@@ -174,10 +225,22 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
           </TabsContent>
         </Tabs>
 
-        {/* Preview */}
+        {/* Preview and Crop */}
         {previewUrl && (
           <div className="space-y-2">
-            <Label>Preview</Label>
+            <div className="flex justify-between items-center">
+              <Label>Preview</Label>
+              {(uploadedImageUrl || (imageUrl && isValidImageUrl(imageUrl))) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCrop}
+                >
+                  <Crop size={16} className="mr-2" />
+                  Crop Image
+                </Button>
+              )}
+            </div>
             <div className="border rounded p-2 flex justify-center bg-muted/50">
               <img
                 src={previewUrl}
@@ -235,6 +298,13 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
             Insert Image
           </Button>
         </div>
+        
+        <CropDialog
+          open={showCropDialog}
+          onOpenChange={setShowCropDialog}
+          imageElement={currentImageElement}
+          onApplyChanges={handleCropComplete}
+        />
       </DialogContent>
     </Dialog>
   );
