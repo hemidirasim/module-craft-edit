@@ -394,19 +394,40 @@ export const RichTextEditor = ({
             const range = selection.getRangeAt(0);
             
             if (!range.collapsed) {
-              // Text is selected, wrap it with a span with the new font size
+              // Get the selected content
               const selectedContent = range.extractContents();
+              
+              // Remove any existing font-size spans from the selected content
+              const tempDiv = document.createElement('div');
+              tempDiv.appendChild(selectedContent);
+              
+              // Remove existing font-size styling
+              const existingSpans = tempDiv.querySelectorAll('span[style*="font-size"]');
+              existingSpans.forEach(span => {
+                const spanElement = span as HTMLElement;
+                const parent = spanElement.parentNode;
+                while (spanElement.firstChild) {
+                  parent?.insertBefore(spanElement.firstChild, spanElement);
+                }
+                parent?.removeChild(spanElement);
+              });
+              
+              // Create new span with font size
               const span = document.createElement('span');
-              span.style.fontSize = value + 'px';
               span.style.setProperty('font-size', value + 'px', 'important');
-              span.appendChild(selectedContent);
+              
+              // Move all content from tempDiv to span
+              while (tempDiv.firstChild) {
+                span.appendChild(tempDiv.firstChild);
+              }
+              
+              // Insert the span
               range.insertNode(span);
               
-              // Clear selection and place cursor after the span
-              selection.removeAllRanges();
+              // Select the content again
               const newRange = document.createRange();
-              newRange.setStartAfter(span);
-              newRange.setEndAfter(span);
+              newRange.selectNodeContents(span);
+              selection.removeAllRanges();
               selection.addRange(newRange);
             }
           }
