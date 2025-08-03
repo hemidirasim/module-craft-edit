@@ -249,14 +249,13 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
     return filtered;
   };
 
-  // Get thumbnail for image files with proper signed URL
-  const getFileThumbnail = (file: any) => {
-    if (file.file_type === 'image') {
-      const [imageUrl, setImageUrl] = useState<string>('');
-      const [imageError, setImageError] = useState(false);
+  // File Thumbnail Component
+  const FileThumbnail = ({ file }: { file: any }) => {
+    const [imageUrl, setImageUrl] = useState<string>('');
+    const [imageError, setImageError] = useState(false);
 
-      // Load signed URL on component mount
-      useEffect(() => {
+    useEffect(() => {
+      if (file.file_type === 'image') {
         const loadSignedUrl = async () => {
           try {
             const signedUrl = await getSignedUrl(file.storage_path);
@@ -267,12 +266,10 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
           }
         };
         loadSignedUrl();
-      }, [file.storage_path]);
-
-      if (imageError || !imageUrl) {
-        return getFileIcon(file.file_type, file.mime_type);
       }
+    }, [file.storage_path, file.file_type]);
 
+    if (file.file_type === 'image' && !imageError && imageUrl) {
       return (
         <div className={`relative overflow-hidden rounded ${
           thumbnailMode === 'small' ? 'w-12 h-12' : 
@@ -288,6 +285,7 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
         </div>
       );
     }
+
     return getFileIcon(file.file_type, file.mime_type);
   };
 
@@ -726,7 +724,7 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
                                ? 'flex-col items-center gap-2' 
                                : 'items-center gap-3 flex-1'
                            }`}>
-                             {viewMode === 'grid' || viewMode === 'detailed' ? getFileThumbnail(file) : getFileIcon(file.file_type, file.mime_type)}
+                             {viewMode === 'grid' || viewMode === 'detailed' ? <FileThumbnail file={file} /> : getFileIcon(file.file_type, file.mime_type)}
                             <div className={`${viewMode === 'grid' ? 'w-full' : 'flex-1 min-w-0'}`}>
                               <p className="text-sm font-medium truncate max-w-full" title={file.original_name}>
                                 {file.original_name}
