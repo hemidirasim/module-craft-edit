@@ -298,50 +298,22 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
             <Bookmark size={16} className="mr-2" />
             Bookmark
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <div className="w-full">
-              <div className="flex items-center px-2 py-1.5 mb-2">
+          <DropdownMenuItem asChild>
+            <div className="w-full p-2">
+              <div className="flex items-center mb-2">
                 <Table size={16} className="mr-2" />
                 Table
               </div>
-              <div className="px-2">
-                <div className="inline-grid grid-cols-8 gap-0.5 p-2 border rounded bg-muted/10">
-                  {Array.from({ length: 5 }, (_, row) =>
-                    Array.from({ length: 8 }, (_, col) => (
-                      <button
-                        key={`${row}-${col}`}
-                        type="button"
-                        className="w-4 h-4 border border-border/50 bg-background hover:bg-primary hover:border-primary transition-all"
-                        onClick={() => onCommand('insertTable', `${row + 1}x${col + 1}`)}
-                        title={`${row + 1}x${col + 1} table`}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
+              <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
             </div>
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <div className="w-full">
-              <div className="flex items-center px-2 py-1.5 mb-2">
+          <DropdownMenuItem asChild>
+            <div className="w-full p-2">
+              <div className="flex items-center mb-2">
                 <Smile size={16} className="mr-2" />
                 Emoji
               </div>
-              <div className="px-2">
-                <div className="grid grid-cols-8 gap-1 max-h-32 overflow-y-auto">
-                  {['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '👍', '👎', '👌', '🤌', '✌️', '🤞', '👋', '🤚', '🖐️', '✋', '👏', '🙌', '❤️', '🧡', '💛', '💚', '💙', '💜'].map((emoji, index) => (
-                    <button
-                      key={`${emoji}-${index}`}
-                      type="button"
-                      className="w-6 h-6 text-sm hover:bg-accent rounded transition-colors flex items-center justify-center"
-                      onClick={() => onCommand('insertEmoji', emoji)}
-                      title={emoji}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
             </div>
           </DropdownMenuItem>
         </DropdownMenuContent>
