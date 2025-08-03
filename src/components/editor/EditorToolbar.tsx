@@ -52,6 +52,8 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showMediaDialog, setShowMediaDialog] = useState(false);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
+  const [showTableSelector, setShowTableSelector] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fontFamilies = [
     "Arial", "Helvetica", "Times New Roman", "Georgia", "Verdana", 
     "Courier New", "Tahoma", "Comic Sans MS", "Impact", "Trebuchet MS"
@@ -298,15 +300,19 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
             <Bookmark size={16} className="mr-2" />
             Bookmark
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <div className="w-full">
-              <TableSelector onTableSelect={(rows, cols) => onCommand('insertTable', `${rows}x${cols}`)} />
-            </div>
+          <DropdownMenuItem 
+            onClick={() => setShowTableSelector(true)}
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Table size={16} className="mr-2" />
+            Table
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <div className="w-full">
-              <EmojiPicker onEmojiSelect={(emoji) => onCommand('insertEmoji', emoji)} />
-            </div>
+          <DropdownMenuItem 
+            onClick={() => setShowEmojiPicker(true)}
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Smile size={16} className="mr-2" />
+            Emoji
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -446,6 +452,28 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
           onCommand('insertHTML', bookmarkHtml);
         }}
       />
+
+      {/* Table Selector Popover */}
+      <Popover open={showTableSelector} onOpenChange={setShowTableSelector}>
+        <PopoverTrigger />
+        <PopoverContent className="w-auto p-4 bg-background border border-border shadow-lg z-50">
+          <TableSelector onTableSelect={(rows, cols) => {
+            onCommand('insertTable', `${rows}x${cols}`);
+            setShowTableSelector(false);
+          }} />
+        </PopoverContent>
+      </Popover>
+
+      {/* Emoji Picker Popover */}
+      <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+        <PopoverTrigger />
+        <PopoverContent className="w-80 p-4 bg-background border border-border shadow-lg z-50">
+          <EmojiPicker onEmojiSelect={(emoji) => {
+            onCommand('insertEmoji', emoji);
+            setShowEmojiPicker(false);
+          }} />
+        </PopoverContent>
+      </Popover>
     </div>
   );
 };
