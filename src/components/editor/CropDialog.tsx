@@ -65,62 +65,12 @@ export const CropDialog = ({
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [loadedImageDimensions, setLoadedImageDimensions] = useState({ width: 0, height: 0 });
 
-  useEffect(() => {
-    if (imageElement && containerRef.current && open) {
-      console.log('=== CROP DIALOG DEBUG ===');
-      console.log('Image element:', imageElement);
-      console.log('Image src:', imageElement.src);
-      console.log('Image naturalWidth:', imageElement.naturalWidth);
-      console.log('Image naturalHeight:', imageElement.naturalHeight);
-      console.log('Image complete:', imageElement.complete);
-      
-      // Directly use the image dimensions if available
-      if (imageElement.naturalWidth > 0 && imageElement.naturalHeight > 0) {
-        console.log('✅ Using existing image dimensions');
-        setLoadedImageDimensions({ 
-          width: imageElement.naturalWidth, 
-          height: imageElement.naturalHeight 
-        });
-        setupCropArea();
-      } else {
-        console.log('⚠️ Image dimensions not available, trying to load...');
-        // Fallback: try to reload the image
-        const img = new Image();
-        // Remove crossOrigin to avoid CORS issues
-        
-        img.onload = () => {
-          console.log('✅ Image reloaded successfully');
-          console.log('Reloaded dimensions:', img.naturalWidth, 'x', img.naturalHeight);
-          setLoadedImageDimensions({ 
-            width: img.naturalWidth, 
-            height: img.naturalHeight 
-          });
-          setupCropArea();
-        };
-        
-        img.onerror = (e) => {
-          console.error('❌ Image reload failed:', e);
-          // Fallback to default dimensions
-          console.log('Using fallback dimensions...');
-          setLoadedImageDimensions({ width: 800, height: 600 });
-          setupCropArea();
-        };
-        
-        img.src = imageElement.src;
-      }
-    }
-  }, [imageElement, open]);
-
-  const setupCropArea = () => {
-    if (!containerRef.current) return;
+  const setupCropArea = useCallback(() => {
+    if (!containerRef.current || !imageElement) return;
     
-    // Use loaded dimensions or fallback to imageElement dimensions
-    const naturalWidth = loadedImageDimensions.width > 0 
-      ? loadedImageDimensions.width 
-      : imageElement?.naturalWidth || 0;
-    const naturalHeight = loadedImageDimensions.height > 0 
-      ? loadedImageDimensions.height 
-      : imageElement?.naturalHeight || 0;
+    // Use imageElement dimensions directly
+    const naturalWidth = imageElement.naturalWidth || 0;
+    const naturalHeight = imageElement.naturalHeight || 0;
     
     if (naturalWidth === 0 || naturalHeight === 0) {
       console.log('⚠️ No valid image dimensions available');
@@ -153,7 +103,25 @@ export const CropDialog = ({
       width: initialSize,
       height: initialSize
     });
-  };
+  }, [imageElement]);
+
+  useEffect(() => {
+    if (imageElement && containerRef.current && open) {
+      console.log('=== CROP DIALOG DEBUG ===');
+      console.log('Image element:', imageElement);
+      console.log('Image src:', imageElement.src);
+      console.log('Image naturalWidth:', imageElement.naturalWidth);
+      console.log('Image naturalHeight:', imageElement.naturalHeight);
+      console.log('Image complete:', imageElement.complete);
+      
+      // Wait a bit for image to be fully loaded, then setup crop area
+      const timer = setTimeout(() => {
+        setupCropArea();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [imageElement, open, setupCropArea]);
 
   const handleMouseDown = (e: React.MouseEvent, action: 'drag' | 'resize', handle?: string) => {
     e.preventDefault();
@@ -261,12 +229,8 @@ export const CropDialog = ({
       if (!ctx) throw new Error('Canvas context not available');
 
       // Calculate scale factor between display size and natural size
-      const naturalWidth = loadedImageDimensions.width > 0 
-        ? loadedImageDimensions.width 
-        : imageElement.naturalWidth;
-      const naturalHeight = loadedImageDimensions.height > 0 
-        ? loadedImageDimensions.height 
-        : imageElement.naturalHeight;
+      const naturalWidth = imageElement.naturalWidth;
+      const naturalHeight = imageElement.naturalHeight;
         
       const scaleX = naturalWidth / imageSize.width;
       const scaleY = naturalHeight / imageSize.height;
