@@ -831,36 +831,45 @@ export const RichTextEditor = ({
         
         const blockquote = (currentElement as Element)?.closest('blockquote');
         if (blockquote) {
-          console.log('In blockquote, shiftKey:', e.shiftKey);
           e.preventDefault();
           
           // If Shift+Enter, just add a line break and continue in blockquote
           if (e.shiftKey) {
-            console.log('Shift+Enter: adding line break in blockquote');
             document.execCommand('insertHTML', false, '<br>');
             handleContentChange();
             return;
           }
           
-          // For normal Enter, check the current line content
-          const cursorPosition = range.startOffset;
-          const parentText = currentElement?.textContent || '';
-          console.log('Current element text:', parentText);
-          console.log('Cursor position:', cursorPosition);
+          // For normal Enter, check if we are at an empty line
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0) return;
           
-          // Check if the current line is empty (just before cursor)
-          const textBeforeCursor = parentText.substring(0, cursorPosition);
-          const lines = parentText.split('\n');
-          const currentLineIndex = textBeforeCursor.split('\n').length - 1;
-          const currentLine = lines[currentLineIndex] || '';
+          const range = selection.getRangeAt(0);
+          const currentNode = range.startContainer;
           
-          console.log('Current line:', currentLine);
-          console.log('Current line trimmed:', currentLine.trim());
+          // Get the text content of the current text node or parent element
+          let currentLineText = '';
+          if (currentNode.nodeType === Node.TEXT_NODE) {
+            const textContent = currentNode.textContent || '';
+            const offset = range.startOffset;
+            // Get text from last line break to cursor
+            const textBeforeCursor = textContent.substring(0, offset);
+            const lastLineBreak = textBeforeCursor.lastIndexOf('\n');
+            currentLineText = lastLineBreak >= 0 ? 
+              textBeforeCursor.substring(lastLineBreak + 1) : 
+              textBeforeCursor;
+          } else {
+            // If we're in an element, check if it's empty or just has <br>
+            const element = currentNode as Element;
+            if (element.tagName === 'BR' || 
+                (element.textContent || '').trim() === '' ||
+                element.innerHTML === '<br>') {
+              currentLineText = '';
+            }
+          }
           
-          // If current line is empty, exit blockquote
-          if (currentLine.trim() === '') {
-            console.log('Empty line detected, exiting blockquote');
-            
+          // If current line is empty (just whitespace), exit blockquote
+          if (currentLineText.trim() === '') {
             // Create new paragraph after blockquote
             const newParagraph = document.createElement('div');
             newParagraph.style.margin = '16px 0';
@@ -879,8 +888,7 @@ export const RichTextEditor = ({
               newSelection?.addRange(newRange);
             }
           } else {
-            console.log('Non-empty line, adding line break in blockquote');
-            // Add line break within blockquote
+            // Add line break within blockquote (continue quoting)
             document.execCommand('insertHTML', false, '<br>');
           }
           
