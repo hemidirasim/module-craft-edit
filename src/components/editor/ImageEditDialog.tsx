@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { RotateCw, AlignLeft, AlignCenter, AlignRight, Crop } from "lucide-react";
+import { RotateCw, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { ImageCropper } from "./ImageCropper";
 
 interface ImageEditDialogProps {
   open: boolean;
@@ -20,13 +20,20 @@ interface ImageEditDialogProps {
   onApplyChanges: (changes: ImageChanges) => void;
 }
 
+interface CropData {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface ImageChanges {
   width?: string;
   rotation?: number;
   alignment?: 'left' | 'center' | 'right';
   caption?: string;
   alt?: string;
-  cropData?: any;
+  cropData?: CropData | null;
 }
 
 export const ImageEditDialog = ({ 
@@ -41,6 +48,7 @@ export const ImageEditDialog = ({
   const [caption, setCaption] = useState<string>("");
   const [alt, setAlt] = useState<string>("");
   const [originalWidth, setOriginalWidth] = useState<number>(0);
+  const [cropData, setCropData] = useState<CropData | null>(null);
 
   useEffect(() => {
     if (imageElement && open) {
@@ -77,7 +85,8 @@ export const ImageEditDialog = ({
       rotation,
       alignment,
       caption,
-      alt
+      alt,
+      cropData
     };
     
     onApplyChanges(changes);
@@ -105,21 +114,27 @@ export const ImageEditDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Şəkil Parametrləri</DialogTitle>
+          <DialogTitle>Image Parameters</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
+          {/* Crop Section */}
+          <ImageCropper 
+            imageElement={imageElement}
+            onCropChange={setCropData}
+            className="border-b pb-6"
+          />
           {/* Width Control */}
           <div className="space-y-2">
-            <Label>Genişlik</Label>
+            <Label>Width</Label>
             <div className="flex gap-2 items-center">
               <Input
                 type="number"
                 value={width}
                 onChange={(e) => handleWidthChange(e.target.value)}
-                placeholder="Piksel"
+                placeholder="Pixels"
                 className="flex-1"
               />
               <span className="text-sm text-muted-foreground">px</span>
@@ -158,7 +173,7 @@ export const ImageEditDialog = ({
 
           {/* Rotation Control */}
           <div className="space-y-2">
-            <Label>Dönmə</Label>
+            <Label>Rotation</Label>
             <div className="flex gap-2 items-center">
               <Button
                 variant="outline"
@@ -187,7 +202,7 @@ export const ImageEditDialog = ({
 
           {/* Alignment Control */}
           <div className="space-y-2">
-            <Label>Düzləşdirmə</Label>
+            <Label>Alignment</Label>
             <div className="flex gap-1">
               <Button
                 variant={alignment === 'left' ? 'default' : 'outline'}
@@ -215,32 +230,32 @@ export const ImageEditDialog = ({
 
           {/* Caption */}
           <div className="space-y-2">
-            <Label>Başlıq</Label>
+            <Label>Caption</Label>
             <Textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Şəkil başlığı daxil edin..."
+              placeholder="Enter image caption..."
               rows={2}
             />
           </div>
 
           {/* Alt Text */}
           <div className="space-y-2">
-            <Label>Alt Mətn</Label>
+            <Label>Alt Text</Label>
             <Input
               value={alt}
               onChange={(e) => setAlt(e.target.value)}
-              placeholder="Şəkil təsviri daxil edin..."
+              placeholder="Enter image description..."
             />
           </div>
 
           {/* Action Buttons */}
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Ləğv et
+              Cancel
             </Button>
             <Button onClick={handleApply}>
-              Tətbiq et
+              Apply
             </Button>
           </div>
         </div>
