@@ -114,13 +114,22 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
   };
 
   const handleCrop = () => {
-    if (uploadedImageUrl || (imageUrl && isValidImageUrl(imageUrl))) {
+    const currentImageUrl = uploadedImageUrl || imageUrl;
+    if (currentImageUrl && isValidImageUrl(currentImageUrl)) {
       const img = document.createElement('img');
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
+        console.log('Image loaded for crop:', img.naturalWidth, 'x', img.naturalHeight);
         setCurrentImageElement(img);
         setShowCropDialog(true);
       };
-      img.src = uploadedImageUrl || imageUrl;
+      img.onerror = (error) => {
+        console.error('Failed to load image for crop:', error);
+        toast.error('Failed to load image for cropping');
+      };
+      img.src = currentImageUrl;
+    } else {
+      toast.error('No valid image to crop');
     }
   };
 

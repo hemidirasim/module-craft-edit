@@ -12,6 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { RotateCw, AlignLeft, AlignCenter, AlignRight, Crop } from "lucide-react";
 import { CropDialog } from "./CropDialog";
+import { toast } from "sonner";
 
 interface ImageEditDialogProps {
   open: boolean;
@@ -43,6 +44,7 @@ export const ImageEditDialog = ({
   const [originalWidth, setOriginalWidth] = useState<number>(0);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [newImageSrc, setNewImageSrc] = useState<string>("");
+  const [currentImageElement, setCurrentImageElement] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (imageElement && open) {
@@ -91,6 +93,25 @@ export const ImageEditDialog = ({
     setNewImageSrc(croppedImageSrc);
   };
 
+  const handleCrop = () => {
+    if (imageElement) {
+      const img = document.createElement('img');
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        console.log('Image loaded for crop:', img.naturalWidth, 'x', img.naturalHeight);
+        setCurrentImageElement(img);
+        setShowCropDialog(true);
+      };
+      img.onerror = (error) => {
+        console.error('Failed to load image for crop:', error);
+        toast.error('Failed to load image for cropping');
+      };
+      img.src = imageElement.src;
+    } else {
+      toast.error('No image selected');
+    }
+  };
+
   const handleWidthChange = (value: string) => {
     setWidth(value);
   };
@@ -122,7 +143,7 @@ export const ImageEditDialog = ({
           <div className="border-b pb-6">
             <Button
               variant="outline"
-              onClick={() => setShowCropDialog(true)}
+              onClick={handleCrop}
               className="w-full"
             >
               <Crop className="w-4 h-4 mr-2" />
@@ -272,7 +293,7 @@ export const ImageEditDialog = ({
         <CropDialog
           open={showCropDialog}
           onOpenChange={setShowCropDialog}
-          imageElement={imageElement}
+          imageElement={currentImageElement}
           onApplyChanges={handleCropComplete}
         />
       </DialogContent>

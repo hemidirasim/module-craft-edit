@@ -51,6 +51,7 @@ serve(async (req) => {
         headers: {
           'Authorization': `Bearer ${supabaseKey}`,
           'Content-Type': file.type,
+          'Content-Length': file.size.toString(),
         },
         body: file,
       }

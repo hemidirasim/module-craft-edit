@@ -66,6 +66,8 @@ export const CropDialog = ({
 
   useEffect(() => {
     if (imageElement && containerRef.current && open) {
+      console.log('Setting up crop for image:', imageElement.src, imageElement.naturalWidth, 'x', imageElement.naturalHeight);
+      
       const containerRect = containerRef.current.getBoundingClientRect();
       const maxWidth = Math.min(500, containerRect.width - 40);
       const maxHeight = 400;
@@ -79,6 +81,7 @@ export const CropDialog = ({
         displayWidth = displayHeight * aspectRatio;
       }
       
+      console.log('Display size:', displayWidth, 'x', displayHeight);
       setImageSize({ width: displayWidth, height: displayHeight });
       
       // Initialize crop to center
@@ -305,7 +308,7 @@ export const CropDialog = ({
             </div>
           </div>
 
-          {imageElement && (
+          {imageElement && imageSize.width > 0 && imageSize.height > 0 ? (
             <div
               ref={containerRef}
               className="relative border border-border rounded-lg overflow-hidden bg-muted"
@@ -352,6 +355,14 @@ export const CropDialog = ({
                   onMouseDown={(e) => handleMouseDown(e, 'resize', 'bottom-right')}
                 />
               </div>
+            </div>
+          ) : imageElement ? (
+            <div className="border border-border rounded-lg p-8 text-center bg-muted">
+              <p className="text-muted-foreground">Loading image for cropping...</p>
+            </div>
+          ) : (
+            <div className="border border-border rounded-lg p-8 text-center bg-muted">
+              <p className="text-muted-foreground">No image selected for cropping</p>
             </div>
           )}
 
