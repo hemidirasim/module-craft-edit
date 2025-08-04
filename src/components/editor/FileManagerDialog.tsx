@@ -8,12 +8,14 @@ interface FileManagerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectFile: (file: any) => void;
+  fileTypeFilter?: 'image' | 'document' | 'all';
 }
 
 export const FileManagerDialog = ({ 
   open, 
   onOpenChange, 
-  onSelectFile 
+  onSelectFile,
+  fileTypeFilter = 'all'
 }: FileManagerDialogProps) => {
   const handleFileSelect = (file: any) => {
     onSelectFile(file);
@@ -34,6 +36,7 @@ export const FileManagerDialog = ({
           <FileManager 
             onSelectFile={handleFileSelect}
             selectMode={true}
+            fileTypeFilter={fileTypeFilter}
           />
         </div>
 

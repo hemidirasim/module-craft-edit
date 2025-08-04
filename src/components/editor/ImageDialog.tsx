@@ -404,6 +404,7 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
           open={showFileManager}
           onOpenChange={setShowFileManager}
           onSelectFile={handleFileSelect}
+          fileTypeFilter="image"
         />
       </DialogContent>
     </Dialog>

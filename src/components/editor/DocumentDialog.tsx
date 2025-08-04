@@ -326,7 +326,20 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
               <Input
                 id="document-name"
                 value={documentName}
-                onChange={(e) => setDocumentName(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Keep extension if it exists
+                  const currentExt = documentName.split('.').pop();
+                  const inputExt = value.split('.').pop();
+                  
+                  // If user is trying to change extension, prevent it
+                  if (currentExt && currentExt !== inputExt && value.includes('.')) {
+                    const nameWithoutExt = value.substring(0, value.lastIndexOf('.'));
+                    setDocumentName(nameWithoutExt + '.' + currentExt);
+                  } else {
+                    setDocumentName(value);
+                  }
+                }}
                 placeholder="Enter file name"
               />
             </div>
@@ -378,6 +391,7 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
           open={showFileManager}
           onOpenChange={setShowFileManager}
           onSelectFile={handleFileSelect}
+          fileTypeFilter="document"
         />
       </DialogContent>
     </Dialog>

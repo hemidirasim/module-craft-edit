@@ -54,9 +54,10 @@ import { toast } from 'sonner';
 interface FileManagerProps {
   onSelectFile?: (file: any) => void;
   selectMode?: boolean;
+  fileTypeFilter?: 'image' | 'document' | 'all';
 }
 
-export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerProps) => {
+export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter = 'all' }: FileManagerProps) => {
   const { user } = useAuth();
   const {
     folders,
@@ -204,7 +205,14 @@ export const FileManager = ({ onSelectFile, selectMode = false }: FileManagerPro
   const getFilteredAndSortedFiles = () => {
     let filtered = files;
 
-    // Filter by type
+    // Apply fileTypeFilter prop
+    if (fileTypeFilter === 'image') {
+      filtered = filtered.filter(f => f.file_type === 'image');
+    } else if (fileTypeFilter === 'document') {
+      filtered = filtered.filter(f => ['document', 'pdf', 'excel'].includes(f.file_type));
+    }
+
+    // Filter by type (from dropdown)
     if (filterType !== 'all') {
       filtered = filtered.filter(f => f.file_type === filterType);
     }

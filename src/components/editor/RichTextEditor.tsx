@@ -233,20 +233,27 @@ export const RichTextEditor = ({
 
       if (command === 'insertHTML') {
         if (editorRef.current) {
-          editorRef.current.focus();
-          
-          // Ensure cursor position for insertion
+          // Store current selection before operations
           const selection = window.getSelection();
-          if (!selection || selection.rangeCount === 0) {
-            // Create a new range at the end of the editor
-            const range = document.createRange();
+          let range = null;
+          
+          if (selection && selection.rangeCount > 0) {
+            range = selection.getRangeAt(0);
+          } else {
+            // Create new range at end of editor if no selection
+            range = document.createRange();
             range.selectNodeContents(editorRef.current);
             range.collapse(false);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
           }
           
+          // Clear selection and re-select
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+          
+          // Focus and insert
+          editorRef.current.focus();
           document.execCommand('insertHTML', false, value);
+          
           handleContentChange();
         }
         return;
