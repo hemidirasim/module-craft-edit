@@ -118,9 +118,44 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
 
   const handleInsert = () => {
     const src = uploadedDocumentUrl || documentUrl;
-    if (!src || !documentName.trim() || !downloadText.trim() || !documentText.trim()) return;
+    console.log('HandleInsert called with:', {
+      src,
+      documentName: documentName.trim(),
+      downloadText: downloadText.trim(),
+      documentText: documentText.trim(),
+      canInsert: canInsert()
+    });
+    
+    if (!src) {
+      console.log('No source URL');
+      return;
+    }
+    
+    if (!documentName.trim()) {
+      console.log('No document name');
+      return;
+    }
+    
+    if (!downloadText.trim()) {
+      console.log('No download text');
+      return;
+    }
+    
+    if (!documentText.trim()) {
+      console.log('No document text');
+      return;
+    }
     
     const fileType = getFileType(src);
+    
+    console.log('Calling onInsertDocument with:', {
+      src,
+      name: documentName.trim(),
+      type: fileType,
+      size: selectedFile ? formatFileSize(selectedFile.size) : undefined,
+      downloadText: downloadText.trim(),
+      documentText: documentText.trim()
+    });
     
     onInsertDocument({
       src,
@@ -227,8 +262,9 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
   const canInsert = () => {
     const hasSource = uploadedDocumentUrl || (documentUrl && isValidDocumentUrl(documentUrl));
     const hasName = documentName && documentName.trim();
-    const hasDownloadText = downloadText && downloadText.trim();
+    const hasDownloadText = downloadText && downloadText.trim();  
     const hasDocumentText = documentText && documentText.trim();
+    console.log('CanInsert check:', { hasSource, hasName, hasDownloadText, hasDocumentText });
     return hasSource && hasName && hasDownloadText && hasDocumentText;
   };
 
