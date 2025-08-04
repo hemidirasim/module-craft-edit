@@ -226,7 +226,10 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
 
   const canInsert = () => {
     const hasSource = uploadedDocumentUrl || (documentUrl && isValidDocumentUrl(documentUrl));
-    return hasSource && documentName.trim() && downloadText.trim() && documentText.trim();
+    const hasName = documentName && documentName.trim();
+    const hasDownloadText = downloadText && downloadText.trim();
+    const hasDocumentText = documentText && documentText.trim();
+    return hasSource && hasName && hasDownloadText && hasDocumentText;
   };
 
   return (
@@ -325,23 +328,21 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
               <Label htmlFor="document-name">File Name (required)</Label>
               <Input
                 id="document-name"
-                value={documentName}
+                value={documentName.includes('.') ? documentName.substring(0, documentName.lastIndexOf('.')) : documentName}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  // Keep extension if it exists
-                  const currentExt = documentName.split('.').pop();
-                  const inputExt = value.split('.').pop();
-                  
-                  // If user is trying to change extension, prevent it
-                  if (currentExt && currentExt !== inputExt && value.includes('.')) {
-                    const nameWithoutExt = value.substring(0, value.lastIndexOf('.'));
-                    setDocumentName(nameWithoutExt + '.' + currentExt);
-                  } else {
-                    setDocumentName(value);
-                  }
+                  const newName = e.target.value;
+                  // Get the original extension
+                  const originalExtension = documentName.includes('.') ? documentName.substring(documentName.lastIndexOf('.')) : '';
+                  // Set the new name with the original extension
+                  setDocumentName(newName + originalExtension);
                 }}
                 placeholder="Enter file name"
               />
+              {documentName.includes('.') && (
+                <p className="text-xs text-muted-foreground">
+                  Extension: {documentName.substring(documentName.lastIndexOf('.'))}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
