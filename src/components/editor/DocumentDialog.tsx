@@ -318,45 +318,47 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
           </TabsContent>
         </Tabs>
 
-        {/* Document Properties */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="document-name">Fayl Adı (required)</Label>
-            <Input
-              id="document-name"
-              value={documentName}
-              onChange={(e) => setDocumentName(e.target.value)}
-              placeholder="Fayl adını daxil edin"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="download-text">Download Düyməsindəki Yazı (required)</Label>
-            <Input
-              id="download-text"
-              value={downloadText}
-              onChange={(e) => setDownloadText(e.target.value)}
-              placeholder="Məsələn: Yüklə, Download, İndir"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="document-text">Document Sözü Əvəzinə Yazı (required)</Label>
-            <Input
-              id="document-text"
-              value={documentText}
-              onChange={(e) => setDocumentText(e.target.value)}
-              placeholder="Məsələn: Sənəd, Fayl, Dokument"
-            />
-          </div>
-
-          {selectedFile && (
-            <div className="text-sm text-muted-foreground">
-              <p>File size: {formatFileSize(selectedFile.size)}</p>
-              <p>File type: {getFileType(selectedFile.name)}</p>
+        {/* Document Properties - Show only when file is selected */}
+        {(uploadedDocumentUrl || (documentUrl && isValidDocumentUrl(documentUrl))) && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="document-name">File Name (required)</Label>
+              <Input
+                id="document-name"
+                value={documentName}
+                onChange={(e) => setDocumentName(e.target.value)}
+                placeholder="Enter file name"
+              />
             </div>
-          )}
-        </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="download-text">Download Button Text (required)</Label>
+              <Input
+                id="download-text"
+                value={downloadText}
+                onChange={(e) => setDownloadText(e.target.value)}
+                placeholder="e.g. Download, Get File"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="document-text">Document Label Text (required)</Label>
+              <Input
+                id="document-text"
+                value={documentText}
+                onChange={(e) => setDocumentText(e.target.value)}
+                placeholder="e.g. Document, File"
+              />
+            </div>
+
+            {selectedFile && (
+              <div className="text-sm text-muted-foreground">
+                <p>File size: {formatFileSize(selectedFile.size)}</p>
+                <p>File type: {getFileType(selectedFile.name)}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-2 justify-end pt-4">
           <Button onClick={handleClose} variant="outline">
