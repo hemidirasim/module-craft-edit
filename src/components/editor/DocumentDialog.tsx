@@ -364,17 +364,28 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
               <Label htmlFor="document-name">File Name (required)</Label>
               <Input
                 id="document-name"
-                value={documentName.includes('.') ? documentName.substring(0, documentName.lastIndexOf('.')) : documentName}
+                value={(() => {
+                  if (!documentName) return '';
+                  const lastDotIndex = documentName.lastIndexOf('.');
+                  return lastDotIndex > 0 ? documentName.substring(0, lastDotIndex) : documentName;
+                })()}
                 onChange={(e) => {
-                  const newName = e.target.value;
+                  const newName = e.target.value.trim();
+                  if (!newName) {
+                    setDocumentName('');
+                    return;
+                  }
+                  
                   // Get the original extension
-                  const originalExtension = documentName.includes('.') ? documentName.substring(documentName.lastIndexOf('.')) : '';
+                  const lastDotIndex = documentName.lastIndexOf('.');
+                  const originalExtension = lastDotIndex > 0 ? documentName.substring(lastDotIndex) : '';
+                  
                   // Set the new name with the original extension
                   setDocumentName(newName + originalExtension);
                 }}
                 placeholder="Enter file name"
               />
-              {documentName.includes('.') && (
+              {documentName && documentName.includes('.') && (
                 <p className="text-xs text-muted-foreground">
                   Extension: {documentName.substring(documentName.lastIndexOf('.'))}
                 </p>
