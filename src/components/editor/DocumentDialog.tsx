@@ -17,16 +17,12 @@ interface DocumentDialogProps {
     name: string; 
     type: string; 
     size?: string;
-    downloadText: string;
-    documentText: string;
   }) => void;
 }
 
 export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: DocumentDialogProps) => {
   const [documentUrl, setDocumentUrl] = useState("");
   const [documentName, setDocumentName] = useState("");
-  const [downloadText, setDownloadText] = useState("Download");
-  const [documentText, setDocumentText] = useState("Document");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedDocumentUrl, setUploadedDocumentUrl] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
@@ -38,8 +34,6 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
     if (open) {
       setDocumentUrl("");
       setDocumentName("");
-      setDownloadText("Download");
-      setDocumentText("Document");
       setSelectedFile(null);
       setUploadedDocumentUrl("");
       
@@ -121,8 +115,6 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
     console.log('HandleInsert called with:', {
       src,
       documentName: documentName.trim(),
-      downloadText: downloadText.trim(),
-      documentText: documentText.trim(),
       canInsert: canInsert()
     });
     
@@ -136,34 +128,20 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
       return;
     }
     
-    if (!downloadText.trim()) {
-      console.log('No download text');
-      return;
-    }
-    
-    if (!documentText.trim()) {
-      console.log('No document text');
-      return;
-    }
-    
     const fileType = getFileType(src);
     
     console.log('Calling onInsertDocument with:', {
       src,
       name: documentName.trim(),
       type: fileType,
-      size: selectedFile ? formatFileSize(selectedFile.size) : undefined,
-      downloadText: downloadText.trim(),
-      documentText: documentText.trim()
+      size: selectedFile ? formatFileSize(selectedFile.size) : undefined
     });
     
     onInsertDocument({
       src,
       name: documentName.trim(),
       type: fileType,
-      size: selectedFile ? formatFileSize(selectedFile.size) : undefined,
-      downloadText: downloadText.trim(),
-      documentText: documentText.trim()
+      size: selectedFile ? formatFileSize(selectedFile.size) : undefined
     });
     
     handleClose();
@@ -204,8 +182,6 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
   const handleClose = () => {
     setDocumentUrl("");
     setDocumentName("");
-    setDownloadText("Download");
-    setDocumentText("Document");
     setSelectedFile(null);
     setUploadedDocumentUrl("");
     onOpenChange(false);
@@ -262,10 +238,8 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
   const canInsert = () => {
     const hasSource = uploadedDocumentUrl || (documentUrl && isValidDocumentUrl(documentUrl));
     const hasName = documentName && documentName.trim();
-    const hasDownloadText = downloadText && downloadText.trim();  
-    const hasDocumentText = documentText && documentText.trim();
-    console.log('CanInsert check:', { hasSource, hasName, hasDownloadText, hasDocumentText });
-    return hasSource && hasName && hasDownloadText && hasDocumentText;
+    console.log('CanInsert check:', { hasSource, hasName });
+    return hasSource && hasName;
   };
 
   return (
@@ -390,26 +364,6 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
                   Extension: {documentName.substring(documentName.lastIndexOf('.'))}
                 </p>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="download-text">Download Button Text (required)</Label>
-              <Input
-                id="download-text"
-                value={downloadText}
-                onChange={(e) => setDownloadText(e.target.value)}
-                placeholder="e.g. Download, Get File"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="document-text">Document Label Text (required)</Label>
-              <Input
-                id="document-text"
-                value={documentText}
-                onChange={(e) => setDocumentText(e.target.value)}
-                placeholder="e.g. Document, File"
-              />
             </div>
 
             {selectedFile && (
