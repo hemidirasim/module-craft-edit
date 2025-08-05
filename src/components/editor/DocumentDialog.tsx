@@ -114,7 +114,6 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
     const src = uploadedDocumentUrl || documentUrl;
     console.log('HandleInsert called with:', {
       src,
-      documentName: documentName.trim(),
       canInsert: canInsert()
     });
     
@@ -123,23 +122,17 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
       return;
     }
     
-    if (!documentName.trim()) {
-      console.log('No document name');
-      return;
-    }
-    
     const fileType = getFileType(src);
     
     console.log('Calling onInsertDocument with:', {
       src,
-      name: documentName.trim(),
       type: fileType,
       size: selectedFile ? formatFileSize(selectedFile.size) : undefined
     });
     
     onInsertDocument({
       src,
-      name: documentName.trim(),
+      name: '', // No name needed
       type: fileType,
       size: selectedFile ? formatFileSize(selectedFile.size) : undefined
     });
@@ -237,9 +230,8 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
 
   const canInsert = () => {
     const hasSource = uploadedDocumentUrl || (documentUrl && isValidDocumentUrl(documentUrl));
-    const hasName = documentName && documentName.trim();
-    console.log('CanInsert check:', { hasSource, hasName });
-    return hasSource && hasName;
+    console.log('CanInsert check:', { hasSource });
+    return hasSource;
   };
 
   return (
@@ -331,47 +323,11 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
           </TabsContent>
         </Tabs>
 
-        {/* Document Properties - Show only when file is selected */}
-        {(uploadedDocumentUrl || (documentUrl && isValidDocumentUrl(documentUrl))) && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="document-name">File Name (required)</Label>
-              <Input
-                id="document-name"
-                value={(() => {
-                  if (!documentName) return '';
-                  const lastDotIndex = documentName.lastIndexOf('.');
-                  return lastDotIndex > 0 ? documentName.substring(0, lastDotIndex) : documentName;
-                })()}
-                onChange={(e) => {
-                  const newName = e.target.value.trim();
-                  if (!newName) {
-                    setDocumentName('');
-                    return;
-                  }
-                  
-                  // Get the original extension
-                  const lastDotIndex = documentName.lastIndexOf('.');
-                  const originalExtension = lastDotIndex > 0 ? documentName.substring(lastDotIndex) : '';
-                  
-                  // Set the new name with the original extension
-                  setDocumentName(newName + originalExtension);
-                }}
-                placeholder="Enter file name"
-              />
-              {documentName && documentName.includes('.') && (
-                <p className="text-xs text-muted-foreground">
-                  Extension: {documentName.substring(documentName.lastIndexOf('.'))}
-                </p>
-              )}
-            </div>
-
-            {selectedFile && (
-              <div className="text-sm text-muted-foreground">
-                <p>File size: {formatFileSize(selectedFile.size)}</p>
-                <p>File type: {getFileType(selectedFile.name)}</p>
-              </div>
-            )}
+        {/* File Preview - Show only when file is selected */}
+        {(uploadedDocumentUrl || (documentUrl && isValidDocumentUrl(documentUrl))) && selectedFile && (
+          <div className="text-sm text-muted-foreground">
+            <p>File size: {formatFileSize(selectedFile.size)}</p>
+            <p>File type: {getFileType(selectedFile.name)}</p>
           </div>
         )}
 

@@ -163,14 +163,10 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
       }
     };
     
-    // Create a simpler document HTML structure
+    // Create a simpler document HTML structure with only icon and Download text
     const documentHTML = `<div style="display: inline-block; padding: 12px 16px; margin: 8px 0; border: 2px solid #e5e7eb; border-radius: 8px; background: #f9fafb; cursor: pointer; max-width: 100%;" onclick="window.open('${src}', '_blank')">
       <div style="display: flex; align-items: center; gap: 12px;">
         <div style="padding: 8px; background: #3b82f6; border-radius: 6px; color: white; font-size: 18px;">${getFileIcon(type)}</div>
-        <div style="flex: 1;">
-          <div style="font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 2px;">${name}</div>
-          <div style="font-size: 12px; color: #6b7280;">${type}${size ? ` • ${size}` : ""}</div>
-        </div>
         <div style="padding: 4px 8px; background: #e5e7eb; border-radius: 4px; font-size: 12px; color: #374151;">Download</div>
       </div>
     </div><br>`;
