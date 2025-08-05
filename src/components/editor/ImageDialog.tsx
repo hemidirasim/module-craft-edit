@@ -120,14 +120,30 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
 
   const handleInsert = () => {
     const src = uploadedImageUrl || imageUrl;
-    if (!src || !imageAlt.trim()) return;
+    console.log('🚀 ImageDialog handleInsert called with:', {
+      src,
+      alt: imageAlt.trim(),
+      width: imageWidth,
+      height: imageHeight,
+      hasSource: !!src,
+      hasAlt: !!imageAlt.trim(),
+      canInsert: canInsert()
+    });
     
-    onInsertImage({
+    if (!src || !imageAlt.trim()) {
+      console.log('❌ Insert failed - missing src or alt:', { src: !!src, alt: !!imageAlt.trim() });
+      return;
+    }
+    
+    const imageData = {
       src,
       alt: imageAlt.trim(),
       width: imageWidth || undefined,
       height: imageHeight || undefined
-    });
+    };
+    
+    console.log('✅ Calling onInsertImage with:', imageData);
+    onInsertImage(imageData);
     
     handleClose();
   };

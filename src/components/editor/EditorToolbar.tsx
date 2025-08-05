@@ -507,7 +507,9 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
         open={showImageDialog}
         onOpenChange={setShowImageDialog}
         onInsertImage={(imageData) => {
+          console.log('📋 EditorToolbar onInsertImage received:', imageData);
           const imageHtml = `<img src="${imageData.src}" alt="${imageData.alt}"${imageData.width ? ` width="${imageData.width}"` : ''}${imageData.height ? ` height="${imageData.height}"` : ''} />`;
+          console.log('🖼️ Generated image HTML:', imageHtml);
           onCommand('insertHTML', imageHtml);
         }}
       />

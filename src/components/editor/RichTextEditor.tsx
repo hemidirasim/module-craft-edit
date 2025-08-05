@@ -232,6 +232,7 @@ export const RichTextEditor = ({
       }
 
       if (command === 'insertHTML') {
+        console.log('🚀 RichTextEditor insertHTML called with:', value);
         if (editorRef.current) {
           // Store current selection before operations
           const selection = window.getSelection();
@@ -239,11 +240,13 @@ export const RichTextEditor = ({
           
           if (selection && selection.rangeCount > 0) {
             range = selection.getRangeAt(0);
+            console.log('📍 Found existing selection:', range);
           } else {
             // Create new range at end of editor if no selection
             range = document.createRange();
             range.selectNodeContents(editorRef.current);
             range.collapse(false);
+            console.log('📍 Created new range at end');
           }
           
           // Clear selection and re-select
@@ -252,9 +255,14 @@ export const RichTextEditor = ({
           
           // Focus and insert
           editorRef.current.focus();
-          document.execCommand('insertHTML', false, value);
+          console.log('✅ About to execute insertHTML command');
+          const result = document.execCommand('insertHTML', false, value);
+          console.log('📝 insertHTML result:', result);
+          console.log('📄 Editor content after insert:', editorRef.current.innerHTML);
           
           handleContentChange();
+        } else {
+          console.log('❌ No editor ref found');
         }
         return;
       }
