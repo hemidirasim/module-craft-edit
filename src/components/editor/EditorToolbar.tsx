@@ -9,6 +9,10 @@ import { LinkDialog } from "./LinkDialog";
 import { ImageDialog } from "./ImageDialog";
 import { MediaDialog } from "./MediaDialog";
 import { BookmarkDialog } from "./BookmarkDialog";
+import { CodeSampleDialog } from "./CodeSampleDialog";
+import { DateTimeDialog } from "./DateTimeDialog";
+import { exportToWord, exportToPDF } from "../../utils/exportUtils";
+import { toast } from "sonner";
 import { 
   Bold, 
   Italic, 
@@ -38,7 +42,11 @@ import {
   Table,
   Play,
   Smile,
-  Bookmark
+  Bookmark,
+  Calendar,
+  FileText,
+  Download,
+  SeparatorHorizontal
 } from "lucide-react";
 
 interface EditorToolbarProps {
@@ -66,6 +74,8 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   const [showTableSelector, setShowTableSelector] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showCodeDialog, setShowCodeDialog] = useState(false);
+  const [showDateTimeDialog, setShowDateTimeDialog] = useState(false);
   const fontFamilies = [
     "Arial", "Helvetica", "Times New Roman", "Georgia", "Verdana", 
     "Courier New", "Tahoma", "Comic Sans MS", "Impact", "Trebuchet MS"
@@ -174,6 +184,36 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
           <DropdownMenuItem onClick={() => onCommand('findReplace')} className="cursor-pointer hover:bg-accent">
             <Search size={16} className="mr-2" />
             Find & Replace (Ctrl+F)
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={async () => {
+              const editorContent = document.querySelector('[contenteditable="true"]')?.innerHTML || '';
+              const success = await exportToWord(editorContent);
+              if (success) {
+                toast.success('Document exported to Word successfully!');
+              } else {
+                toast.error('Failed to export document to Word');
+              }
+            }} 
+            className="cursor-pointer hover:bg-accent"
+          >
+            <FileText size={16} className="mr-2" />
+            Export to Word
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={async () => {
+              const editorContent = document.querySelector('[contenteditable="true"]')?.innerHTML || '';
+              const success = await exportToPDF(editorContent);
+              if (success) {
+                toast.success('Document exported to PDF successfully!');
+              } else {
+                toast.error('Failed to export document to PDF');
+              }
+            }} 
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Download size={16} className="mr-2" />
+            Export to PDF
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -328,6 +368,27 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
           >
             <Bookmark size={16} className="mr-2" />
             Bookmark
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => setShowCodeDialog(true)}
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Code2 size={16} className="mr-2" />
+            Code Sample
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => setShowDateTimeDialog(true)}
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Calendar size={16} className="mr-2" />
+            Date/Time
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => onCommand('insertPageBreak')}
+            className="cursor-pointer hover:bg-accent"
+          >
+            <SeparatorHorizontal size={16} className="mr-2" />
+            Page Break
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -528,6 +589,24 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
         onInsertBookmark={(bookmarkData) => {
           const bookmarkHtml = `<a id="${bookmarkData.id}" name="${bookmarkData.id}" title="${bookmarkData.description || ''}">📖 ${bookmarkData.name}</a>`;
           onCommand('insertHTML', bookmarkHtml);
+        }}
+      />
+      
+      <CodeSampleDialog
+        open={showCodeDialog}
+        onOpenChange={setShowCodeDialog}
+        onInsertCode={(code, language) => {
+          const codeHtml = `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 16px; margin: 16px 0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code data-language="${language}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre><br>`;
+          onCommand('insertHTML', codeHtml);
+        }}
+      />
+      
+      <DateTimeDialog
+        open={showDateTimeDialog}
+        onOpenChange={setShowDateTimeDialog}
+        onInsertDateTime={(dateTime) => {
+          const dateTimeHtml = `<span style="background: #e8f4fd; padding: 2px 6px; border-radius: 3px; font-weight: 500;">${dateTime}</span>`;
+          onCommand('insertHTML', dateTimeHtml);
         }}
       />
     </div>

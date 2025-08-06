@@ -231,6 +231,13 @@ export const RichTextEditor = ({
         return;
       }
 
+      if (command === 'insertPageBreak') {
+        const pageBreakHtml = '<div style="page-break-before: always; border-bottom: 2px dashed #ccc; margin: 24px 0; padding-bottom: 24px; position: relative;"><div style="position: absolute; right: 0; bottom: -12px; background: #fff; padding: 0 8px; color: #666; font-size: 12px;">Page Break</div></div><br>';
+        document.execCommand('insertHTML', false, pageBreakHtml);
+        handleContentChange();
+        return;
+      }
+
       if (command === 'insertHTML') {
         console.log('🚀 RichTextEditor insertHTML called with:', value);
         if (editorRef.current) {
