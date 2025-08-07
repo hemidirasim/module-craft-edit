@@ -11,19 +11,6 @@ interface ImageContextMenuProps {
 }
 
 export const ImageContextMenu = ({ children, onDeleteImage, onEditImage, onCopyImage, targetImage }: ImageContextMenuProps) => {
-  const handleContextMenu = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    
-    // Only allow context menu if clicking on an image
-    if (target.tagName !== 'IMG') {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    }
-    
-    // Let the parent handle the image context menu
-    return true;
-  };
 
   const handleDeleteClick = () => {
     if (targetImage) {
@@ -45,7 +32,7 @@ export const ImageContextMenu = ({ children, onDeleteImage, onEditImage, onCopyI
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger onContextMenu={handleContextMenu}>{children}</ContextMenuTrigger>
+      <ContextMenuTrigger>{children}</ContextMenuTrigger>
       {targetImage && (
         <ContextMenuContent>
           <ContextMenuItem onClick={handleEditClick}>

@@ -355,12 +355,22 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
                 </Button>
               )}
             </div>
-            <div className="border rounded p-2 flex justify-center bg-muted/50">
+            <div className="border rounded p-2 flex justify-center bg-muted/50 relative group">
               <img
                 src={previewUrl}
                 alt="Preview"
-                className="max-w-full max-h-48 object-contain"
+                className="max-w-full max-h-64 object-contain"
               />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowFileManager(true)}
+                  className="bg-background/90 hover:bg-background"
+                >
+                  Replace Image
+                </Button>
+              </div>
             </div>
           </div>
         )}
