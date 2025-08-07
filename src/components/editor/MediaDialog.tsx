@@ -13,7 +13,7 @@ import { toast } from "sonner";
 interface MediaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onInsertMedia: (mediaData: { type: 'video' | 'embed' | 'image'; content: string; width?: string; height?: string; alt?: string }) => void;
+  onInsertMedia: (mediaData: { type: 'video' | 'embed' | 'image'; content: string; width?: string; height?: string; alt?: string; alignment?: string }) => void;
 }
 
 export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogProps) => {
@@ -129,7 +129,8 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
       type: 'video',
       content: embedCode.trim(),
       width: mediaWidth,
-      height: mediaHeight
+      height: mediaHeight,
+      alignment: 'center'
     });
     
     handleClose();
@@ -140,7 +141,8 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
     
     onInsertMedia({
       type: 'embed',
-      content: embedCode.trim()
+      content: embedCode.trim(),
+      alignment: 'center'
     });
     
     handleClose();

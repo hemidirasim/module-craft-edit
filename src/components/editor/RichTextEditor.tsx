@@ -1108,16 +1108,21 @@ export const RichTextEditor = ({
   const handleEditorClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     
-    // Check if clicked element is an image
-    if (target.tagName === 'IMG') {
+    // Check if clicked element is an image or video
+    if (target.tagName === 'IMG' || target.tagName === 'VIDEO' || target.tagName === 'IFRAME') {
       e.preventDefault();
-      setSelectedImage(target as HTMLImageElement);
-      setShowImageResizer(true);
+      e.stopPropagation();
       
-      // Double click opens edit dialog
-      if (e.detail === 2) {
-        setShowImageEdit(true);
-        setShowImageResizer(false);
+      // For images
+      if (target.tagName === 'IMG') {
+        setSelectedImage(target as HTMLImageElement);
+        setShowImageResizer(true);
+        
+        // Double click opens edit dialog
+        if (e.detail === 2) {
+          setShowImageEdit(true);
+          setShowImageResizer(false);
+        }
       }
     } else {
       // Click elsewhere - hide image selection
@@ -1206,7 +1211,6 @@ export const RichTextEditor = ({
         // Create figure wrapper if it doesn't exist and we have a caption
         figure = document.createElement('figure');
         figure.style.margin = '16px 0';
-        figure.style.textAlign = changes.alignment || 'center';
         
         selectedImage.parentNode?.insertBefore(figure, selectedImage);
         figure.appendChild(selectedImage);
@@ -1227,6 +1231,22 @@ export const RichTextEditor = ({
           figcaption.textContent = changes.caption;
         } else if (figcaption) {
           figcaption.remove();
+        }
+        
+        // Update figure alignment based on current image settings
+        const currentTextWrap = selectedImage.style.float;
+        const currentAlignment = changes.alignment || selectedImage.parentElement?.style.textAlign || 'center';
+        
+        if (currentTextWrap && currentTextWrap !== 'none') {
+          figure.style.textAlign = '';
+          figure.style.float = currentTextWrap;
+          figure.style.margin = currentTextWrap === 'left' ? '0 16px 16px 0' : '0 0 16px 16px';
+          figure.style.maxWidth = '50%';
+        } else {
+          figure.style.textAlign = currentAlignment;
+          figure.style.float = '';
+          figure.style.margin = '16px 0';
+          figure.style.maxWidth = '';
         }
       }
     }
@@ -1338,13 +1358,26 @@ export const RichTextEditor = ({
         open={showMediaDialog}
         onOpenChange={setShowMediaDialog}
         onInsertMedia={(mediaData) => {
+          let htmlContent = '';
+          
           if (mediaData.type === 'image') {
-            const imageHtml = `<img src="${mediaData.content}" alt="${mediaData.alt || 'Media image'}" 
-              ${mediaData.width ? `style="width: ${mediaData.width}${mediaData.width.includes('%') || mediaData.width.includes('px') ? '' : 'px'};"` : ''} 
-              ${mediaData.height ? `style="height: ${mediaData.height}${mediaData.height.includes('%') || mediaData.height.includes('px') ? '' : 'px'};"` : ''} />`;
-            handleCommand('insertHTML', imageHtml);
-          } else {
-            handleCommand('insertHTML', mediaData.content);
+            const widthStyle = mediaData.width ? `width: ${mediaData.width}${mediaData.width.includes('%') || mediaData.width.includes('px') ? '' : 'px'};` : '';
+            const heightStyle = mediaData.height ? `height: ${mediaData.height}${mediaData.height.includes('%') || mediaData.height.includes('px') ? '' : 'px'};` : '';
+            htmlContent = `<img src="${mediaData.content}" alt="${mediaData.alt || 'Media image'}" style="display: block; margin: 16px auto; max-width: 100%; ${widthStyle} ${heightStyle}" />`;
+          } else if (mediaData.type === 'video') {
+            const alignment = mediaData.alignment || 'center';
+            htmlContent = `<div style="text-align: ${alignment}; margin: 16px 0;">
+              ${mediaData.content}
+            </div>`;
+          } else if (mediaData.type === 'embed') {
+            const alignment = mediaData.alignment || 'center';
+            htmlContent = `<div style="text-align: ${alignment}; margin: 16px 0;">
+              ${mediaData.content}
+            </div>`;
+          }
+          
+          if (htmlContent) {
+            handleCommand('insertHTML', htmlContent);
           }
         }}
       />

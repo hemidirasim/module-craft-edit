@@ -306,33 +306,35 @@ export const ImageEditDialog = ({
             </div>
           </div>
 
-          {/* Alignment Control */}
-          <div className="space-y-2">
-            <Label>Alignment</Label>
-            <div className="flex gap-1">
-              <Button
-                variant={alignment === 'left' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setAlignment('left')}
-              >
-                <AlignLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={alignment === 'center' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setAlignment('center')}
-              >
-                <AlignCenter className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={alignment === 'right' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setAlignment('right')}
-              >
-                <AlignRight className="w-4 h-4" />
-              </Button>
+          {/* Alignment Control - Only show when text wrap is none */}
+          {textWrap === 'none' && (
+            <div className="space-y-2">
+              <Label>Alignment</Label>
+              <div className="flex gap-1">
+                <Button
+                  variant={alignment === 'left' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAlignment('left')}
+                >
+                  <AlignLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={alignment === 'center' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAlignment('center')}
+                >
+                  <AlignCenter className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={alignment === 'right' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAlignment('right')}
+                >
+                  <AlignRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Text Wrap Control */}
           <div className="space-y-2">
