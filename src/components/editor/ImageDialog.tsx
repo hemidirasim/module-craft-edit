@@ -255,7 +255,7 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Image size={20} />
@@ -263,153 +263,155 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
           </DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue="filemanager" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="filemanager" className="flex items-center gap-2">
-              <Files size={16} />
-              File Manager
-            </TabsTrigger>
-            <TabsTrigger value="url" className="flex items-center gap-2">
-              <Link2 size={16} />
-              From URL
-            </TabsTrigger>
-            <TabsTrigger value="upload" className="flex items-center gap-2">
-              <Upload size={16} />
-              Upload File
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="filemanager" className="space-y-4">
-            <div className="text-center p-8 border border-dashed border-border rounded-lg">
-              <Files className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-lg font-medium mb-2">Choose from File Manager</p>
-              <p className="text-muted-foreground mb-4">
-                Select an image from your uploaded files
-              </p>
-              <Button onClick={() => setShowFileManager(true)}>
-                Open File Manager
-              </Button>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="url" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="image-url">Image URL</Label>
-              <Input
-                ref={urlInputRef}
-                id="image-url"
-                value={imageUrl}
-                onChange={(e) => handleUrlChange(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.ctrlKey) {
-                    handleInsert();
-                  }
-                }}
-              />
-              {imageUrl && !isValidImageUrl(imageUrl) && (
-                <p className="text-sm text-destructive">Please enter a valid image URL</p>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="upload" className="space-y-4">
-            <div className="space-y-2">
-              <Label>Select Image File</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-1"
-                  disabled={isUploading}
-                >
-                  <Upload size={16} className="mr-2" />
-                  {isUploading ? "Uploading..." : selectedFile ? selectedFile.name : "Choose File"}
+        <div className="flex-1 overflow-y-auto space-y-4">
+          <Tabs defaultValue="filemanager" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="filemanager" className="flex items-center gap-2">
+                <Files size={16} />
+                File Manager
+              </TabsTrigger>
+              <TabsTrigger value="url" className="flex items-center gap-2">
+                <Link2 size={16} />
+                From URL
+              </TabsTrigger>
+              <TabsTrigger value="upload" className="flex items-center gap-2">
+                <Upload size={16} />
+                Upload File
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="filemanager" className="space-y-4">
+              <div className="text-center p-8 border border-dashed border-border rounded-lg">
+                <Files className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-lg font-medium mb-2">Choose from File Manager</p>
+                <p className="text-muted-foreground mb-4">
+                  Select an image from your uploaded files
+                </p>
+                <Button onClick={() => setShowFileManager(true)}>
+                  Open File Manager
                 </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="url" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="image-url">Image URL</Label>
+                <Input
+                  ref={urlInputRef}
+                  id="image-url"
+                  value={imageUrl}
+                  onChange={(e) => handleUrlChange(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                      handleInsert();
+                    }
+                  }}
+                />
+                {imageUrl && !isValidImageUrl(imageUrl) && (
+                  <p className="text-sm text-destructive">Please enter a valid image URL</p>
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="upload" className="space-y-4">
+              <div className="space-y-2">
+                <Label>Select Image File</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1"
+                    disabled={isUploading}
+                  >
+                    <Upload size={16} className="mr-2" />
+                    {isUploading ? "Uploading..." : selectedFile ? selectedFile.name : "Choose File"}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {/* Preview and Crop */}
+          {previewUrl && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Preview</Label>
+                {(uploadedImageUrl || (imageUrl && isValidImageUrl(imageUrl))) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCrop}
+                  >
+                    <Crop size={16} className="mr-2" />
+                    Crop Image
+                  </Button>
+                )}
+              </div>
+              <div className="border rounded p-2 flex justify-center bg-muted/50 relative group max-h-48 overflow-hidden">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="max-w-full max-h-44 object-contain"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowFileManager(true)}
+                    className="bg-background/90 hover:bg-background"
+                  >
+                    Replace Image
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Image Properties */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="image-alt">Alt Text (required)</Label>
+              <Input
+                id="image-alt"
+                value={imageAlt}
+                onChange={(e) => setImageAlt(e.target.value)}
+                placeholder="Describe the image for accessibility"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="image-width">Width (optional)</Label>
+                <Input
+                  id="image-width"
+                  value={imageWidth}
+                  onChange={(e) => setImageWidth(e.target.value)}
+                  placeholder="e.g., 300px or 50%"
                 />
               </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Preview and Crop */}
-        {previewUrl && (
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label>Preview</Label>
-              {(uploadedImageUrl || (imageUrl && isValidImageUrl(imageUrl))) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCrop}
-                >
-                  <Crop size={16} className="mr-2" />
-                  Crop Image
-                </Button>
-              )}
-            </div>
-            <div className="border rounded p-2 flex justify-center bg-muted/50 relative group">
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="max-w-full max-h-64 object-contain"
-              />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowFileManager(true)}
-                  className="bg-background/90 hover:bg-background"
-                >
-                  Replace Image
-                </Button>
+              <div className="space-y-2">
+                <Label htmlFor="image-height">Height (optional)</Label>
+                <Input
+                  id="image-height"
+                  value={imageHeight}
+                  onChange={(e) => setImageHeight(e.target.value)}
+                  placeholder="e.g., 200px or auto"
+                />
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Image Properties */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="image-alt">Alt Text (required)</Label>
-            <Input
-              id="image-alt"
-              value={imageAlt}
-              onChange={(e) => setImageAlt(e.target.value)}
-              placeholder="Describe the image for accessibility"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="image-width">Width (optional)</Label>
-              <Input
-                id="image-width"
-                value={imageWidth}
-                onChange={(e) => setImageWidth(e.target.value)}
-                placeholder="e.g., 300px or 50%"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="image-height">Height (optional)</Label>
-              <Input
-                id="image-height"
-                value={imageHeight}
-                onChange={(e) => setImageHeight(e.target.value)}
-                placeholder="e.g., 200px or auto"
-              />
             </div>
           </div>
         </div>
 
-        <div className="flex gap-2 justify-end pt-4">
+        <div className="flex gap-2 justify-end pt-4 border-t shrink-0">
           <Button onClick={handleClose} variant="outline">
             <X size={16} className="mr-2" />
             Cancel
