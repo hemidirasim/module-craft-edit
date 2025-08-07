@@ -2,7 +2,7 @@ import { useState, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Settings, Layout, BarChart3, LogOut, Plus } from 'lucide-react';
+import { Settings, Layout, BarChart3, LogOut, Plus, Home } from 'lucide-react';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -25,10 +25,15 @@ export const DashboardLayout = ({ children, activeSection, onSectionChange }: Da
       {/* Sidebar */}
       <div className="w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="p-6 border-b">
-          <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            EditorCraft
-          </h1>
-          <span className="text-sm text-muted-foreground">Dashboard</span>
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="w-full text-left group"
+          >
+            <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent group-hover:scale-105 transition-transform">
+              EditorCraft
+            </h1>
+            <span className="text-sm text-muted-foreground">Dashboard</span>
+          </button>
         </div>
         <nav className="p-4 space-y-2">
           {sidebarItems.map((item) => {

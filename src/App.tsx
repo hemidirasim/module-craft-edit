@@ -25,7 +25,7 @@ const AppContent = () => {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <Dashboard /> : <Index />} />
+      <Route path="/" element={<Index />} />
       <Route path="/auth" element={!user ? <Auth /> : <Dashboard />} />
       <Route path="/dashboard" element={user ? <Dashboard /> : <Auth />} />
       <Route path="/file-manager" element={user ? <FileManager /> : <Auth />} />

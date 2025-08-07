@@ -235,11 +235,28 @@ export const SettingsSection = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline">
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              try {
+                const { error } = await supabase.auth.resetPasswordForEmail(user?.email || '', {
+                  redirectTo: window.location.origin + '/auth'
+                });
+                if (error) throw error;
+                toast({
+                  title: "Password reset email sent",
+                  description: "Check your email for password reset instructions.",
+                });
+              } catch (error: any) {
+                toast({
+                  title: "Failed to send reset email",
+                  description: error.message,
+                  variant: "destructive",
+                });
+              }
+            }}
+          >
             Change Password
-          </Button>
-          <Button variant="outline">
-            Two-Factor Authentication
           </Button>
           <Button variant="destructive" className="w-full">
             Delete Account

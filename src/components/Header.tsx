@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Edit3 } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-border/50">
@@ -35,12 +37,20 @@ export const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost" onClick={() => window.location.href = '/auth'}>
-              Login
-            </Button>
-            <Button variant="hero" onClick={() => window.location.href = '/auth'}>
-              Get Started
-            </Button>
+            {user ? (
+              <Button variant="ghost" onClick={() => window.location.href = '/dashboard'}>
+                Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => window.location.href = '/auth'}>
+                  Login
+                </Button>
+                <Button variant="hero" onClick={() => window.location.href = '/auth'}>
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -69,12 +79,20 @@ export const Header = () => {
                 Demo
               </a>
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
-                <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/auth'}>
-                  Login
-                </Button>
-                <Button variant="hero" className="justify-start" onClick={() => window.location.href = '/auth'}>
-                  Get Started
-                </Button>
+                {user ? (
+                  <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/dashboard'}>
+                    Dashboard
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/auth'}>
+                      Login
+                    </Button>
+                    <Button variant="hero" className="justify-start" onClick={() => window.location.href = '/auth'}>
+                      Get Started
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>
