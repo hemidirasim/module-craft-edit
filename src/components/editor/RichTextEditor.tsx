@@ -251,66 +251,82 @@ export const RichTextEditor = ({
             // Ensure editor is focused first
             editorRef.current.focus();
             
-            // Create selection if none exists
-            const selection = window.getSelection();
-            let range: Range;
-            
-            if (selection && selection.rangeCount > 0) {
-              range = selection.getRangeAt(0);
-            } else {
-              // Create a range at the end of the editor if no selection
-              range = document.createRange();
-              range.selectNodeContents(editorRef.current);
-              range.collapse(false);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            }
-            
-            // Ensure the range is within the editor
-            if (!editorRef.current.contains(range.commonAncestorContainer)) {
-              range = document.createRange();
-              range.selectNodeContents(editorRef.current);
-              range.collapse(false);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            }
-            
-            // Delete any selected content
-            range.deleteContents();
-            
-            // Create fragment from HTML string
-            const template = document.createElement('template');
-            template.innerHTML = value.trim();
-            const fragment = template.content;
-            
-            // Insert the fragment
-            range.insertNode(fragment);
-            
-            // Move cursor after the inserted content
-            range.setStartAfter(fragment.lastChild || fragment);
-            range.collapse(true);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            
-            console.log('✅ HTML inserted using modern approach');
-            handleContentChange();
-          } catch (error) {
-            console.error('❌ Error with modern approach, falling back:', error);
-            // Fallback to execCommand
-            try {
-              const result = document.execCommand('insertHTML', false, value);
-              console.log('📝 Fallback insertHTML result:', result);
-              handleContentChange();
-            } catch (fallbackError) {
-              console.error('❌ Fallback also failed:', fallbackError);
-              // Ultimate fallback - append to end
-              if (editorRef.current) {
-                const div = document.createElement('div');
-                div.innerHTML = value;
-                editorRef.current.appendChild(div);
+            // Wait a bit for focus to take effect
+            setTimeout(() => {
+              try {
+                // Create selection if none exists
+                const selection = window.getSelection();
+                let range: Range;
+                
+                if (selection && selection.rangeCount > 0) {
+                  range = selection.getRangeAt(0);
+                  
+                  // Verify the range is actually within our editor
+                  const rangeContainer = range.commonAncestorContainer;
+                  const isInEditor = editorRef.current?.contains(rangeContainer) || 
+                                   (rangeContainer === editorRef.current);
+                  
+                  if (!isInEditor) {
+                    console.log('⚠️ Range not in editor, creating new range at end');
+                    range = document.createRange();
+                    range.selectNodeContents(editorRef.current!);
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                  }
+                } else {
+                  console.log('⚠️ No selection found, creating range at end of editor');
+                  // Create a range at the end of the editor if no selection
+                  range = document.createRange();
+                  range.selectNodeContents(editorRef.current!);
+                  range.collapse(false);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                }
+                
+                // Delete any selected content
+                range.deleteContents();
+                
+                // Create fragment from HTML string
+                const template = document.createElement('template');
+                template.innerHTML = value.trim();
+                const fragment = template.content;
+                
+                // Insert the fragment
+                range.insertNode(fragment);
+                
+                // Move cursor after the inserted content
+                const lastChild = fragment.lastChild;
+                if (lastChild) {
+                  range.setStartAfter(lastChild);
+                  range.collapse(true);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                }
+                
+                console.log('✅ HTML inserted using modern approach');
                 handleContentChange();
+              } catch (innerError) {
+                console.error('❌ Error with modern approach, falling back:', innerError);
+                // Fallback to execCommand
+                try {
+                  const result = document.execCommand('insertHTML', false, value);
+                  console.log('📝 Fallback insertHTML result:', result);
+                  handleContentChange();
+                } catch (fallbackError) {
+                  console.error('❌ Fallback also failed:', fallbackError);
+                  // Ultimate fallback - append to end of editor
+                  if (editorRef.current) {
+                    const div = document.createElement('div');
+                    div.innerHTML = value;
+                    editorRef.current.appendChild(div);
+                    handleContentChange();
+                  }
+                }
               }
-            }
+            }, 10); // Small delay to ensure focus
+          } catch (error) {
+            console.error('❌ Error in insertHTML:', error);
           }
         } else {
           console.log('❌ No editor ref or value found');

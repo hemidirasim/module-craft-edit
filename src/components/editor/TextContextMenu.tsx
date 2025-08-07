@@ -98,48 +98,16 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
   };
 
   const handleInsertImage = (imageData: { src: string; alt: string; width?: string; height?: string }) => {
-    // Get current selection position
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      
-      // Create image HTML
-      const { src, alt, width, height } = imageData;
-      let imageHTML = `<img src="${src}" alt="${alt}" style="max-width: 100%; height: auto;`;
-      
-      if (width) {
-        imageHTML += ` width: ${width};`;
-      }
-      if (height) {
-        imageHTML += ` height: ${height};`;
-      }
-      
-      imageHTML += `" />`;
-      
-      // Insert the image at current cursor position
-      range.deleteContents();
-      range.insertNode(range.createContextualFragment(imageHTML));
-      
-      // Move cursor after the image
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    } else {
-      // Fallback: use execCommand if no selection
-      const { src, alt, width, height } = imageData;
-      let imageHTML = `<img src="${src}" alt="${alt}" style="max-width: 100%; height: auto;`;
-      
-      if (width) {
-        imageHTML += ` width: ${width};`;
-      }
-      if (height) {
-        imageHTML += ` height: ${height};`;
-      }
-      
-      imageHTML += `" />`;
-      
-      document.execCommand('insertHTML', false, imageHTML);
-    }
+    console.log('🖼️ TextContextMenu handleInsertImage:', imageData);
+    
+    // Close dialog first
+    setShowImageDialog(false);
+    
+    // Insert after a delay to ensure focus is back on editor
+    setTimeout(() => {
+      const imageHtml = `<img src="${imageData.src}" alt="${imageData.alt}"${imageData.width ? ` style="width: ${imageData.width}${imageData.width.includes('%') || imageData.width.includes('px') ? '' : 'px'};"` : ''}${imageData.height ? ` style="height: ${imageData.height}${imageData.height.includes('%') || imageData.height.includes('px') ? '' : 'px'};"` : ''} />`;
+      onCommand('insertHTML', imageHtml);
+    }, 100);
   };
 
   const handleInsertDocument = (documentData: { 

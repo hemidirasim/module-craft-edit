@@ -143,9 +143,13 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
     };
     
     console.log('✅ Calling onInsertImage with:', imageData);
-    onInsertImage(imageData);
     
+    // Close dialog first, then insert after a small delay to ensure focus is back on editor
     handleClose();
+    
+    setTimeout(() => {
+      onInsertImage(imageData);
+    }, 100);
   };
 
   const handleCrop = () => {
