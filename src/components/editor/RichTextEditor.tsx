@@ -1166,50 +1166,6 @@ export const RichTextEditor = ({
       selectedImage.style.height = changes.height;
     }
     
-    // Apply text wrap changes first (affects float)
-    if (changes.textWrap !== undefined) {
-      selectedImage.style.float = changes.textWrap;
-      
-      if (changes.textWrap === 'left' || changes.textWrap === 'right') {
-        selectedImage.style.margin = changes.textWrap === 'left' ? '0 16px 16px 0' : '0 0 16px 16px';
-        selectedImage.style.maxWidth = '50%';
-        
-        // Reset container alignment when using text wrap
-        const container = selectedImage.parentElement;
-        if (container && container !== editorRef.current) {
-          container.style.textAlign = '';
-        }
-      } else {
-        selectedImage.style.margin = '';
-        selectedImage.style.maxWidth = '';
-      }
-    }
-    
-    // Apply alignment changes (only when not using text wrap)
-    if (changes.alignment && (!changes.textWrap || changes.textWrap === 'none')) {
-      // Find the containing paragraph or create one if needed
-      let container = selectedImage.parentElement;
-      
-      // If the image is directly in the editor, wrap it in a paragraph
-      if (container === editorRef.current) {
-        const p = document.createElement('p');
-        container.insertBefore(p, selectedImage);
-        p.appendChild(selectedImage);
-        container = p;
-      }
-      
-      // Apply text alignment to the container
-      if (container) {
-        container.style.textAlign = changes.alignment;
-        
-        // For center alignment, ensure proper display
-        if (changes.alignment === 'center') {
-          container.style.display = 'block';
-          container.style.width = '100%';
-        }
-      }
-    }
-    
     // Apply new image source if cropped
     if (changes.newSrc) {
       selectedImage.src = changes.newSrc;
@@ -1220,17 +1176,21 @@ export const RichTextEditor = ({
       selectedImage.alt = changes.alt;
     }
     
-    // Apply caption changes
+    // Get or create figure wrapper for proper caption handling
+    let figure = selectedImage.closest('figure');
+    let needsFigureUpdate = false;
+    
+    // Apply caption changes first
     if (changes.caption !== undefined) {
-      let figure = selectedImage.closest('figure');
-      
       if (!figure && changes.caption) {
         // Create figure wrapper if it doesn't exist and we have a caption
         figure = document.createElement('figure');
         figure.style.margin = '16px 0';
+        figure.style.display = 'block';
         
         selectedImage.parentNode?.insertBefore(figure, selectedImage);
         figure.appendChild(selectedImage);
+        needsFigureUpdate = true;
       }
       
       if (figure) {
@@ -1243,28 +1203,111 @@ export const RichTextEditor = ({
             figcaption.style.fontStyle = 'italic';
             figcaption.style.color = '#666';
             figcaption.style.marginTop = '8px';
+            figcaption.style.display = 'block';
+            figcaption.style.width = '100%';
             figure.appendChild(figcaption);
           }
           figcaption.textContent = changes.caption;
         } else if (figcaption) {
           figcaption.remove();
+          // If no caption and no other reason to keep figure, unwrap the image
+          if (!figure.querySelector('figcaption')) {
+            const parent = figure.parentNode;
+            parent?.insertBefore(selectedImage, figure);
+            figure.remove();
+            figure = null;
+          }
+        }
+        needsFigureUpdate = true;
+      }
+    }
+    
+    // Apply text wrap changes
+    if (changes.textWrap !== undefined) {
+      const targetElement = figure || selectedImage;
+      
+      if (changes.textWrap === 'left' || changes.textWrap === 'right') {
+        targetElement.style.float = changes.textWrap;
+        targetElement.style.margin = changes.textWrap === 'left' ? '0 16px 16px 0' : '0 0 16px 16px';
+        targetElement.style.maxWidth = '50%';
+        targetElement.style.textAlign = '';
+        
+        // Reset any parent container alignment when using text wrap
+        let container = targetElement.parentElement;
+        while (container && container !== editorRef.current) {
+          container.style.textAlign = '';
+          container = container.parentElement;
+        }
+      } else {
+        targetElement.style.float = 'none';
+        targetElement.style.margin = figure ? '16px 0' : '';
+        targetElement.style.maxWidth = '';
+      }
+      needsFigureUpdate = true;
+    }
+    
+    // Apply alignment changes (only when not using text wrap)
+    if (changes.alignment && (!changes.textWrap || changes.textWrap === 'none')) {
+      const targetElement = figure || selectedImage;
+      
+      if (figure) {
+        // For figures, apply alignment directly to the figure
+        figure.style.textAlign = changes.alignment;
+        figure.style.display = 'block';
+        figure.style.width = '100%';
+        
+        // Ensure the figcaption inherits the alignment
+        const figcaption = figure.querySelector('figcaption') as HTMLElement;
+        if (figcaption) {
+          figcaption.style.textAlign = changes.alignment;
+        }
+      } else {
+        // For standalone images, find or create container
+        let container = selectedImage.parentElement;
+        
+        // If the image is directly in the editor, wrap it in a paragraph
+        if (container === editorRef.current) {
+          const p = document.createElement('p');
+          container.insertBefore(p, selectedImage);
+          p.appendChild(selectedImage);
+          container = p;
         }
         
-        // Update figure alignment based on current image settings
-        const currentTextWrap = selectedImage.style.float;
-        const currentAlignment = changes.alignment || selectedImage.parentElement?.style.textAlign || 'center';
-        
-        if (currentTextWrap && currentTextWrap !== 'none') {
-          figure.style.textAlign = '';
-          figure.style.float = currentTextWrap;
-          figure.style.margin = currentTextWrap === 'left' ? '0 16px 16px 0' : '0 0 16px 16px';
-          figure.style.maxWidth = '50%';
-        } else {
-          figure.style.textAlign = currentAlignment;
-          figure.style.float = '';
-          figure.style.margin = '16px 0';
-          figure.style.maxWidth = '';
+        // Apply text alignment to the container
+        if (container) {
+          container.style.textAlign = changes.alignment;
+          container.style.display = 'block';
+          container.style.width = '100%';
         }
+      }
+    }
+    
+    // Update figure styling if needed
+    if (figure && needsFigureUpdate) {
+      const currentTextWrap = figure.style.float || selectedImage.style.float;
+      const currentAlignment = changes.alignment || figure.style.textAlign || 'center';
+      
+      if (currentTextWrap && currentTextWrap !== 'none') {
+        figure.style.textAlign = '';
+        figure.style.float = currentTextWrap;
+        figure.style.margin = currentTextWrap === 'left' ? '0 16px 16px 0' : '0 0 16px 16px';
+        figure.style.maxWidth = '50%';
+      } else {
+        figure.style.textAlign = currentAlignment;
+        figure.style.float = 'none';
+        figure.style.margin = '16px 0';
+        figure.style.maxWidth = '';
+        figure.style.display = 'block';
+        figure.style.width = '100%';
+      }
+      
+      // Ensure figcaption stays properly positioned
+      const figcaption = figure.querySelector('figcaption') as HTMLElement;
+      if (figcaption) {
+        figcaption.style.display = 'block';
+        figcaption.style.width = '100%';
+        figcaption.style.marginTop = '8px';
+        figcaption.style.textAlign = figure.style.textAlign || 'center';
       }
     }
     
