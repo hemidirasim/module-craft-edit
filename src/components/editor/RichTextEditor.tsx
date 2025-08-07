@@ -7,6 +7,7 @@ import { ImageEditDialog } from "./ImageEditDialog";
 import { FindReplaceDialog } from "./FindReplaceDialog";
 import { CodeSampleDialog } from "./CodeSampleDialog";
 import { DateTimeDialog } from "./DateTimeDialog";
+import { MediaDialog } from "./MediaDialog";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -36,6 +37,7 @@ export const RichTextEditor = ({
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const [showCodeDialog, setShowCodeDialog] = useState(false);
   const [showDateTimeDialog, setShowDateTimeDialog] = useState(false);
+  const [showMediaDialog, setShowMediaDialog] = useState(false);
   const [activeFormats, setActiveFormats] = useState<{
     bold: boolean;
     italic: boolean;
@@ -1227,6 +1229,8 @@ export const RichTextEditor = ({
           setShowCodeDialog={setShowCodeDialog}
           showDateTimeDialog={showDateTimeDialog}
           setShowDateTimeDialog={setShowDateTimeDialog}
+          showMediaDialog={showMediaDialog}
+          setShowMediaDialog={setShowMediaDialog}
         />
         {isHtmlView ? (
           <Textarea
@@ -1311,6 +1315,21 @@ export const RichTextEditor = ({
         onOpenChange={setShowDateTimeDialog}
         onInsertDateTime={(dateTime) => {
           handleCommand('insertHTML', `${dateTime} `);
+        }}
+      />
+      
+      <MediaDialog
+        open={showMediaDialog}
+        onOpenChange={setShowMediaDialog}
+        onInsertMedia={(mediaData) => {
+          if (mediaData.type === 'image') {
+            const imageHtml = `<img src="${mediaData.content}" alt="${mediaData.alt || 'Media image'}" 
+              ${mediaData.width ? `style="width: ${mediaData.width}${mediaData.width.includes('%') || mediaData.width.includes('px') ? '' : 'px'};"` : ''} 
+              ${mediaData.height ? `style="height: ${mediaData.height}${mediaData.height.includes('%') || mediaData.height.includes('px') ? '' : 'px'};"` : ''} />`;
+            handleCommand('insertHTML', imageHtml);
+          } else {
+            handleCommand('insertHTML', mediaData.content);
+          }
         }}
       />
     </>

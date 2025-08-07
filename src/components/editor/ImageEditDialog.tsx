@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlignLeft, AlignCenter, AlignRight, Crop, Type, WrapText } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Crop, Type, WrapText, FileImage } from "lucide-react";
 import { CropDialog } from "./CropDialog";
+import { FileManagerDialog } from "./FileManagerDialog";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface ImageEditDialogProps {
@@ -48,6 +50,7 @@ export const ImageEditDialog = ({
   const [originalWidth, setOriginalWidth] = useState<number>(0);
   const [originalHeight, setOriginalHeight] = useState<number>(0);
   const [showCropDialog, setShowCropDialog] = useState(false);
+  const [showFileManager, setShowFileManager] = useState(false);
   const [newImageSrc, setNewImageSrc] = useState<string>("");
   const [currentImageElement, setCurrentImageElement] = useState<HTMLImageElement | null>(null);
 
@@ -144,6 +147,34 @@ export const ImageEditDialog = ({
     }
   };
 
+  const handleReplaceImage = async (file: any) => {
+    if (file.file_type === 'image') {
+      try {
+        console.log('Selected file for replacement:', file);
+        
+        // Use Supabase client to get signed URL
+        const { data, error } = await supabase.storage
+          .from('user-files')
+          .createSignedUrl(file.storage_path, 3600);
+
+        if (error) {
+          console.error('Supabase storage error:', error);
+          throw error;
+        }
+
+        console.log('New image URL:', data.signedUrl);
+        setNewImageSrc(data.signedUrl);
+        setAlt(file.original_name.replace(/\.[^/.]+$/, ""));
+        toast.success('Image selected for replacement');
+      } catch (error) {
+        console.error('Error getting signed URL:', error);
+        toast.error('Failed to load replacement image');
+      }
+    } else {
+      toast.error('Please select an image file');
+    }
+  };
+
   const convertWidthToPixels = (value: string, unit: 'px' | '%') => {
     if (unit === '%' && originalWidth) {
       return Math.round((originalWidth * parseInt(value)) / 100).toString();
@@ -202,19 +233,29 @@ export const ImageEditDialog = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Crop Section */}
+          {/* Replace Image Section */}
           <div className="border-b pb-6">
-            <Button
-              variant="outline"
-              onClick={handleCrop}
-              className="w-full"
-            >
-              <Crop className="w-4 h-4 mr-2" />
-              Crop Image
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCrop}
+                className="flex-1"
+              >
+                <Crop className="w-4 h-4 mr-2" />
+                Crop Image
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowFileManager(true)}
+                className="flex-1"
+              >
+                <FileImage className="w-4 h-4 mr-2" />
+                Replace Image
+              </Button>
+            </div>
             {newImageSrc && (
               <p className="text-sm text-muted-foreground mt-2">
-                Image has been cropped and will be updated when you apply changes.
+                Image will be replaced when you apply changes.
               </p>
             )}
           </div>
@@ -370,6 +411,13 @@ export const ImageEditDialog = ({
           onOpenChange={setShowCropDialog}
           imageUrl={imageElement?.src || ''}
           onApplyChanges={handleCropComplete}
+        />
+        
+        <FileManagerDialog
+          open={showFileManager}
+          onOpenChange={setShowFileManager}
+          onSelectFile={handleReplaceImage}
+          fileTypeFilter="image"
         />
       </DialogContent>
     </Dialog>

@@ -69,6 +69,8 @@ interface EditorToolbarProps {
   setShowCodeDialog?: (show: boolean) => void;
   showDateTimeDialog?: boolean;
   setShowDateTimeDialog?: (show: boolean) => void;
+  showMediaDialog?: boolean;
+  setShowMediaDialog?: (show: boolean) => void;
 }
 
 export const EditorToolbar = ({ 
@@ -79,11 +81,12 @@ export const EditorToolbar = ({
   showCodeDialog = false,
   setShowCodeDialog,
   showDateTimeDialog = false,
-  setShowDateTimeDialog
+  setShowDateTimeDialog,
+  showMediaDialog = false,
+  setShowMediaDialog
 }: EditorToolbarProps) => {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
-  const [showMediaDialog, setShowMediaDialog] = useState(false);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   const [showTableSelector, setShowTableSelector] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -367,7 +370,7 @@ export const EditorToolbar = ({
             Image
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => setShowMediaDialog(true)}
+            onClick={() => setShowMediaDialog?.(true)}
             className="cursor-pointer hover:bg-accent"
           >
             <Play size={16} className="mr-2" />
@@ -590,7 +593,14 @@ export const EditorToolbar = ({
         open={showMediaDialog}
         onOpenChange={setShowMediaDialog}
         onInsertMedia={(mediaData) => {
-          onCommand('insertHTML', mediaData.content);
+          if (mediaData.type === 'image') {
+            const imageHtml = `<img src="${mediaData.content}" alt="${mediaData.alt || 'Media image'}" 
+              ${mediaData.width ? `style="width: ${mediaData.width}${mediaData.width.includes('%') || mediaData.width.includes('px') ? '' : 'px'};"` : ''} 
+              ${mediaData.height ? `style="height: ${mediaData.height}${mediaData.height.includes('%') || mediaData.height.includes('px') ? '' : 'px'};"` : ''} />`;
+            onCommand('insertHTML', imageHtml);
+          } else {
+            onCommand('insertHTML', mediaData.content);
+          }
         }}
       />
       

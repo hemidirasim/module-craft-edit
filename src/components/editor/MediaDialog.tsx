@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Code, Youtube, X } from "lucide-react";
+import { Play, Code, Youtube, X, Image, Files } from "lucide-react";
+import { FileManagerDialog } from "./FileManagerDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface MediaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onInsertMedia: (mediaData: { type: 'video' | 'embed'; content: string; width?: string; height?: string }) => void;
+  onInsertMedia: (mediaData: { type: 'video' | 'embed' | 'image'; content: string; width?: string; height?: string; alt?: string }) => void;
 }
 
 export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogProps) => {
@@ -19,6 +22,8 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
   const [mediaWidth, setMediaWidth] = useState("");
   const [mediaHeight, setMediaHeight] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
+  const [showFileManager, setShowFileManager] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<any>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -28,6 +33,7 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
       setMediaWidth("");
       setMediaHeight("");
       setPreviewUrl("");
+      setSelectedImageFile(null);
       
       setTimeout(() => {
         if (urlInputRef.current) {
@@ -140,12 +146,52 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
     handleClose();
   };
 
+  const handleInsertImage = () => {
+    if (!selectedImageFile) return;
+    
+    onInsertMedia({
+      type: 'image',
+      content: selectedImageFile.signedUrl,
+      width: mediaWidth,
+      height: mediaHeight,
+      alt: selectedImageFile.original_name.replace(/\.[^/.]+$/, "")
+    });
+    
+    handleClose();
+  };
+
+  const handleFileSelect = async (file: any) => {
+    if (file.file_type === 'image') {
+      try {
+        // Get signed URL for the selected file
+        const { data, error } = await supabase.storage
+          .from('user-files')
+          .createSignedUrl(file.storage_path, 3600);
+
+        if (error) throw error;
+
+        setSelectedImageFile({
+          ...file,
+          signedUrl: data.signedUrl
+        });
+        setPreviewUrl(data.signedUrl);
+        toast.success('Image selected successfully');
+      } catch (error) {
+        console.error('Error getting signed URL:', error);
+        toast.error('Failed to load image');
+      }
+    } else {
+      toast.error('Please select an image file');
+    }
+  };
+
   const handleClose = () => {
     setVideoUrl("");
     setEmbedCode("");
     setMediaWidth("");
     setMediaHeight("");
     setPreviewUrl("");
+    setSelectedImageFile(null);
     onOpenChange(false);
   };
 
@@ -167,8 +213,12 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
           </DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue="video" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="image" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="image" className="flex items-center gap-2">
+              <Image size={16} />
+              Image Files
+            </TabsTrigger>
             <TabsTrigger value="video" className="flex items-center gap-2">
               <Youtube size={16} />
               Video URL
@@ -178,6 +228,43 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
               Embed Code
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="image" className="space-y-4">
+            <div className="text-center p-8 border border-dashed border-border rounded-lg">
+              <Image className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-lg font-medium mb-2">Select Image from File Manager</p>
+              <p className="text-muted-foreground mb-4">
+                Choose an image file to insert as media content
+              </p>
+              <Button onClick={() => setShowFileManager(true)}>
+                <Files className="w-4 h-4 mr-2" />
+                Open File Manager
+              </Button>
+            </div>
+            
+            {selectedImageFile && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="image-width">Width</Label>
+                  <Input
+                    id="image-width"
+                    value={mediaWidth}
+                    onChange={(e) => setMediaWidth(e.target.value)}
+                    placeholder="Auto or 300px or 50%"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="image-height">Height</Label>
+                  <Input
+                    id="image-height"
+                    value={mediaHeight}
+                    onChange={(e) => setMediaHeight(e.target.value)}
+                    placeholder="Auto or 200px or 50%"
+                  />
+                </div>
+              </div>
+            )}
+          </TabsContent>
           
           <TabsContent value="video" className="space-y-4">
             <div className="space-y-2">
@@ -281,11 +368,19 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
         </Tabs>
 
         {/* Preview */}
-        {(previewUrl || (embedCode && isValidEmbedCode(embedCode))) && (
+        {(previewUrl || (embedCode && isValidEmbedCode(embedCode)) || selectedImageFile) && (
           <div className="space-y-2">
             <Label>Preview</Label>
             <div className="border rounded p-4 bg-muted/50">
-              {previewUrl ? (
+              {selectedImageFile ? (
+                <div className="flex justify-center">
+                  <img
+                    src={selectedImageFile.signedUrl}
+                    alt="Selected image"
+                    className="max-w-full max-h-48 object-contain"
+                  />
+                </div>
+              ) : previewUrl ? (
                 <div className="flex justify-center">
                   <img
                     src={previewUrl}
@@ -309,13 +404,27 @@ export const MediaDialog = ({ open, onOpenChange, onInsertMedia }: MediaDialogPr
             Cancel
           </Button>
           <Button 
-            onClick={videoUrl ? handleInsertVideo : handleInsertEmbed}
-            disabled={!embedCode.trim() || !isValidEmbedCode(embedCode)}
+            onClick={
+              selectedImageFile ? handleInsertImage :
+              videoUrl ? handleInsertVideo : 
+              handleInsertEmbed
+            }
+            disabled={
+              selectedImageFile ? false :
+              !embedCode.trim() || !isValidEmbedCode(embedCode)
+            }
           >
             <Play size={16} className="mr-2" />
             Insert Media
           </Button>
         </div>
+        
+        <FileManagerDialog
+          open={showFileManager}
+          onOpenChange={setShowFileManager}
+          onSelectFile={handleFileSelect}
+          fileTypeFilter="image"
+        />
       </DialogContent>
     </Dialog>
   );
