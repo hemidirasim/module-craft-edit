@@ -105,7 +105,8 @@ export const TextContextMenu: React.FC<TextContextMenuProps> = ({ children, onCo
     
     // Insert after a delay to ensure focus is back on editor
     setTimeout(() => {
-      const imageHtml = `<img src="${imageData.src}" alt="${imageData.alt}"${imageData.width ? ` style="width: ${imageData.width}${imageData.width.includes('%') || imageData.width.includes('px') ? '' : 'px'};"` : ''}${imageData.height ? ` style="height: ${imageData.height}${imageData.height.includes('%') || imageData.height.includes('px') ? '' : 'px'};"` : ''} />`;
+      const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const imageHtml = `<img src="${imageData.src}" alt="${imageData.alt}" data-image-id="${imageId}"${imageData.width ? ` style="width: ${imageData.width}${imageData.width.includes('%') || imageData.width.includes('px') ? '' : 'px'};"` : ''}${imageData.height ? ` style="height: ${imageData.height}${imageData.height.includes('%') || imageData.height.includes('px') ? '' : 'px'};"` : ''} />`;
       onCommand('insertHTML', imageHtml);
     }, 100);
   };

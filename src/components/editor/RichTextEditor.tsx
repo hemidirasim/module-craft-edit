@@ -36,6 +36,7 @@ export const RichTextEditor = ({
   const [showImageEdit, setShowImageEdit] = useState(false);
   const [showImageResizer, setShowImageResizer] = useState(false);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
+  const [contextMenuImage, setContextMenuImage] = useState<HTMLImageElement | null>(null);
   const [showCodeDialog, setShowCodeDialog] = useState(false);
   const [showDateTimeDialog, setShowDateTimeDialog] = useState(false);
   const [showMediaDialog, setShowMediaDialog] = useState(false);
@@ -1116,7 +1117,8 @@ export const RichTextEditor = ({
       
       // For images
       if (target.tagName === 'IMG') {
-        setSelectedImage(target as HTMLImageElement);
+        const imageElement = target as HTMLImageElement;
+        setSelectedImage(imageElement);
         setShowImageResizer(true);
         
         // Double click opens edit dialog
@@ -1129,6 +1131,20 @@ export const RichTextEditor = ({
       // Click elsewhere - hide image selection
       setSelectedImage(null);
       setShowImageResizer(false);
+      setContextMenuImage(null);
+    }
+  };
+
+  const handleEditorContextMenu = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    
+    // If right-clicking on an image, set it as the context menu target
+    if (target.tagName === 'IMG') {
+      const imageElement = target as HTMLImageElement;
+      setContextMenuImage(imageElement);
+      setSelectedImage(imageElement);
+    } else {
+      setContextMenuImage(null);
     }
   };
 
@@ -1255,31 +1271,45 @@ export const RichTextEditor = ({
     handleContentChange();
   };
 
-  const handleDeleteImage = () => {
-    if (!selectedImage) return;
+  const handleDeleteImage = (imageElement?: HTMLImageElement) => {
+    const imageToDelete = imageElement || selectedImage;
+    if (!imageToDelete) return;
+    
+    console.log('🗑️ Deleting image:', imageToDelete.getAttribute('data-image-id'));
     
     // Check if image is in a figure (with caption)
-    const figure = selectedImage.closest('figure');
+    const figure = imageToDelete.closest('figure');
     if (figure) {
       figure.remove();
     } else {
-      selectedImage.remove();
+      imageToDelete.remove();
     }
     
     setSelectedImage(null);
     setShowImageResizer(false);
+    setShowImageEdit(false);
     handleContentChange();
   };
 
-  const handleCopyImage = () => {
-    if (!selectedImage) return;
+  const handleCopyImage = (imageElement?: HTMLImageElement) => {
+    const imageToCopy = imageElement || selectedImage;
+    if (!imageToCopy) return;
     
     // Copy image to clipboard (browser support varies)
-    navigator.clipboard.writeText(selectedImage.outerHTML).then(() => {
+    navigator.clipboard.writeText(imageToCopy.outerHTML).then(() => {
       console.log('Image HTML copied to clipboard');
     }).catch(() => {
       console.log('Could not copy image to clipboard');
     });
+  };
+
+  const handleEditImage = (imageElement?: HTMLImageElement) => {
+    const imageToEdit = imageElement || selectedImage;
+    if (!imageToEdit) return;
+    
+    setSelectedImage(imageToEdit);
+    setShowImageEdit(true);
+    setShowImageResizer(false);
   };
 
   return (
@@ -1307,8 +1337,9 @@ export const RichTextEditor = ({
           <div className="overflow-auto max-h-[600px]">
             <ImageContextMenu
               onDeleteImage={handleDeleteImage}
-              onEditImage={() => setShowImageEdit(true)}
+              onEditImage={handleEditImage}
               onCopyImage={handleCopyImage}
+              targetImage={contextMenuImage}
             >
               <TextContextMenu onCommand={handleCommand}>
                 <div
@@ -1333,7 +1364,10 @@ export const RichTextEditor = ({
                   onFocus={() => setIsEditorFocused(true)}
                   onBlur={() => setIsEditorFocused(false)}
                   onKeyDown={handleKeyDown}
-                  onContextMenu={handleContextMenu}
+                  onContextMenu={(e) => {
+                    handleContextMenu(e);
+                    handleEditorContextMenu(e);
+                  }}
                   onMouseMove={handleMouseMove}
                   onMouseDown={handleMouseDown}
                   onClick={handleEditorClick}
@@ -1397,7 +1431,8 @@ export const RichTextEditor = ({
           if (mediaData.type === 'image') {
             const widthStyle = mediaData.width ? `width: ${mediaData.width}${mediaData.width.includes('%') || mediaData.width.includes('px') ? '' : 'px'};` : '';
             const heightStyle = mediaData.height ? `height: ${mediaData.height}${mediaData.height.includes('%') || mediaData.height.includes('px') ? '' : 'px'};` : '';
-            htmlContent = `<img src="${mediaData.content}" alt="${mediaData.alt || 'Media image'}" style="display: block; margin: 16px auto; max-width: 100%; ${widthStyle} ${heightStyle}" />`;
+            const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            htmlContent = `<img src="${mediaData.content}" alt="${mediaData.alt || 'Media image'}" data-image-id="${imageId}" style="display: block; margin: 16px auto; max-width: 100%; ${widthStyle} ${heightStyle}" />`;
           } else if (mediaData.type === 'video') {
             const alignment = mediaData.alignment || 'center';
             htmlContent = `<div style="text-align: ${alignment}; margin: 16px 0;">
