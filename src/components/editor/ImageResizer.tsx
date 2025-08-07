@@ -3,9 +3,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 interface ImageResizerProps {
   imageElement: HTMLImageElement | null;
   onResize: (width: number, height: number) => void;
+  editorRef?: React.RefObject<HTMLDivElement>;
 }
 
-export const ImageResizer = ({ imageElement, onResize }: ImageResizerProps) => {
+export const ImageResizer = ({ imageElement, onResize, editorRef }: ImageResizerProps) => {
   const [isResizing, setIsResizing] = useState(false);
   const [resizeHandle, setResizeHandle] = useState<string>("");
   const [imageRect, setImageRect] = useState<DOMRect | null>(null);
@@ -15,24 +16,45 @@ export const ImageResizer = ({ imageElement, onResize }: ImageResizerProps) => {
 
   // Update overlay position when image element changes
   useEffect(() => {
-    if (imageElement) {
+    if (imageElement && editorRef?.current) {
       const updatePosition = () => {
-        const rect = imageElement.getBoundingClientRect();
-        setImageRect(rect);
+        const editorRect = editorRef.current?.getBoundingClientRect();
+        const imageRect = imageElement.getBoundingClientRect();
+        
+        // Calculate position relative to the editor
+        if (editorRect && imageRect) {
+          // Check if image is within editor bounds
+          const isWithinEditor = (
+            imageRect.left >= editorRect.left &&
+            imageRect.right <= editorRect.right &&
+            imageRect.top >= editorRect.top &&
+            imageRect.bottom <= editorRect.bottom
+          );
+          
+          if (isWithinEditor) {
+            setImageRect(imageRect);
+          } else {
+            setImageRect(null); // Hide resizer if image is outside editor
+          }
+        }
       };
       
       updatePosition();
       
       // Update position on scroll/resize
-      window.addEventListener('scroll', updatePosition);
-      window.addEventListener('resize', updatePosition);
+      const handleUpdate = () => {
+        requestAnimationFrame(updatePosition);
+      };
+      
+      window.addEventListener('scroll', handleUpdate, { passive: true });
+      window.addEventListener('resize', handleUpdate, { passive: true });
       
       return () => {
-        window.removeEventListener('scroll', updatePosition);
-        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', handleUpdate);
+        window.removeEventListener('resize', handleUpdate);
       };
     }
-  }, [imageElement]);
+  }, [imageElement, editorRef]);
 
   const handleMouseDown = (e: React.MouseEvent, handle: string) => {
     console.log('🎯 ImageResizer handleMouseDown triggered:', handle);

@@ -1312,6 +1312,27 @@ export const RichTextEditor = ({
     setShowImageResizer(false);
   };
 
+  const insertLineBreak = (position: 'before' | 'after') => {
+    if (!selectedImage || !editorRef.current) return;
+
+    const br = document.createElement('br');
+    
+    if (position === 'before') {
+      selectedImage.parentNode?.insertBefore(br, selectedImage);
+    } else {
+      if (selectedImage.nextSibling) {
+        selectedImage.parentNode?.insertBefore(br, selectedImage.nextSibling);
+      } else {
+        selectedImage.parentNode?.appendChild(br);
+      }
+    }
+    
+    // Hide image selection after adding line break
+    setSelectedImage(null);
+    setShowImageResizer(false);
+    handleContentChange();
+  };
+
   return (
     <>
       <Card className="overflow-hidden shadow-card">
@@ -1396,7 +1417,44 @@ export const RichTextEditor = ({
       <ImageResizer
         imageElement={showImageResizer ? selectedImage : null}
         onResize={handleImageResize}
+        editorRef={editorRef}
       />
+
+      {selectedImage && (
+        <div 
+          className="fixed z-50 pointer-events-none"
+          style={{
+            left: `${selectedImage.getBoundingClientRect().left + selectedImage.getBoundingClientRect().width / 2 - 12}px`,
+            top: `${selectedImage.getBoundingClientRect().top - 30}px`,
+          }}
+        >
+          <button
+            className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs hover:bg-primary/90 transition-colors pointer-events-auto animate-fade-in"
+            onClick={() => insertLineBreak('before')}
+            title="Add line break above"
+          >
+            ↵
+          </button>
+        </div>
+      )}
+
+      {selectedImage && (
+        <div 
+          className="fixed z-50 pointer-events-none"
+          style={{
+            left: `${selectedImage.getBoundingClientRect().left + selectedImage.getBoundingClientRect().width / 2 - 12}px`,
+            top: `${selectedImage.getBoundingClientRect().top + selectedImage.getBoundingClientRect().height + 6}px`,
+          }}
+        >
+          <button
+            className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs hover:bg-primary/90 transition-colors pointer-events-auto animate-fade-in"
+            onClick={() => insertLineBreak('after')}
+            title="Add line break below"
+          >
+            ↵
+          </button>
+        </div>
+      )}
       
       <ImageEditDialog
         open={showImageEdit}
