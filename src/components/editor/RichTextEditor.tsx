@@ -246,55 +246,69 @@ export const RichTextEditor = ({
         console.log('🚀 RichTextEditor insertHTML called with:', value);
         if (editorRef.current && value) {
           try {
+            // Ensure editor is focused first
             editorRef.current.focus();
             
-            // Get current selection
+            // Create selection if none exists
             const selection = window.getSelection();
+            let range: Range;
+            
             if (selection && selection.rangeCount > 0) {
-              const range = selection.getRangeAt(0);
-              
-              // Delete any selected content
-              range.deleteContents();
-              
-              // Create fragment from HTML string
-              const template = document.createElement('template');
-              template.innerHTML = value.trim();
-              const fragment = template.content;
-              
-              // Insert the fragment
-              range.insertNode(fragment);
-              
-              // Move cursor to end of inserted content
-              range.collapse(false);
-              selection.removeAllRanges();
-              selection.addRange(range);
-              
-              console.log('✅ HTML inserted using modern approach');
+              range = selection.getRangeAt(0);
             } else {
-              // No selection - append to end
-              const template = document.createElement('template');
-              template.innerHTML = value.trim();
-              const fragment = template.content;
-              editorRef.current.appendChild(fragment);
-              
-              // Move cursor to end
-              const range = document.createRange();
+              // Create a range at the end of the editor if no selection
+              range = document.createRange();
               range.selectNodeContents(editorRef.current);
               range.collapse(false);
-              const selection = window.getSelection();
               selection?.removeAllRanges();
               selection?.addRange(range);
-              
-              console.log('✅ HTML appended to end');
             }
             
+            // Ensure the range is within the editor
+            if (!editorRef.current.contains(range.commonAncestorContainer)) {
+              range = document.createRange();
+              range.selectNodeContents(editorRef.current);
+              range.collapse(false);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            }
+            
+            // Delete any selected content
+            range.deleteContents();
+            
+            // Create fragment from HTML string
+            const template = document.createElement('template');
+            template.innerHTML = value.trim();
+            const fragment = template.content;
+            
+            // Insert the fragment
+            range.insertNode(fragment);
+            
+            // Move cursor after the inserted content
+            range.setStartAfter(fragment.lastChild || fragment);
+            range.collapse(true);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+            
+            console.log('✅ HTML inserted using modern approach');
             handleContentChange();
           } catch (error) {
             console.error('❌ Error with modern approach, falling back:', error);
             // Fallback to execCommand
-            const result = document.execCommand('insertHTML', false, value);
-            console.log('📝 Fallback insertHTML result:', result);
-            handleContentChange();
+            try {
+              const result = document.execCommand('insertHTML', false, value);
+              console.log('📝 Fallback insertHTML result:', result);
+              handleContentChange();
+            } catch (fallbackError) {
+              console.error('❌ Fallback also failed:', fallbackError);
+              // Ultimate fallback - append to end
+              if (editorRef.current) {
+                const div = document.createElement('div');
+                div.innerHTML = value;
+                editorRef.current.appendChild(div);
+                handleContentChange();
+              }
+            }
           }
         } else {
           console.log('❌ No editor ref or value found');
@@ -1203,37 +1217,39 @@ export const RichTextEditor = ({
             placeholder="<p>Enter HTML here...</p>"
           />
         ) : (
-          <TextContextMenu onCommand={handleCommand}>
-            <div
-              ref={editorRef}
-              contentEditable
-              className={`
-                min-h-[300px] p-4 outline-none text-foreground bg-background
-                max-w-none
-                focus:ring-2 focus:ring-primary/20 focus:ring-inset
-                ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
-              `}
-              style={{
-                fontFamily: configuration.fontFamily || undefined,
-                fontSize: configuration.fontSize || undefined,
-                backgroundColor: configuration.backgroundColor || undefined,
-                color: configuration.textColor || undefined,
-                background: editorRef.current?.innerHTML === '' ? 
-                  `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
-                  'transparent'
-              }}
-              onInput={handleContentChange}
-              onFocus={() => setIsEditorFocused(true)}
-              onBlur={() => setIsEditorFocused(false)}
-              onKeyDown={handleKeyDown}
-              onContextMenu={handleContextMenu}
-              onMouseMove={handleMouseMove}
-              onMouseDown={handleMouseDown}
-              onClick={handleEditorClick}
-              data-placeholder={placeholder}
-              suppressContentEditableWarning={true}
-            />
-          </TextContextMenu>
+          <div className="overflow-auto max-h-[600px]">
+            <TextContextMenu onCommand={handleCommand}>
+              <div
+                ref={editorRef}
+                contentEditable
+                className={`
+                  min-h-[300px] p-4 outline-none text-foreground bg-background
+                  w-full overflow-wrap-anywhere
+                  focus:ring-2 focus:ring-primary/20 focus:ring-inset
+                  ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
+                `}
+                style={{
+                  fontFamily: configuration.fontFamily || undefined,
+                  fontSize: configuration.fontSize || undefined,
+                  backgroundColor: configuration.backgroundColor || undefined,
+                  color: configuration.textColor || undefined,
+                  background: editorRef.current?.innerHTML === '' ? 
+                    `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
+                    'transparent'
+                }}
+                onInput={handleContentChange}
+                onFocus={() => setIsEditorFocused(true)}
+                onBlur={() => setIsEditorFocused(false)}
+                onKeyDown={handleKeyDown}
+                onContextMenu={handleContextMenu}
+                onMouseMove={handleMouseMove}
+                onMouseDown={handleMouseDown}
+                onClick={handleEditorClick}
+                data-placeholder={placeholder}
+                suppressContentEditableWarning={true}
+              />
+            </TextContextMenu>
+          </div>
         )}
       </Card>
       
