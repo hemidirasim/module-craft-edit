@@ -65,17 +65,28 @@ interface EditorToolbarProps {
     fontFamily: string;
     blockFormat: string;
   };
+  showCodeDialog?: boolean;
+  setShowCodeDialog?: (show: boolean) => void;
+  showDateTimeDialog?: boolean;
+  setShowDateTimeDialog?: (show: boolean) => void;
 }
 
-export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = "", activeFormats }: EditorToolbarProps) => {
+export const EditorToolbar = ({ 
+  onCommand, 
+  configuration = {}, 
+  selectedText = "", 
+  activeFormats,
+  showCodeDialog = false,
+  setShowCodeDialog,
+  showDateTimeDialog = false,
+  setShowDateTimeDialog
+}: EditorToolbarProps) => {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showMediaDialog, setShowMediaDialog] = useState(false);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   const [showTableSelector, setShowTableSelector] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showCodeDialog, setShowCodeDialog] = useState(false);
-  const [showDateTimeDialog, setShowDateTimeDialog] = useState(false);
   const fontFamilies = [
     "Arial", "Helvetica", "Times New Roman", "Georgia", "Verdana", 
     "Courier New", "Tahoma", "Comic Sans MS", "Impact", "Trebuchet MS"
@@ -370,14 +381,14 @@ export const EditorToolbar = ({ onCommand, configuration = {}, selectedText = ""
             Bookmark
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => setShowCodeDialog(true)}
+            onClick={() => setShowCodeDialog?.(true)}
             className="cursor-pointer hover:bg-accent"
           >
             <Code2 size={16} className="mr-2" />
             Code Sample
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => setShowDateTimeDialog(true)}
+            onClick={() => setShowDateTimeDialog?.(true)}
             className="cursor-pointer hover:bg-accent"
           >
             <Calendar size={16} className="mr-2" />

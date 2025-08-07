@@ -53,11 +53,21 @@ export const exportToWord = async (content: string, filename: string = 'document
             break;
             
           case 'img':
-            // For images, we'll add a placeholder text
-            const altText = (element as HTMLImageElement).alt || 'Image';
-            results.push(new Paragraph({
-              children: [new TextRun(`[Image: ${altText}]`)],
-            }));
+            // For images, try to get the actual image data
+            const imgElement = element as HTMLImageElement;
+            const altText = imgElement.alt || 'Image';
+            const src = imgElement.src;
+            
+            try {
+              // Create a placeholder for now - Word export with images requires more complex handling
+              results.push(new Paragraph({
+                children: [new TextRun(`[Image: ${altText} - ${src}]`)],
+              }));
+            } catch (error) {
+              results.push(new Paragraph({
+                children: [new TextRun(`[Image: ${altText}]`)],
+              }));
+            }
             break;
             
           case 'p':
@@ -171,11 +181,21 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     // Style images properly for export
     const images = tempDiv.querySelectorAll('img');
     images.forEach(img => {
-      (img as HTMLElement).style.maxWidth = '100%';
-      (img as HTMLElement).style.height = 'auto';
-      (img as HTMLElement).style.display = 'block';
-      (img as HTMLElement).style.margin = '10px 0';
-      (img as HTMLElement).style.objectFit = 'contain';
+      const imgElement = img as HTMLImageElement;
+      imgElement.style.maxWidth = '100%';
+      imgElement.style.height = 'auto';
+      imgElement.style.display = 'block';
+      imgElement.style.margin = '10px 0';
+      imgElement.style.objectFit = 'contain';
+      imgElement.crossOrigin = 'anonymous';
+      
+      // If image is a data URL or blob, keep it as is
+      // If it's a relative URL, convert to absolute
+      if (imgElement.src && !imgElement.src.startsWith('data:') && !imgElement.src.startsWith('blob:')) {
+        if (imgElement.src.startsWith('/')) {
+          imgElement.src = window.location.origin + imgElement.src;
+        }
+      }
     });
     
     // Style tables
@@ -198,24 +218,49 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     
     document.body.appendChild(tempDiv);
     
-    // Wait for images to load
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Ensure all images are loaded
+    // Wait for images to load and handle CORS
     const imagePromises = Array.from(images).map(img => {
       return new Promise((resolve) => {
-        if ((img as HTMLImageElement).complete) {
+        const imgElement = img as HTMLImageElement;
+        
+        if (imgElement.complete && imgElement.naturalHeight !== 0) {
           resolve(true);
         } else {
-          img.addEventListener('load', () => resolve(true));
-          img.addEventListener('error', () => resolve(true));
-          // Timeout fallback
-          setTimeout(() => resolve(true), 3000);
+          const handleLoad = () => {
+            imgElement.removeEventListener('load', handleLoad);
+            imgElement.removeEventListener('error', handleError);
+            resolve(true);
+          };
+          
+          const handleError = () => {
+            imgElement.removeEventListener('load', handleLoad);
+            imgElement.removeEventListener('error', handleError);
+            console.warn('Image failed to load:', imgElement.src);
+            resolve(true);
+          };
+          
+          imgElement.addEventListener('load', handleLoad);
+          imgElement.addEventListener('error', handleError);
+          
+          // If image is not loading, try to reload it
+          if (!imgElement.src || imgElement.src === '') {
+            resolve(true);
+          } else {
+            // Timeout fallback
+            setTimeout(() => {
+              imgElement.removeEventListener('load', handleLoad);
+              imgElement.removeEventListener('error', handleError);
+              resolve(true);
+            }, 5000);
+          }
         }
       });
     });
     
     await Promise.all(imagePromises);
+    
+    // Additional wait to ensure rendering is complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Convert to canvas with improved options
     const canvas = await html2canvas(tempDiv, {

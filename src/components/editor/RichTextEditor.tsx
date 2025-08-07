@@ -5,6 +5,8 @@ import { TableContextMenu } from "./TableContextMenu";
 import { TextContextMenu } from "./TextContextMenu";
 import { ImageEditDialog } from "./ImageEditDialog";
 import { FindReplaceDialog } from "./FindReplaceDialog";
+import { CodeSampleDialog } from "./CodeSampleDialog";
+import { DateTimeDialog } from "./DateTimeDialog";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -32,6 +34,8 @@ export const RichTextEditor = ({
   const [showImageEdit, setShowImageEdit] = useState(false);
   const [showImageResizer, setShowImageResizer] = useState(false);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
+  const [showCodeDialog, setShowCodeDialog] = useState(false);
+  const [showDateTimeDialog, setShowDateTimeDialog] = useState(false);
   const [activeFormats, setActiveFormats] = useState<{
     bold: boolean;
     italic: boolean;
@@ -1158,7 +1162,15 @@ export const RichTextEditor = ({
   return (
     <>
       <Card className="overflow-hidden shadow-card">
-        <EditorToolbar onCommand={handleCommand} configuration={configuration} activeFormats={activeFormats} />
+        <EditorToolbar 
+          onCommand={handleCommand} 
+          configuration={configuration} 
+          activeFormats={activeFormats}
+          showCodeDialog={showCodeDialog}
+          setShowCodeDialog={setShowCodeDialog}
+          showDateTimeDialog={showDateTimeDialog}
+          setShowDateTimeDialog={setShowDateTimeDialog}
+        />
         {isHtmlView ? (
           <Textarea
             value={htmlContent}
@@ -1224,6 +1236,23 @@ export const RichTextEditor = ({
         onOpenChange={setShowImageEdit}
         imageElement={selectedImage}
         onApplyChanges={handleImageChanges}
+      />
+      
+      <CodeSampleDialog
+        open={showCodeDialog}
+        onOpenChange={setShowCodeDialog}
+        onInsertCode={(code, language) => {
+          const codeHtml = `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 16px; margin: 16px 0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code data-language="${language}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre><br>`;
+          handleCommand('insertHTML', codeHtml);
+        }}
+      />
+      
+      <DateTimeDialog
+        open={showDateTimeDialog}
+        onOpenChange={setShowDateTimeDialog}
+        onInsertDateTime={(dateTime) => {
+          handleCommand('insertHTML', `${dateTime} `);
+        }}
       />
     </>
   );
