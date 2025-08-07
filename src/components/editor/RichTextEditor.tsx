@@ -244,36 +244,60 @@ export const RichTextEditor = ({
 
       if (command === 'insertHTML') {
         console.log('🚀 RichTextEditor insertHTML called with:', value);
-        if (editorRef.current) {
-          // Store current selection before operations
-          const selection = window.getSelection();
-          let range = null;
-          
-          if (selection && selection.rangeCount > 0) {
-            range = selection.getRangeAt(0);
-            console.log('📍 Found existing selection:', range);
-          } else {
-            // Create new range at end of editor if no selection
-            range = document.createRange();
-            range.selectNodeContents(editorRef.current);
-            range.collapse(false);
-            console.log('📍 Created new range at end');
+        if (editorRef.current && value) {
+          try {
+            editorRef.current.focus();
+            
+            // Get current selection
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              
+              // Delete any selected content
+              range.deleteContents();
+              
+              // Create fragment from HTML string
+              const template = document.createElement('template');
+              template.innerHTML = value.trim();
+              const fragment = template.content;
+              
+              // Insert the fragment
+              range.insertNode(fragment);
+              
+              // Move cursor to end of inserted content
+              range.collapse(false);
+              selection.removeAllRanges();
+              selection.addRange(range);
+              
+              console.log('✅ HTML inserted using modern approach');
+            } else {
+              // No selection - append to end
+              const template = document.createElement('template');
+              template.innerHTML = value.trim();
+              const fragment = template.content;
+              editorRef.current.appendChild(fragment);
+              
+              // Move cursor to end
+              const range = document.createRange();
+              range.selectNodeContents(editorRef.current);
+              range.collapse(false);
+              const selection = window.getSelection();
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+              
+              console.log('✅ HTML appended to end');
+            }
+            
+            handleContentChange();
+          } catch (error) {
+            console.error('❌ Error with modern approach, falling back:', error);
+            // Fallback to execCommand
+            const result = document.execCommand('insertHTML', false, value);
+            console.log('📝 Fallback insertHTML result:', result);
+            handleContentChange();
           }
-          
-          // Clear selection and re-select
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-          
-          // Focus and insert
-          editorRef.current.focus();
-          console.log('✅ About to execute insertHTML command');
-          const result = document.execCommand('insertHTML', false, value);
-          console.log('📝 insertHTML result:', result);
-          console.log('📄 Editor content after insert:', editorRef.current.innerHTML);
-          
-          handleContentChange();
         } else {
-          console.log('❌ No editor ref found');
+          console.log('❌ No editor ref or value found');
         }
         return;
       }
