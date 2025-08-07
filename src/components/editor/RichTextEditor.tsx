@@ -3,6 +3,7 @@ import { EditorToolbar } from "./EditorToolbar";
 import { ImageResizer } from "./ImageResizer";
 import { TableContextMenu } from "./TableContextMenu";
 import { TextContextMenu } from "./TextContextMenu";
+import { ImageContextMenu } from "./ImageContextMenu";
 import { ImageEditDialog } from "./ImageEditDialog";
 import { FindReplaceDialog } from "./FindReplaceDialog";
 import { CodeSampleDialog } from "./CodeSampleDialog";
@@ -1254,6 +1255,33 @@ export const RichTextEditor = ({
     handleContentChange();
   };
 
+  const handleDeleteImage = () => {
+    if (!selectedImage) return;
+    
+    // Check if image is in a figure (with caption)
+    const figure = selectedImage.closest('figure');
+    if (figure) {
+      figure.remove();
+    } else {
+      selectedImage.remove();
+    }
+    
+    setSelectedImage(null);
+    setShowImageResizer(false);
+    handleContentChange();
+  };
+
+  const handleCopyImage = () => {
+    if (!selectedImage) return;
+    
+    // Copy image to clipboard (browser support varies)
+    navigator.clipboard.writeText(selectedImage.outerHTML).then(() => {
+      console.log('Image HTML copied to clipboard');
+    }).catch(() => {
+      console.log('Could not copy image to clipboard');
+    });
+  };
+
   return (
     <>
       <Card className="overflow-hidden shadow-card">
@@ -1277,37 +1305,43 @@ export const RichTextEditor = ({
           />
         ) : (
           <div className="overflow-auto max-h-[600px]">
-            <TextContextMenu onCommand={handleCommand}>
-              <div
-                ref={editorRef}
-                contentEditable
-                className={`
-                  min-h-[300px] p-4 outline-none text-foreground bg-background
-                  w-full overflow-wrap-anywhere
-                  focus:ring-2 focus:ring-primary/20 focus:ring-inset
-                  ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
-                `}
-                style={{
-                  fontFamily: configuration.fontFamily || undefined,
-                  fontSize: configuration.fontSize || undefined,
-                  backgroundColor: configuration.backgroundColor || undefined,
-                  color: configuration.textColor || undefined,
-                  background: editorRef.current?.innerHTML === '' ? 
-                    `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
-                    'transparent'
-                }}
-                onInput={handleContentChange}
-                onFocus={() => setIsEditorFocused(true)}
-                onBlur={() => setIsEditorFocused(false)}
-                onKeyDown={handleKeyDown}
-                onContextMenu={handleContextMenu}
-                onMouseMove={handleMouseMove}
-                onMouseDown={handleMouseDown}
-                onClick={handleEditorClick}
-                data-placeholder={placeholder}
-                suppressContentEditableWarning={true}
-              />
-            </TextContextMenu>
+            <ImageContextMenu
+              onDeleteImage={handleDeleteImage}
+              onEditImage={() => setShowImageEdit(true)}
+              onCopyImage={handleCopyImage}
+            >
+              <TextContextMenu onCommand={handleCommand}>
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  className={`
+                    min-h-[300px] p-4 outline-none text-foreground bg-background
+                    w-full overflow-wrap-anywhere
+                    focus:ring-2 focus:ring-primary/20 focus:ring-inset
+                    ${isEditorFocused ? 'ring-2 ring-primary/20' : ''}
+                  `}
+                  style={{
+                    fontFamily: configuration.fontFamily || undefined,
+                    fontSize: configuration.fontSize || undefined,
+                    backgroundColor: configuration.backgroundColor || undefined,
+                    color: configuration.textColor || undefined,
+                    background: editorRef.current?.innerHTML === '' ? 
+                      `url("data:text/plain;charset=UTF-8,${encodeURIComponent(placeholder)}") no-repeat 1rem 1rem` : 
+                      'transparent'
+                  }}
+                  onInput={handleContentChange}
+                  onFocus={() => setIsEditorFocused(true)}
+                  onBlur={() => setIsEditorFocused(false)}
+                  onKeyDown={handleKeyDown}
+                  onContextMenu={handleContextMenu}
+                  onMouseMove={handleMouseMove}
+                  onMouseDown={handleMouseDown}
+                  onClick={handleEditorClick}
+                  data-placeholder={placeholder}
+                  suppressContentEditableWarning={true}
+                />
+              </TextContextMenu>
+            </ImageContextMenu>
           </div>
         )}
       </Card>
