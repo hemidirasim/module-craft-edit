@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlignLeft, AlignCenter, AlignRight, Crop } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Crop, Type, WrapText } from "lucide-react";
 import { CropDialog } from "./CropDialog";
 import { toast } from "sonner";
 
@@ -28,6 +28,7 @@ interface ImageChanges {
   caption?: string;
   alt?: string;
   newSrc?: string;
+  textWrap?: 'none' | 'left' | 'right';
 }
 
 export const ImageEditDialog = ({ 
@@ -41,6 +42,7 @@ export const ImageEditDialog = ({
   const [widthUnit, setWidthUnit] = useState<'px' | '%'>('px');
   const [heightUnit, setHeightUnit] = useState<'px' | '%'>('px');
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('center');
+  const [textWrap, setTextWrap] = useState<'none' | 'left' | 'right'>('none');
   const [caption, setCaption] = useState<string>("");
   const [alt, setAlt] = useState<string>("");
   const [originalWidth, setOriginalWidth] = useState<number>(0);
@@ -74,6 +76,10 @@ export const ImageEditDialog = ({
       const textAlign = parent?.style.textAlign || 'center';
       setAlignment(textAlign as 'left' | 'center' | 'right');
       
+      // Get text wrap setting from image style
+      const float = imageElement.style.float || 'none';
+      setTextWrap(float as 'none' | 'left' | 'right');
+      
       // Get caption from next sibling or figure caption
       const figure = imageElement.closest('figure');
       const figcaption = figure?.querySelector('figcaption');
@@ -93,6 +99,7 @@ export const ImageEditDialog = ({
       width: width ? width + widthUnit : undefined,
       height: height ? height + heightUnit : undefined,
       alignment,
+      textWrap,
       caption,
       alt,
       newSrc: newImageSrc || undefined
@@ -284,6 +291,46 @@ export const ImageEditDialog = ({
                 <AlignRight className="w-4 h-4" />
               </Button>
             </div>
+          </div>
+
+          {/* Text Wrap Control */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <WrapText className="w-4 h-4" />
+              Text Wrap
+            </Label>
+            <div className="flex gap-1">
+              <Button
+                variant={textWrap === 'none' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTextWrap('none')}
+                className="flex-1"
+              >
+                <Type className="w-4 h-4 mr-1" />
+                None
+              </Button>
+              <Button
+                variant={textWrap === 'left' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTextWrap('left')}
+                className="flex-1"
+              >
+                <AlignLeft className="w-4 h-4 mr-1" />
+                Left
+              </Button>
+              <Button
+                variant={textWrap === 'right' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTextWrap('right')}
+                className="flex-1"
+              >
+                <AlignRight className="w-4 h-4 mr-1" />
+                Right
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Text wrap allows text to flow around the image on the selected side
+            </p>
           </div>
 
           {/* Caption */}

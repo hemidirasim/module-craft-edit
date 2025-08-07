@@ -1126,8 +1126,27 @@ export const RichTextEditor = ({
       selectedImage.style.height = changes.height;
     }
     
-    // Apply alignment changes
-    if (changes.alignment) {
+    // Apply text wrap changes first (affects float)
+    if (changes.textWrap !== undefined) {
+      selectedImage.style.float = changes.textWrap;
+      
+      if (changes.textWrap === 'left' || changes.textWrap === 'right') {
+        selectedImage.style.margin = changes.textWrap === 'left' ? '0 16px 16px 0' : '0 0 16px 16px';
+        selectedImage.style.maxWidth = '50%';
+        
+        // Reset container alignment when using text wrap
+        const container = selectedImage.parentElement;
+        if (container && container !== editorRef.current) {
+          container.style.textAlign = '';
+        }
+      } else {
+        selectedImage.style.margin = '';
+        selectedImage.style.maxWidth = '';
+      }
+    }
+    
+    // Apply alignment changes (only when not using text wrap)
+    if (changes.alignment && (!changes.textWrap || changes.textWrap === 'none')) {
       // Find the containing paragraph or create one if needed
       let container = selectedImage.parentElement;
       
