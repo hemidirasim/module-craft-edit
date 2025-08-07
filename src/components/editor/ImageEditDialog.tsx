@@ -41,8 +41,8 @@ export const ImageEditDialog = ({
 }: ImageEditDialogProps) => {
   const [width, setWidth] = useState<string>("");
   const [height, setHeight] = useState<string>("");
-  const [widthUnit, setWidthUnit] = useState<'px' | '%'>('px');
-  const [heightUnit, setHeightUnit] = useState<'px' | '%'>('px');
+  const [widthUnit, setWidthUnit] = useState<'px' | '%' | 'auto'>('px');
+  const [heightUnit, setHeightUnit] = useState<'px' | '%' | 'auto'>('auto');
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('center');
   const [textWrap, setTextWrap] = useState<'none' | 'left' | 'right'>('none');
   const [caption, setCaption] = useState<string>("");
@@ -61,17 +61,26 @@ export const ImageEditDialog = ({
       const currentHeight = imageElement.style.height || imageElement.height + 'px';
       
       // Parse width and height values with units
-      const widthMatch = currentWidth.match(/^(\d+)(.*)$/);
-      const heightMatch = currentHeight.match(/^(\d+)(.*)$/);
-      
-      if (widthMatch) {
-        setWidth(widthMatch[1]);
-        setWidthUnit(widthMatch[2].includes('%') ? '%' : 'px');
+      if (currentWidth === 'auto' || currentWidth.includes('auto')) {
+        setWidth("");
+        setWidthUnit('auto');
+      } else {
+        const widthMatch = currentWidth.match(/^(\d+)(.*)$/);
+        if (widthMatch) {
+          setWidth(widthMatch[1]);
+          setWidthUnit(widthMatch[2].includes('%') ? '%' : 'px');
+        }
       }
       
-      if (heightMatch) {
-        setHeight(heightMatch[1]);
-        setHeightUnit(heightMatch[2].includes('%') ? '%' : 'px');
+      if (currentHeight === 'auto' || currentHeight.includes('auto')) {
+        setHeight("");
+        setHeightUnit('auto');
+      } else {
+        const heightMatch = currentHeight.match(/^(\d+)(.*)$/);
+        if (heightMatch) {
+          setHeight(heightMatch[1]);
+          setHeightUnit(heightMatch[2].includes('%') ? '%' : 'px');
+        }
       }
       
       // Get alignment from parent or image style
@@ -99,8 +108,8 @@ export const ImageEditDialog = ({
 
   const handleApply = () => {
     const changes: ImageChanges = {
-      width: width ? width + widthUnit : undefined,
-      height: height ? height + heightUnit : undefined,
+      width: widthUnit === 'auto' ? 'auto' : (width ? width + widthUnit : undefined),
+      height: heightUnit === 'auto' ? 'auto' : (height ? height + heightUnit : undefined),
       alignment,
       textWrap,
       caption,
@@ -175,51 +184,55 @@ export const ImageEditDialog = ({
     }
   };
 
-  const convertWidthToPixels = (value: string, unit: 'px' | '%') => {
+  const convertWidthToPixels = (value: string, unit: 'px' | '%' | 'auto') => {
     if (unit === '%' && originalWidth) {
       return Math.round((originalWidth * parseInt(value)) / 100).toString();
     }
     return value;
   };
 
-  const convertHeightToPixels = (value: string, unit: 'px' | '%') => {
+  const convertHeightToPixels = (value: string, unit: 'px' | '%' | 'auto') => {
     if (unit === '%' && originalHeight) {
       return Math.round((originalHeight * parseInt(value)) / 100).toString();
     }
     return value;
   };
 
-  const convertWidthToPercent = (value: string, unit: 'px' | '%') => {
+  const convertWidthToPercent = (value: string, unit: 'px' | '%' | 'auto') => {
     if (unit === 'px' && originalWidth) {
       return Math.round((parseInt(value) / originalWidth) * 100).toString();
     }
     return value;
   };
 
-  const convertHeightToPercent = (value: string, unit: 'px' | '%') => {
+  const convertHeightToPercent = (value: string, unit: 'px' | '%' | 'auto') => {
     if (unit === 'px' && originalHeight) {
       return Math.round((parseInt(value) / originalHeight) * 100).toString();
     }
     return value;
   };
 
-  const handleWidthUnitChange = (newUnit: 'px' | '%') => {
-    if (width) {
+  const handleWidthUnitChange = (newUnit: 'px' | '%' | 'auto') => {
+    if (newUnit === 'auto') {
+      setWidth("");
+    } else if (width && (widthUnit === 'px' || widthUnit === '%')) {
       if (newUnit === 'px' && widthUnit === '%') {
-        setWidth(convertWidthToPixels(width, '%'));
+        setWidth(convertWidthToPixels(width, widthUnit));
       } else if (newUnit === '%' && widthUnit === 'px') {
-        setWidth(convertWidthToPercent(width, 'px'));
+        setWidth(convertWidthToPercent(width, widthUnit));
       }
     }
     setWidthUnit(newUnit);
   };
 
-  const handleHeightUnitChange = (newUnit: 'px' | '%') => {
-    if (height) {
+  const handleHeightUnitChange = (newUnit: 'px' | '%' | 'auto') => {
+    if (newUnit === 'auto') {
+      setHeight("");
+    } else if (height && (heightUnit === 'px' || heightUnit === '%')) {
       if (newUnit === 'px' && heightUnit === '%') {
-        setHeight(convertHeightToPixels(height, '%'));
+        setHeight(convertHeightToPixels(height, heightUnit));
       } else if (newUnit === '%' && heightUnit === 'px') {
-        setHeight(convertHeightToPercent(height, 'px'));
+        setHeight(convertHeightToPercent(height, heightUnit));
       }
     }
     setHeightUnit(newUnit);
@@ -270,6 +283,7 @@ export const ImageEditDialog = ({
                 onChange={(e) => setWidth(e.target.value)}
                 placeholder="Width"
                 className="flex-1"
+                disabled={widthUnit === 'auto'}
               />
               <Select value={widthUnit} onValueChange={handleWidthUnitChange}>
                 <SelectTrigger className="w-20">
@@ -278,6 +292,7 @@ export const ImageEditDialog = ({
                 <SelectContent>
                   <SelectItem value="px">px</SelectItem>
                   <SelectItem value="%">%</SelectItem>
+                  <SelectItem value="auto">auto</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -293,6 +308,7 @@ export const ImageEditDialog = ({
                 onChange={(e) => setHeight(e.target.value)}
                 placeholder="Height"
                 className="flex-1"
+                disabled={heightUnit === 'auto'}
               />
               <Select value={heightUnit} onValueChange={handleHeightUnitChange}>
                 <SelectTrigger className="w-20">
@@ -301,6 +317,7 @@ export const ImageEditDialog = ({
                 <SelectContent>
                   <SelectItem value="px">px</SelectItem>
                   <SelectItem value="%">%</SelectItem>
+                  <SelectItem value="auto">auto</SelectItem>
                 </SelectContent>
               </Select>
             </div>
