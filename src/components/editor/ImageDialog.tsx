@@ -35,8 +35,8 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
     if (open) {
       setImageUrl("");
       setImageAlt("");
-      setImageWidth("");
-      setImageHeight("");
+      setImageWidth("300px");  // Default width to 300px
+      setImageHeight("auto");  // Default height to auto
       setSelectedFile(null);
       setPreviewUrl("");
       setUploadedImageUrl("");
@@ -230,8 +230,8 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
   const handleClose = () => {
     setImageUrl("");
     setImageAlt("");
-    setImageWidth("");
-    setImageHeight("");
+    setImageWidth("300px");  // Default width to 300px
+    setImageHeight("auto");  // Default height to auto
     setSelectedFile(null);
     setPreviewUrl("");
     setUploadedImageUrl("");
@@ -404,7 +404,7 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
                   id="image-height"
                   value={imageHeight}
                   onChange={(e) => setImageHeight(e.target.value)}
-                  placeholder="e.g., 200px or auto"
+                  placeholder="auto (recommended)"
                 />
               </div>
             </div>
