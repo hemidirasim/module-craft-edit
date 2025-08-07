@@ -606,8 +606,8 @@ export const EditorToolbar = ({
       <CodeSampleDialog
         open={showCodeDialog}
         onOpenChange={setShowCodeDialog}
-        onInsertCode={(code, language) => {
-          const codeHtml = `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 16px; margin: 16px 0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code data-language="${language}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre><br>`;
+        onInsertCode={(code) => {
+          const codeHtml = `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 16px; margin: 16px 0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre><br>`;
           onCommand('insertHTML', codeHtml);
         }}
       />
