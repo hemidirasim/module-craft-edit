@@ -34,8 +34,58 @@ export const importFromWord = async (file: File): Promise<string> => {
     }
     
     // Check if content looks like demo content
-    if (htmlContent.includes('CKEditor') || htmlContent.includes('Discover the riches')) {
-      console.log('ℹ️ Detected demo content in Word document');
+    const demoContentIndicators = [
+      'CKEditor',
+      'Discover the riches',
+      'Block formatting',
+      'Bulleted list',
+      'Start a line with *',
+      'Numbered list',
+      'Start a line with 1.',
+      'To-do list',
+      'Start a line with [ ]',
+      'Headings',
+      'Start a line with #',
+      'Block quote',
+      'Start a line with >',
+      'Code block',
+      'Start a line with ```',
+      'Horizontal line',
+      'Start a line with ---',
+      'Inline formatting',
+      'Autoformatting in CKEditor'
+    ];
+    
+    const isDemoContent = demoContentIndicators.some(indicator => 
+      htmlContent.toLowerCase().includes(indicator.toLowerCase())
+    );
+    
+    if (isDemoContent) {
+      console.log('⚠️ Detected demo content in Word document');
+      console.log('⚠️ This appears to be CKEditor demo content, not your own document');
+      
+      // Return a warning message instead of demo content
+      return `
+        <div style="border: 2px solid #ff6b6b; padding: 20px; margin: 20px; border-radius: 8px; background-color: #fff5f5;">
+          <h3 style="color: #d63031; margin-top: 0;">⚠️ Demo Content Detected</h3>
+          <p style="color: #2d3436; margin-bottom: 15px;">
+            <strong>The imported Word document contains CKEditor demo content.</strong>
+          </p>
+          <p style="color: #636e72; margin-bottom: 15px;">
+            This appears to be a demo document from CKEditor, not your own content. 
+            Please import your own Word document instead.
+          </p>
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; border-left: 4px solid #74b9ff;">
+            <p style="margin: 0; color: #2d3436; font-size: 14px;">
+              <strong>To import your own content:</strong><br>
+              1. Create a new Word document with your own text<br>
+              2. Add formatting, lists, headings as needed<br>
+              3. Save as .docx file<br>
+              4. Import using File → Import from Word
+            </p>
+          </div>
+        </div>
+      `;
     }
     
     console.log('✅ Word import completed successfully');
@@ -47,6 +97,44 @@ export const importFromWord = async (file: File): Promise<string> => {
     console.error('❌ Error importing from Word:', error);
     throw new Error(`Failed to import Word document: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+};
+
+// Validate and clean imported content
+const validateImportedContent = (htmlContent: string): string => {
+  // Remove common demo content patterns
+  const demoPatterns = [
+    /<p[^>]*>.*?CKEditor.*?<\/p>/gi,
+    /<p[^>]*>.*?Discover the riches.*?<\/p>/gi,
+    /<p[^>]*>.*?Block formatting.*?<\/p>/gi,
+    /<p[^>]*>.*?Bulleted list.*?<\/p>/gi,
+    /<p[^>]*>.*?Start a line with.*?<\/p>/gi,
+    /<p[^>]*>.*?Numbered list.*?<\/p>/gi,
+    /<p[^>]*>.*?To-do list.*?<\/p>/gi,
+    /<p[^>]*>.*?Headings.*?<\/p>/gi,
+    /<p[^>]*>.*?Block quote.*?<\/p>/gi,
+    /<p[^>]*>.*?Code block.*?<\/p>/gi,
+    /<p[^>]*>.*?Horizontal line.*?<\/p>/gi,
+    /<p[^>]*>.*?Inline formatting.*?<\/p>/gi,
+    /<p[^>]*>.*?Autoformatting.*?<\/p>/gi
+  ];
+  
+  let cleanedContent = htmlContent;
+  
+  // Remove demo patterns
+  demoPatterns.forEach(pattern => {
+    cleanedContent = cleanedContent.replace(pattern, '');
+  });
+  
+  // Remove empty paragraphs
+  cleanedContent = cleanedContent.replace(/<p[^>]*>\s*<\/p>/g, '');
+  
+  // Remove consecutive empty lines
+  cleanedContent = cleanedContent.replace(/\n\s*\n\s*\n/g, '\n\n');
+  
+  // Trim whitespace
+  cleanedContent = cleanedContent.trim();
+  
+  return cleanedContent;
 };
 
 // Improved Word content extraction
@@ -80,7 +168,10 @@ const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => 
     const paragraphs = parseBodyContent(bodyXml);
     
     // Convert to HTML
-    const htmlContent = convertParagraphsToHtml(paragraphs);
+    let htmlContent = convertParagraphsToHtml(paragraphs);
+    
+    // Validate and clean content
+    htmlContent = validateImportedContent(htmlContent);
     
     return htmlContent;
   } catch (error) {
