@@ -33,61 +33,6 @@ export const importFromWord = async (file: File): Promise<string> => {
       return '<p>No content could be extracted from the Word document. Please check if the file contains text content.</p>';
     }
     
-    // Check if content looks like demo content
-    const demoContentIndicators = [
-      'CKEditor',
-      'Discover the riches',
-      'Block formatting',
-      'Bulleted list',
-      'Start a line with *',
-      'Numbered list',
-      'Start a line with 1.',
-      'To-do list',
-      'Start a line with [ ]',
-      'Headings',
-      'Start a line with #',
-      'Block quote',
-      'Start a line with >',
-      'Code block',
-      'Start a line with ```',
-      'Horizontal line',
-      'Start a line with ---',
-      'Inline formatting',
-      'Autoformatting in CKEditor'
-    ];
-    
-    const isDemoContent = demoContentIndicators.some(indicator => 
-      htmlContent.toLowerCase().includes(indicator.toLowerCase())
-    );
-    
-    if (isDemoContent) {
-      console.log('⚠️ Detected demo content in Word document');
-      console.log('⚠️ This appears to be CKEditor demo content, not your own document');
-      
-      // Return a warning message instead of demo content
-      return `
-        <div style="border: 2px solid #ff6b6b; padding: 20px; margin: 20px; border-radius: 8px; background-color: #fff5f5;">
-          <h3 style="color: #d63031; margin-top: 0;">⚠️ Demo Content Detected</h3>
-          <p style="color: #2d3436; margin-bottom: 15px;">
-            <strong>The imported Word document contains CKEditor demo content.</strong>
-          </p>
-          <p style="color: #636e72; margin-bottom: 15px;">
-            This appears to be a demo document from CKEditor, not your own content. 
-            Please import your own Word document instead.
-          </p>
-          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; border-left: 4px solid #74b9ff;">
-            <p style="margin: 0; color: #2d3436; font-size: 14px;">
-              <strong>To import your own content:</strong><br>
-              1. Create a new Word document with your own text<br>
-              2. Add formatting, lists, headings as needed<br>
-              3. Save as .docx file<br>
-              4. Import using File → Import from Word
-            </p>
-          </div>
-        </div>
-      `;
-    }
-    
     console.log('✅ Word import completed successfully');
     console.log('📄 Extracted HTML length:', htmlContent.length);
     console.log('📄 HTML preview:', htmlContent.substring(0, 200) + '...');
@@ -99,45 +44,7 @@ export const importFromWord = async (file: File): Promise<string> => {
   }
 };
 
-// Validate and clean imported content
-const validateImportedContent = (htmlContent: string): string => {
-  // Remove common demo content patterns
-  const demoPatterns = [
-    /<p[^>]*>.*?CKEditor.*?<\/p>/gi,
-    /<p[^>]*>.*?Discover the riches.*?<\/p>/gi,
-    /<p[^>]*>.*?Block formatting.*?<\/p>/gi,
-    /<p[^>]*>.*?Bulleted list.*?<\/p>/gi,
-    /<p[^>]*>.*?Start a line with.*?<\/p>/gi,
-    /<p[^>]*>.*?Numbered list.*?<\/p>/gi,
-    /<p[^>]*>.*?To-do list.*?<\/p>/gi,
-    /<p[^>]*>.*?Headings.*?<\/p>/gi,
-    /<p[^>]*>.*?Block quote.*?<\/p>/gi,
-    /<p[^>]*>.*?Code block.*?<\/p>/gi,
-    /<p[^>]*>.*?Horizontal line.*?<\/p>/gi,
-    /<p[^>]*>.*?Inline formatting.*?<\/p>/gi,
-    /<p[^>]*>.*?Autoformatting.*?<\/p>/gi
-  ];
-  
-  let cleanedContent = htmlContent;
-  
-  // Remove demo patterns
-  demoPatterns.forEach(pattern => {
-    cleanedContent = cleanedContent.replace(pattern, '');
-  });
-  
-  // Remove empty paragraphs
-  cleanedContent = cleanedContent.replace(/<p[^>]*>\s*<\/p>/g, '');
-  
-  // Remove consecutive empty lines
-  cleanedContent = cleanedContent.replace(/\n\s*\n\s*\n/g, '\n\n');
-  
-  // Trim whitespace
-  cleanedContent = cleanedContent.trim();
-  
-  return cleanedContent;
-};
-
-// Improved Word content extraction
+// Simple and effective Word content extraction
 const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => {
   try {
     const uint8Array = new Uint8Array(arrayBuffer);
@@ -168,10 +75,7 @@ const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => 
     const paragraphs = parseBodyContent(bodyXml);
     
     // Convert to HTML
-    let htmlContent = convertParagraphsToHtml(paragraphs);
-    
-    // Validate and clean content
-    htmlContent = validateImportedContent(htmlContent);
+    const htmlContent = convertParagraphsToHtml(paragraphs);
     
     return htmlContent;
   } catch (error) {
@@ -181,45 +85,43 @@ const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => 
   }
 };
 
-// Parse body content into structured paragraphs
+// Parse body content to find paragraphs
 const parseBodyContent = (bodyXml: string): any[] => {
   const paragraphs: any[] = [];
   
   // Find all paragraph elements
   const paragraphMatches = bodyXml.match(/<w:p[^>]*>.*?<\/w:p>/gs);
   
-  if (!paragraphMatches) {
-    console.log('⚠️ No paragraphs found in body');
-    return [];
-  }
-  
-  console.log('📄 Found', paragraphMatches.length, 'paragraphs');
-  
-  for (let i = 0; i < paragraphMatches.length; i++) {
-    const paragraphXml = paragraphMatches[i];
-    const paragraph = parseParagraphContent(paragraphXml);
+  if (paragraphMatches) {
+    console.log('📄 Found', paragraphMatches.length, 'paragraphs');
     
-    if (paragraph && paragraph.text.trim()) {
-      paragraphs.push(paragraph);
-    }
+    paragraphMatches.forEach((paragraphXml, index) => {
+      try {
+        const paragraph = parseParagraphContent(paragraphXml);
+        if (paragraph && paragraph.text.trim()) {
+          paragraphs.push(paragraph);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error parsing paragraph ${index}:`, error);
+      }
+    });
   }
   
-  console.log('✅ Parsed', paragraphs.length, 'valid paragraphs');
   return paragraphs;
 };
 
 // Parse individual paragraph content
 const parseParagraphContent = (paragraphXml: string): any => {
-  const paragraph: any = {
-    type: 'paragraph',
-    text: '',
-    formatting: {},
-    alignment: 'left',
-    listType: null,
-    listLevel: 0
+  const paragraph: any = { 
+    type: 'paragraph', 
+    text: '', 
+    formatting: {}, 
+    alignment: 'left', 
+    listType: null, 
+    listLevel: 0 
   };
   
-  // Check for paragraph properties
+  // Parse paragraph properties
   const pPrMatch = paragraphXml.match(/<w:pPr[^>]*>(.*?)<\/w:pPr>/s);
   if (pPrMatch) {
     const pPrXml = pPrMatch[1];
@@ -228,9 +130,10 @@ const parseParagraphContent = (paragraphXml: string): any => {
     const styleMatch = pPrXml.match(/<w:pStyle[^>]*w:val="([^"]*)"/);
     if (styleMatch) {
       const styleValue = styleMatch[1];
-      if (styleValue.includes('Heading')) {
+      if (styleValue.includes('Heading') || styleValue.includes('heading')) {
+        const levelMatch = styleValue.match(/(\d+)/);
         paragraph.type = 'heading';
-        paragraph.level = extractHeadingLevel(styleValue);
+        paragraph.level = levelMatch ? parseInt(levelMatch[1]) : 1;
       }
     }
     
@@ -241,50 +144,34 @@ const parseParagraphContent = (paragraphXml: string): any => {
     }
     
     // Check for list properties
-    const listMatch = pPrXml.match(/<w:numPr[^>]*>(.*?)<\/w:numPr>/s);
-    if (listMatch) {
-      const numPrXml = listMatch[1];
-      
-      // Check for numbered list
+    const numPrMatch = pPrXml.match(/<w:numPr[^>]*>(.*?)<\/w:numPr>/s);
+    if (numPrMatch) {
+      const numPrXml = numPrMatch[1];
       const numIdMatch = numPrXml.match(/<w:numId[^>]*w:val="([^"]*)"/);
+      const ilvlMatch = numPrXml.match(/<w:ilvl[^>]*w:val="([^"]*)"/);
+      
       if (numIdMatch) {
         paragraph.listType = 'numbered';
+        paragraph.listLevel = ilvlMatch ? parseInt(ilvlMatch[1]) : 0;
       }
-      
-      // Check for bulleted list
-      const ilvlMatch = numPrXml.match(/<w:ilvl[^>]*w:val="([^"]*)"/);
-      if (ilvlMatch) {
-        paragraph.listLevel = parseInt(ilvlMatch[1]);
-      }
-    }
-    
-    // Check for bulleted list (alternative method)
-    if (pPrXml.includes('<w:pStyle') && pPrXml.includes('List')) {
-      paragraph.listType = 'bulleted';
     }
   }
   
-  // Extract text runs
+  // Parse text runs
   const textRuns = parseTextRuns(paragraphXml);
   
   // Combine text runs
-  const textParts: string[] = [];
-  const formattedParts: string[] = [];
+  let combinedText = '';
+  const combinedFormatting: any = {};
   
-  for (const textRun of textRuns) {
-    if (textRun.text) {
-      textParts.push(textRun.text);
-      
-      let formattedText = textRun.text;
-      if (textRun.formatting && Object.keys(textRun.formatting).length > 0) {
-        formattedText = applyTextFormatting(textRun.text, textRun.formatting);
-      }
-      formattedParts.push(formattedText);
-    }
-  }
+  textRuns.forEach((run: any) => {
+    combinedText += run.text;
+    // Merge formatting
+    Object.assign(combinedFormatting, run.formatting);
+  });
   
-  paragraph.text = textParts.join('');
-  paragraph.formattedText = formattedParts.join('');
+  paragraph.text = combinedText;
+  paragraph.formatting = combinedFormatting;
   
   return paragraph;
 };
@@ -295,79 +182,76 @@ const parseTextRuns = (paragraphXml: string): any[] => {
   
   const runMatches = paragraphXml.match(/<w:r[^>]*>.*?<\/w:r>/gs);
   
-  if (!runMatches) {
-    return [];
-  }
-  
-  for (const runXml of runMatches) {
-    const textRun = parseTextRunContent(runXml);
-    if (textRun) {
-      textRuns.push(textRun);
-    }
+  if (runMatches) {
+    runMatches.forEach((runXml) => {
+      try {
+        const textRun = parseTextRunContent(runXml);
+        if (textRun && textRun.text) {
+          textRuns.push(textRun);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error parsing text run:', error);
+      }
+    });
   }
   
   return textRuns;
 };
 
-// Parse individual text run
+// Parse individual text run content
 const parseTextRunContent = (runXml: string): any => {
-  const textRun: any = {
-    text: '',
-    formatting: {}
-  };
+  const textRun: any = { text: '', formatting: {} };
   
   // Extract text content
-  const textMatch = runXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
-  if (!textMatch) {
-    return null;
+  const textMatch = runXml.match(/<w:t[^>]*>(.*?)<\/w:t>/s);
+  if (textMatch) {
+    textRun.text = textMatch[1] || '';
   }
   
-  textRun.text = textMatch[1];
-  
-  // Extract formatting
+  // Parse run properties
   const rPrMatch = runXml.match(/<w:rPr[^>]*>(.*?)<\/w:rPr>/s);
   if (rPrMatch) {
     const rPrXml = rPrMatch[1];
     
-    // Bold
-    if (rPrXml.includes('<w:b/>') || rPrXml.includes('<w:b w:val="1"/>')) {
+    // Check for bold
+    if (rPrXml.includes('<w:b') || rPrXml.includes('<w:bCs')) {
       textRun.formatting.bold = true;
     }
     
-    // Italic
-    if (rPrXml.includes('<w:i/>') || rPrXml.includes('<w:i w:val="1"/>')) {
+    // Check for italic
+    if (rPrXml.includes('<w:i') || rPrXml.includes('<w:iCs')) {
       textRun.formatting.italic = true;
     }
     
-    // Underline
-    if (rPrXml.includes('<w:u/>') || rPrXml.includes('<w:u w:val="1"/>')) {
+    // Check for underline
+    if (rPrXml.includes('<w:u')) {
       textRun.formatting.underline = true;
     }
     
-    // Strikethrough
-    if (rPrXml.includes('<w:strike/>') || rPrXml.includes('<w:strike w:val="1"/>')) {
+    // Check for strikethrough
+    if (rPrXml.includes('<w:strike')) {
       textRun.formatting.strikethrough = true;
     }
     
-    // Font size
-    const sizeMatch = rPrXml.match(/<w:sz[^>]*w:val="([^"]*)"/);
-    if (sizeMatch) {
-      textRun.formatting.fontSize = parseInt(sizeMatch[1]) / 2; // Convert from half-points to points
+    // Check for font size
+    const szMatch = rPrXml.match(/<w:sz[^>]*w:val="([^"]*)"/);
+    if (szMatch) {
+      textRun.formatting.fontSize = szMatch[1];
     }
     
-    // Font family
+    // Check for font family
     const fontMatch = rPrXml.match(/<w:rFonts[^>]*w:ascii="([^"]*)"/);
     if (fontMatch) {
       textRun.formatting.fontFamily = fontMatch[1];
     }
     
-    // Color
+    // Check for color
     const colorMatch = rPrXml.match(/<w:color[^>]*w:val="([^"]*)"/);
     if (colorMatch) {
       textRun.formatting.color = colorMatch[1];
     }
     
-    // Background color
+    // Check for highlight
     const highlightMatch = rPrXml.match(/<w:highlight[^>]*w:val="([^"]*)"/);
     if (highlightMatch) {
       textRun.formatting.highlight = highlightMatch[1];
