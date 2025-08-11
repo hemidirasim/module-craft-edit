@@ -407,6 +407,17 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
                   maxHeight: computedStyle.maxHeight
                 });
                 
+                // Get the actual displayed size from the editor
+                const editorContainer = tempDiv.closest('.editor-container') || tempDiv.parentElement;
+                const editorWidth = (editorContainer as HTMLElement)?.offsetWidth || 800;
+                const scaleFactor = editorWidth / 800; // Normalize to standard editor width
+                
+                console.log(`📐 Editor scaling:`, {
+                  editorWidth,
+                  scaleFactor,
+                  containerWidth: (editorContainer as HTMLElement)?.offsetWidth
+                });
+                
                 // Parse computed dimensions first
                 if (computedWidth && computedWidth !== 'auto') {
                   if (computedWidth.includes('px')) {
@@ -455,6 +466,16 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
                   displayHeight = img.offsetHeight;
                 }
                 
+                // Apply scaling factor to match editor display
+                displayWidth = displayWidth * scaleFactor;
+                displayHeight = displayHeight * scaleFactor;
+                
+                console.log(`📏 After scaling:`, {
+                  width: displayWidth,
+                  height: displayHeight,
+                  scaleFactor
+                });
+                
                 // Maintain aspect ratio if only width is specified
                 if ((img.style.width || computedWidth !== 'auto') && (!img.style.height || img.style.height === 'auto') && computedHeight === 'auto') {
                   const aspectRatio = newImg.naturalHeight / newImg.naturalWidth;
@@ -485,7 +506,8 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
                   height: displayHeight,
                   yOffset: yOffset,
                   originalWidth: img.width,
-                  originalHeight: img.height
+                  originalHeight: img.height,
+                  scaleFactor: scaleFactor
                 });
                 
                 // Draw image at exact position and size
