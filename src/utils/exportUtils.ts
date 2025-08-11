@@ -193,27 +193,43 @@ const loadImageWithRetry = (src: string, maxRetries: number = 3): Promise<HTMLIm
 
 // Helper function to convert image to base64 with fallback
 const convertImageToBase64 = async (imageUrl: string): Promise<string> => {
+  console.log('🖼️ Starting image conversion for:', imageUrl);
+  
   try {
     // Check if it's a Supabase signed URL
     if (imageUrl.includes('supabase.co') && imageUrl.includes('token=')) {
+      console.log('🔗 Detected Supabase signed URL');
+      
       // For Supabase signed URLs, try direct fetch first
       const response = await fetch(imageUrl, {
         mode: 'cors',
         credentials: 'omit'
       });
       
+      console.log('📡 Supabase fetch response status:', response.status);
+      
       if (!response.ok) {
         throw new Error(`Failed to fetch Supabase image: ${response.statusText}`);
       }
       
       const blob = await response.blob();
+      console.log('📦 Supabase blob size:', blob.size, 'bytes');
+      
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
+        reader.onload = () => {
+          console.log('✅ Supabase image converted to base64 successfully');
+          resolve(reader.result as string);
+        };
+        reader.onerror = (error) => {
+          console.error('❌ Supabase FileReader error:', error);
+          reject(error);
+        };
         reader.readAsDataURL(blob);
       });
     }
+    
+    console.log('🌐 Processing regular URL');
     
     // For other URLs, try direct fetch
     const response = await fetch(imageUrl, {
@@ -221,44 +237,179 @@ const convertImageToBase64 = async (imageUrl: string): Promise<string> => {
       credentials: 'omit'
     });
     
+    console.log('📡 Regular fetch response status:', response.status);
+    
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
     
     const blob = await response.blob();
+    console.log('📦 Regular blob size:', blob.size, 'bytes');
+    
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      reader.onload = () => {
+        console.log('✅ Regular image converted to base64 successfully');
+        resolve(reader.result as string);
+      };
+      reader.onerror = (error) => {
+        console.error('❌ Regular FileReader error:', error);
+        reject(error);
+      };
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.warn('Direct fetch failed, trying proxy:', error);
+    console.warn('⚠️ Direct fetch failed, trying proxy:', error);
     
     try {
       // Second try: Use a CORS proxy
       const proxyUrl = `https://cors-anywhere.herokuapp.com/${imageUrl}`;
+      console.log('🔄 Trying proxy URL:', proxyUrl);
+      
       const response = await fetch(proxyUrl, {
         mode: 'cors',
         credentials: 'omit'
       });
+      
+      console.log('📡 Proxy fetch response status:', response.status);
       
       if (!response.ok) {
         throw new Error(`Proxy fetch failed: ${response.statusText}`);
       }
       
       const blob = await response.blob();
+      console.log('📦 Proxy blob size:', blob.size, 'bytes');
+      
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
+        reader.onload = () => {
+          console.log('✅ Proxy image converted to base64 successfully');
+          resolve(reader.result as string);
+        };
+        reader.onerror = (error) => {
+          console.error('❌ Proxy FileReader error:', error);
+          reject(error);
+        };
         reader.readAsDataURL(blob);
       });
     } catch (proxyError) {
-      console.warn('Proxy fetch also failed:', proxyError);
+      console.warn('❌ Proxy fetch also failed:', proxyError);
       throw proxyError;
     }
   }
+};
+
+// Helper function to manually draw images to canvas
+const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasElement> => {
+  console.log('🎨 Starting manual image drawing to canvas');
+  
+  // Create a canvas with the same dimensions as the div
+  const rect = tempDiv.getBoundingClientRect();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+  
+  // Set canvas size
+  canvas.width = rect.width * 2; // Higher resolution
+  canvas.height = rect.height * 2;
+  ctx.scale(2, 2); // Scale for high DPI
+  
+  // Fill with white background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Convert div content to canvas
+  const images = tempDiv.querySelectorAll('img');
+  console.log(`🖼️ Found ${images.length} images to process`);
+  
+  let yOffset = 0;
+  const padding = 20;
+  const lineHeight = 24;
+  
+  // Process text content first
+  const textContent = tempDiv.innerText || tempDiv.textContent || '';
+  const lines = textContent.split('\n');
+  
+  ctx.fillStyle = '#000000';
+  ctx.font = '14px Arial, sans-serif';
+  
+  for (const line of lines) {
+    if (line.trim()) {
+      ctx.fillText(line.trim(), padding, yOffset + lineHeight);
+      yOffset += lineHeight;
+    } else {
+      yOffset += lineHeight / 2;
+    }
+  }
+  
+  // Process images
+  for (let i = 0; i < images.length; i++) {
+    const img = images[i] as HTMLImageElement;
+    console.log(`🖼️ Processing image ${i + 1}/${images.length}:`, img.src);
+    
+    try {
+      // Create a new image element
+      const newImg = new Image();
+      newImg.crossOrigin = 'anonymous';
+      
+      await new Promise<void>((resolve, reject) => {
+        newImg.onload = () => {
+          try {
+            // Calculate image dimensions
+            const maxWidth = rect.width - (2 * padding);
+            const maxHeight = 300; // Max height for images
+            
+            let imgWidth = newImg.naturalWidth;
+            let imgHeight = newImg.naturalHeight;
+            
+            // Scale down if too large
+            if (imgWidth > maxWidth) {
+              const ratio = maxWidth / imgWidth;
+              imgWidth = maxWidth;
+              imgHeight = imgHeight * ratio;
+            }
+            
+            if (imgHeight > maxHeight) {
+              const ratio = maxHeight / imgHeight;
+              imgHeight = maxHeight;
+              imgWidth = imgWidth * ratio;
+            }
+            
+            // Draw image
+            ctx.drawImage(newImg, padding, yOffset, imgWidth, imgHeight);
+            console.log(`✅ Image ${i + 1} drawn successfully`);
+            
+            yOffset += imgHeight + 20; // Add spacing after image
+            resolve();
+          } catch (drawError) {
+            console.error(`❌ Error drawing image ${i + 1}:`, drawError);
+            reject(drawError);
+          }
+        };
+        
+        newImg.onerror = (error) => {
+          console.error(`❌ Error loading image ${i + 1}:`, error);
+          reject(new Error(`Failed to load image ${i + 1}`));
+        };
+        
+        newImg.src = img.src;
+      });
+    } catch (error) {
+      console.warn(`⚠️ Skipping image ${i + 1} due to error:`, error);
+      // Draw placeholder
+      ctx.fillStyle = '#f3f4f6';
+      ctx.fillRect(padding, yOffset, 200, 150);
+      ctx.fillStyle = '#666';
+      ctx.fillText('Image failed to load', padding + 10, yOffset + 80);
+      yOffset += 170;
+    }
+  }
+  
+  console.log('✅ Manual canvas drawing completed');
+  return canvas;
 };
 
 export const exportToPDF = async (content: string, filename: string = 'document') => {
@@ -401,9 +552,53 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     console.log('Canvas created successfully');
     document.body.removeChild(tempDiv);
     
+    // Try manual canvas drawing as fallback if html2canvas fails
+    let finalCanvas = canvas;
+    let useManualCanvas = false;
+    
+    // Check if canvas has content
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not get canvas context for fallback check');
+    }
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const hasContent = imageData.data.some(pixel => pixel !== 0);
+    
+    if (!hasContent || canvas.width === 0 || canvas.height === 0) {
+      console.log('⚠️ html2canvas produced empty canvas, trying manual drawing...');
+      try {
+        // Recreate temp div for manual drawing
+        const manualTempDiv = document.createElement('div');
+        manualTempDiv.innerHTML = content;
+        manualTempDiv.style.cssText = `
+          font-family: Arial, sans-serif;
+          font-size: 14px;
+          line-height: 1.6;
+          color: #000;
+          background: #fff;
+          padding: 20px;
+          max-width: 800px;
+          min-height: 500px;
+          position: absolute;
+          top: -9999px;
+          left: -9999px;
+          z-index: -1;
+        `;
+        
+        document.body.appendChild(manualTempDiv);
+        finalCanvas = await drawImagesToCanvas(manualTempDiv);
+        document.body.removeChild(manualTempDiv);
+        useManualCanvas = true;
+        console.log('✅ Manual canvas drawing successful');
+      } catch (manualError) {
+        console.error('❌ Manual canvas drawing also failed:', manualError);
+        // Continue with original canvas
+      }
+    }
+    
     // Create PDF with high quality
     console.log('Creating PDF...');
-    const imgData = canvas.toDataURL('image/png', 1.0);
+    const imgData = finalCanvas.toDataURL('image/png', 1.0);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -415,7 +610,7 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     const pageHeight = 297; // A4 height in mm
     const margin = 15;
     const imgWidth = pageWidth - (2 * margin);
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const imgHeight = (finalCanvas.height * imgWidth) / finalCanvas.width;
     
     let yPosition = margin;
     let remainingHeight = imgHeight;
@@ -435,7 +630,7 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     // Download the PDF
     console.log('Saving PDF...');
     pdf.save(`${filename}.pdf`);
-    console.log('PDF export completed successfully');
+    console.log(`PDF export completed successfully using ${useManualCanvas ? 'manual canvas' : 'html2canvas'}`);
     
     return true;
   } catch (error) {
