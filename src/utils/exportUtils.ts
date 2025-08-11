@@ -71,11 +71,11 @@ const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => 
     const bodyXml = bodyMatch[1];
     console.log('📄 Body XML extracted');
     
-    // Parse paragraphs
-    const paragraphs = parseBodyContent(bodyXml);
+    // Parse paragraphs and tables
+    const elements = parseBodyContent(bodyXml);
     
     // Convert to HTML
-    const htmlContent = convertParagraphsToHtml(paragraphs);
+    const htmlContent = convertParagraphsToHtml(elements);
     
     return htmlContent;
   } catch (error) {
@@ -85,9 +85,9 @@ const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => 
   }
 };
 
-// Parse body content to find paragraphs
+// Parse body content to find paragraphs and tables
 const parseBodyContent = (bodyXml: string): any[] => {
-  const paragraphs: any[] = [];
+  const elements: any[] = [];
   
   // Find all paragraph elements
   const paragraphMatches = bodyXml.match(/<w:p[^>]*>.*?<\/w:p>/gs);
@@ -99,7 +99,7 @@ const parseBodyContent = (bodyXml: string): any[] => {
       try {
         const paragraph = parseParagraphContent(paragraphXml);
         if (paragraph && paragraph.text.trim()) {
-          paragraphs.push(paragraph);
+          elements.push(paragraph);
         }
       } catch (error) {
         console.warn(`⚠️ Error parsing paragraph ${index}:`, error);
@@ -107,7 +107,25 @@ const parseBodyContent = (bodyXml: string): any[] => {
     });
   }
   
-  return paragraphs;
+  // Find all table elements
+  const tableMatches = bodyXml.match(/<w:tbl[^>]*>.*?<\/w:tbl>/gs);
+  
+  if (tableMatches) {
+    console.log('📄 Found', tableMatches.length, 'tables');
+    
+    tableMatches.forEach((tableXml, index) => {
+      try {
+        const table = parseTableContent(tableXml);
+        if (table && table.rows.length > 0) {
+          elements.push(table);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error parsing table ${index}:`, error);
+      }
+    });
+  }
+  
+  return elements;
 };
 
 // Parse individual paragraph content
@@ -261,6 +279,77 @@ const parseTextRunContent = (runXml: string): any => {
   return textRun;
 };
 
+// Parse table content
+const parseTableContent = (tableXml: string): any => {
+  const table: any = { type: 'table', rows: [] };
+  
+  // Find all table rows
+  const rowMatches = tableXml.match(/<w:tr[^>]*>.*?<\/w:tr>/gs);
+  
+  if (rowMatches) {
+    console.log('📄 Found', rowMatches.length, 'table rows');
+    
+    rowMatches.forEach((rowXml, rowIndex) => {
+      try {
+        const row = parseTableRow(rowXml);
+        if (row && row.cells.length > 0) {
+          table.rows.push(row);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error parsing table row ${rowIndex}:`, error);
+      }
+    });
+  }
+  
+  return table;
+};
+
+// Parse table row
+const parseTableRow = (rowXml: string): any => {
+  const row: any = { type: 'row', cells: [] };
+  
+  // Find all table cells
+  const cellMatches = rowXml.match(/<w:tc[^>]*>.*?<\/w:tc>/gs);
+  
+  if (cellMatches) {
+    cellMatches.forEach((cellXml, cellIndex) => {
+      try {
+        const cell = parseTableCell(cellXml);
+        if (cell) {
+          row.cells.push(cell);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error parsing table cell ${cellIndex}:`, error);
+      }
+    });
+  }
+  
+  return row;
+};
+
+// Parse table cell
+const parseTableCell = (cellXml: string): any => {
+  const cell: any = { type: 'cell', content: [] };
+  
+  // Find paragraphs within the cell
+  const paragraphMatches = cellXml.match(/<w:p[^>]*>.*?<\/w:p>/gs);
+  
+  if (paragraphMatches) {
+    paragraphMatches.forEach((paragraphXml) => {
+      try {
+        const paragraph = parseParagraphContent(paragraphXml);
+        if (paragraph && paragraph.text.trim()) {
+          cell.content.push(paragraph);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error parsing cell paragraph:', error);
+      }
+    });
+  }
+  
+  return cell;
+};
+
 // Extract heading level from style value
 const extractHeadingLevel = (styleValue: string): number => {
   const levelMatch = styleValue.match(/\d+/);
@@ -344,20 +433,37 @@ const applyTextFormatting = (text: string, formatting: any): string => {
 };
 
 // Convert paragraphs to HTML
-const convertParagraphsToHtml = (paragraphs: any[]): string => {
+const convertParagraphsToHtml = (elements: any[]): string => {
   const htmlParts: string[] = [];
   let currentListType = null;
   let currentListLevel = 0;
   let listItems: string[] = [];
   
-  for (let i = 0; i < paragraphs.length; i++) {
-    const paragraph = paragraphs[i];
-    let content = paragraph.formattedText || paragraph.text;
+  for (let i = 0; i < elements.length; i++) {
+    const element = elements[i];
+    
+    // Handle tables
+    if (element.type === 'table') {
+      // Close any open list before table
+      if (listItems.length > 0) {
+        htmlParts.push(closeList(currentListType, listItems));
+        listItems = [];
+        currentListType = null;
+        currentListLevel = 0;
+      }
+      
+      // Convert table to HTML
+      const tableHtml = convertTableToHtml(element);
+      htmlParts.push(tableHtml);
+      continue;
+    }
+    
+    let content = element.formattedText || element.text;
     
     // Handle lists
-    if (paragraph.listType) {
+    if (element.listType) {
       // Start new list or continue existing list
-      if (currentListType !== paragraph.listType || currentListLevel !== paragraph.listLevel) {
+      if (currentListType !== element.listType || currentListLevel !== element.listLevel) {
         // Close previous list if exists
         if (listItems.length > 0) {
           htmlParts.push(closeList(currentListType, listItems));
@@ -365,8 +471,8 @@ const convertParagraphsToHtml = (paragraphs: any[]): string => {
         }
         
         // Start new list
-        currentListType = paragraph.listType;
-        currentListLevel = paragraph.listLevel;
+        currentListType = element.listType;
+        currentListLevel = element.listLevel;
       }
       
       // Add item to current list
@@ -381,20 +487,20 @@ const convertParagraphsToHtml = (paragraphs: any[]): string => {
       }
       
       // Handle regular paragraph or heading
-      if (paragraph.type === 'heading') {
-        const level = Math.min(paragraph.level || 1, 6);
+      if (element.type === 'heading') {
+        const level = Math.min(element.level || 1, 6);
         const tag = `h${level}`;
         
-        if (paragraph.alignment && paragraph.alignment !== 'left') {
-          const alignStyle = ` style="text-align: ${paragraph.alignment};"`;
+        if (element.alignment && element.alignment !== 'left') {
+          const alignStyle = ` style="text-align: ${element.alignment};"`;
           htmlParts.push(`<${tag}${alignStyle}>${content}</${tag}>`);
         } else {
           htmlParts.push(`<${tag}>${content}</${tag}>`);
         }
       } else {
         // Regular paragraph
-        if (paragraph.alignment && paragraph.alignment !== 'left') {
-          const alignStyle = ` style="text-align: ${paragraph.alignment};"`;
+        if (element.alignment && element.alignment !== 'left') {
+          const alignStyle = ` style="text-align: ${element.alignment};"`;
           htmlParts.push(`<p${alignStyle}>${content}</p>`);
         } else {
           htmlParts.push(`<p>${content}</p>`);
@@ -421,6 +527,55 @@ const closeList = (listType: string | null, items: string[]): string => {
   const listItems = items.map(item => `<li>${item}</li>`).join('\n');
   
   return `<${tag}>\n${listItems}\n</${tag}>`;
+};
+
+// Convert table to HTML
+const convertTableToHtml = (table: any): string => {
+  if (!table.rows || table.rows.length === 0) {
+    return '';
+  }
+  
+  const tableRows: string[] = [];
+  
+  table.rows.forEach((row: any) => {
+    if (!row.cells || row.cells.length === 0) {
+      return;
+    }
+    
+    const tableCells: string[] = [];
+    
+    row.cells.forEach((cell: any) => {
+      let cellContent = '';
+      
+      if (cell.content && cell.content.length > 0) {
+        // Convert cell content (paragraphs) to HTML
+        const cellParagraphs: string[] = [];
+        
+        cell.content.forEach((paragraph: any) => {
+          let content = paragraph.formattedText || paragraph.text;
+          
+          // Apply formatting if available
+          if (paragraph.formatting && Object.keys(paragraph.formatting).length > 0) {
+            content = applyTextFormatting(content, paragraph.formatting);
+          }
+          
+          cellParagraphs.push(content);
+        });
+        
+        cellContent = cellParagraphs.join('<br>');
+      }
+      
+      tableCells.push(`<td>${cellContent}</td>`);
+    });
+    
+    tableRows.push(`<tr>${tableCells.join('')}</tr>`);
+  });
+  
+  return `<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+    <tbody>
+      ${tableRows.join('\n')}
+    </tbody>
+  </table>`;
 };
 
 // Simple fallback extraction
