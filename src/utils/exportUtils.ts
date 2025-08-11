@@ -52,30 +52,42 @@ const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => 
     const xmlContent = textDecoder.decode(uint8Array);
     
     console.log('📄 XML content length:', xmlContent.length);
+    console.log('📄 XML preview:', xmlContent.substring(0, 500) + '...');
     
     // Extract document.xml content (main content)
     const documentMatch = xmlContent.match(/<w:document[^>]*>.*?<\/w:document>/s);
     if (!documentMatch) {
-      throw new Error('Could not find document content');
+      console.warn('⚠️ Could not find document content, trying alternative method');
+      return await extractSimpleWordContent(arrayBuffer);
     }
     
     const documentXml = documentMatch[0];
-    console.log('📄 Document XML extracted');
+    console.log('📄 Document XML extracted, length:', documentXml.length);
     
     // Parse body content
     const bodyMatch = documentXml.match(/<w:body[^>]*>(.*?)<\/w:body>/s);
     if (!bodyMatch) {
-      throw new Error('Could not find body content');
+      console.warn('⚠️ Could not find body content, trying alternative method');
+      return await extractSimpleWordContent(arrayBuffer);
     }
     
     const bodyXml = bodyMatch[1];
-    console.log('📄 Body XML extracted');
+    console.log('📄 Body XML extracted, length:', bodyXml.length);
+    console.log('📄 Body preview:', bodyXml.substring(0, 300) + '...');
     
     // Parse paragraphs and tables
     const elements = parseBodyContent(bodyXml);
+    console.log('📄 Parsed elements:', elements.length);
+    console.log('📄 Element types:', elements.map(el => el.type));
     
     // Convert to HTML
     const htmlContent = convertParagraphsToHtml(elements);
+    
+    // Check if we got meaningful content
+    if (!htmlContent || htmlContent.trim().length < 50) {
+      console.warn('⚠️ Generated HTML is too short, trying fallback');
+      return await extractSimpleWordContent(arrayBuffer);
+    }
     
     return htmlContent;
   } catch (error) {
@@ -789,13 +801,21 @@ const extractSimpleWordContent = async (arrayBuffer: ArrayBuffer): Promise<strin
     const textDecoder = new TextDecoder('utf-8');
     const xmlContent = textDecoder.decode(uint8Array);
     
+    console.log('🔄 Using simple fallback extraction');
+    console.log('📄 XML content length:', xmlContent.length);
+    
     // Extract all text elements
     const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
     
-    if (textMatches) {
+    if (textMatches && textMatches.length > 0) {
+      console.log('📄 Found', textMatches.length, 'text elements');
+      
       const allText = textMatches
         .map(match => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
         .join(' ');
+      
+      console.log('📄 Extracted text length:', allText.length);
+      console.log('📄 Text preview:', allText.substring(0, 200) + '...');
       
       // Split into paragraphs
       const paragraphs = allText
@@ -803,13 +823,40 @@ const extractSimpleWordContent = async (arrayBuffer: ArrayBuffer): Promise<strin
         .map(p => p.trim())
         .filter(p => p.length > 0);
       
-      return paragraphs.map(p => `<p>${p}</p>`).join('\n');
+      console.log('📄 Created', paragraphs.length, 'paragraphs');
+      
+      if (paragraphs.length > 0) {
+        const htmlContent = paragraphs.map(p => `<p>${p}</p>`).join('\n');
+        console.log('✅ Simple extraction successful');
+        return htmlContent;
+      }
     }
     
-    return '<p>Content extracted from Word document</p>';
+    // Try alternative extraction methods
+    console.log('🔄 Trying alternative extraction methods');
+    
+    // Try to find any text content
+    const anyTextMatch = xmlContent.match(/>([^<>]{10,})</g);
+    if (anyTextMatch && anyTextMatch.length > 0) {
+      console.log('📄 Found', anyTextMatch.length, 'potential text blocks');
+      
+      const extractedText = anyTextMatch
+        .map(match => match.replace(/[<>]/g, ''))
+        .filter(text => text.trim().length > 5)
+        .slice(0, 10); // Limit to first 10 blocks
+      
+      if (extractedText.length > 0) {
+        const htmlContent = extractedText.map(text => `<p>${text.trim()}</p>`).join('\n');
+        console.log('✅ Alternative extraction successful');
+        return htmlContent;
+      }
+    }
+    
+    console.warn('⚠️ No meaningful content found');
+    return '<p>No readable content found in Word document. Please check if the file contains text content.</p>';
   } catch (error) {
-    console.warn('⚠️ Error in simple extraction:', error);
-    return '<p>Error extracting content from Word document</p>';
+    console.error('❌ Error in simple extraction:', error);
+    return '<p>Error extracting content from Word document. Please try a different file.</p>';
   }
 };
 
