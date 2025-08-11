@@ -48,8 +48,30 @@ export const importFromWord = async (file: File): Promise<string> => {
 const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => {
   try {
     const uint8Array = new Uint8Array(arrayBuffer);
-    const textDecoder = new TextDecoder('utf-8');
-    const xmlContent = textDecoder.decode(uint8Array);
+    
+    // Try different encodings
+    let xmlContent = '';
+    const encodings = ['utf-8', 'utf-16', 'utf-16le', 'utf-16be', 'windows-1252', 'iso-8859-1'];
+    
+    for (const encoding of encodings) {
+      try {
+        const textDecoder = new TextDecoder(encoding);
+        xmlContent = textDecoder.decode(uint8Array);
+        
+        // Check if we got readable content
+        if (xmlContent.includes('<?xml') || xmlContent.includes('<w:document')) {
+          console.log('✅ Successfully decoded with encoding:', encoding);
+          break;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to decode with ${encoding}:`, error);
+      }
+    }
+    
+    if (!xmlContent || xmlContent.length === 0) {
+      console.warn('⚠️ Could not decode content with any encoding');
+      return await extractSimpleWordContent(arrayBuffer);
+    }
     
     console.log('📄 XML content length:', xmlContent.length);
     console.log('📄 XML preview:', xmlContent.substring(0, 500) + '...');
@@ -798,8 +820,30 @@ const convertTableToHtml = (table: any): string => {
 const extractSimpleWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => {
   try {
     const uint8Array = new Uint8Array(arrayBuffer);
-    const textDecoder = new TextDecoder('utf-8');
-    const xmlContent = textDecoder.decode(uint8Array);
+    
+    // Try different encodings for fallback
+    let xmlContent = '';
+    const encodings = ['utf-8', 'utf-16', 'utf-16le', 'utf-16be', 'windows-1252', 'iso-8859-1'];
+    
+    for (const encoding of encodings) {
+      try {
+        const textDecoder = new TextDecoder(encoding);
+        xmlContent = textDecoder.decode(uint8Array);
+        
+        // Check if we got readable content
+        if (xmlContent.includes('<w:t') || xmlContent.includes('<?xml')) {
+          console.log('✅ Fallback decoded with encoding:', encoding);
+          break;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Fallback failed to decode with ${encoding}:`, error);
+      }
+    }
+    
+    if (!xmlContent || xmlContent.length === 0) {
+      console.warn('⚠️ Could not decode content with any encoding in fallback');
+      return '<p>Could not read Word document. Please check if the file is corrupted or try a different file.</p>';
+    }
     
     console.log('🔄 Using simple fallback extraction');
     console.log('📄 XML content length:', xmlContent.length);
@@ -811,17 +855,28 @@ const extractSimpleWordContent = async (arrayBuffer: ArrayBuffer): Promise<strin
       console.log('📄 Found', textMatches.length, 'text elements');
       
       const allText = textMatches
-        .map(match => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
+        .map(match => {
+          const text = match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1');
+          // Clean up any encoding issues
+          return text.replace(/[\uFFFD\uFFFE\uFFFF]/g, ''); // Remove replacement characters
+        })
+        .filter(text => text.trim().length > 0)
         .join(' ');
       
       console.log('📄 Extracted text length:', allText.length);
       console.log('📄 Text preview:', allText.substring(0, 200) + '...');
       
+      // Check if text contains readable content
+      if (allText.length === 0 || allText.match(/^[\s\uFFFD\uFFFE\uFFFF]*$/)) {
+        console.warn('⚠️ Extracted text contains only whitespace or invalid characters');
+        return '<p>No readable text found in Word document. The file may be corrupted or contain only images/drawings.</p>';
+      }
+      
       // Split into paragraphs
       const paragraphs = allText
         .split(/\s{2,}|\n+/)
         .map(p => p.trim())
-        .filter(p => p.length > 0);
+        .filter(p => p.length > 0 && !p.match(/^[\s\uFFFD\uFFFE\uFFFF]*$/));
       
       console.log('📄 Created', paragraphs.length, 'paragraphs');
       
