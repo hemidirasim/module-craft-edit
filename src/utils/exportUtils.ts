@@ -381,8 +381,53 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
                 let displayWidth = img.width || img.naturalWidth;
                 let displayHeight = img.height || img.naturalHeight;
                 
-                // Parse style dimensions if available
-                if (img.style.width) {
+                console.log(`🔍 Original image computed dimensions:`, {
+                  width: img.width,
+                  height: img.height,
+                  naturalWidth: img.naturalWidth,
+                  naturalHeight: img.naturalHeight,
+                  offsetWidth: img.offsetWidth,
+                  offsetHeight: img.offsetHeight,
+                  clientWidth: img.clientWidth,
+                  clientHeight: img.clientHeight,
+                  styleWidth: img.style.width,
+                  styleHeight: img.style.height,
+                  computedStyle: window.getComputedStyle(img)
+                });
+                
+                // Get computed style for more accurate dimensions
+                const computedStyle = window.getComputedStyle(img);
+                const computedWidth = computedStyle.width;
+                const computedHeight = computedStyle.height;
+                
+                console.log(`📏 Computed styles:`, {
+                  width: computedWidth,
+                  height: computedHeight,
+                  maxWidth: computedStyle.maxWidth,
+                  maxHeight: computedStyle.maxHeight
+                });
+                
+                // Parse computed dimensions first
+                if (computedWidth && computedWidth !== 'auto') {
+                  if (computedWidth.includes('px')) {
+                    displayWidth = parseFloat(computedWidth);
+                  } else if (computedWidth.includes('%')) {
+                    const percentage = parseFloat(computedWidth) / 100;
+                    displayWidth = (rect.width - (2 * padding)) * percentage;
+                  }
+                }
+                
+                if (computedHeight && computedHeight !== 'auto') {
+                  if (computedHeight.includes('px')) {
+                    displayHeight = parseFloat(computedHeight);
+                  } else if (computedHeight.includes('%')) {
+                    const percentage = parseFloat(computedHeight) / 100;
+                    displayHeight = 300 * percentage;
+                  }
+                }
+                
+                // Fallback to style dimensions if computed is not available
+                if (img.style.width && (!computedWidth || computedWidth === 'auto')) {
                   const widthValue = img.style.width;
                   if (widthValue.includes('px')) {
                     displayWidth = parseInt(widthValue);
@@ -392,7 +437,7 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
                   }
                 }
                 
-                if (img.style.height && img.style.height !== 'auto') {
+                if (img.style.height && img.style.height !== 'auto' && (!computedHeight || computedHeight === 'auto')) {
                   const heightValue = img.style.height;
                   if (heightValue.includes('px')) {
                     displayHeight = parseInt(heightValue);
@@ -402,10 +447,19 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
                   }
                 }
                 
+                // Use offset dimensions as final fallback
+                if (displayWidth === img.naturalWidth && img.offsetWidth > 0) {
+                  displayWidth = img.offsetWidth;
+                }
+                if (displayHeight === img.naturalHeight && img.offsetHeight > 0) {
+                  displayHeight = img.offsetHeight;
+                }
+                
                 // Maintain aspect ratio if only width is specified
-                if (img.style.width && !img.style.height) {
+                if ((img.style.width || computedWidth !== 'auto') && (!img.style.height || img.style.height === 'auto') && computedHeight === 'auto') {
                   const aspectRatio = newImg.naturalHeight / newImg.naturalWidth;
                   displayHeight = displayWidth * aspectRatio;
+                  console.log(`🔄 Maintaining aspect ratio: ${displayWidth} x ${displayHeight}`);
                 }
                 
                 // Ensure minimum and maximum dimensions
@@ -416,18 +470,22 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
                   const ratio = maxWidth / displayWidth;
                   displayWidth = maxWidth;
                   displayHeight = displayHeight * ratio;
+                  console.log(`📐 Scaled down to max width: ${displayWidth} x ${displayHeight}`);
                 }
                 
                 if (displayHeight > maxHeight) {
                   const ratio = maxHeight / displayHeight;
                   displayHeight = maxHeight;
                   displayWidth = displayWidth * ratio;
+                  console.log(`📐 Scaled down to max height: ${displayWidth} x ${displayHeight}`);
                 }
                 
-                console.log(`📐 Calculated display dimensions:`, {
+                console.log(`📐 Final calculated display dimensions:`, {
                   width: displayWidth,
                   height: displayHeight,
-                  yOffset: yOffset
+                  yOffset: yOffset,
+                  originalWidth: img.width,
+                  originalHeight: img.height
                 });
                 
                 // Draw image at exact position and size
