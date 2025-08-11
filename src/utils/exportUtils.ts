@@ -85,7 +85,7 @@ const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => 
   }
 };
 
-// Parse body content to find paragraphs and tables
+// Parse body content to find all possible elements
 const parseBodyContent = (bodyXml: string): any[] => {
   const elements: any[] = [];
   
@@ -121,6 +121,42 @@ const parseBodyContent = (bodyXml: string): any[] => {
         }
       } catch (error) {
         console.warn(`⚠️ Error parsing table ${index}:`, error);
+      }
+    });
+  }
+  
+  // Find all drawing elements (images, shapes, icons)
+  const drawingMatches = bodyXml.match(/<w:drawing[^>]*>.*?<\/w:drawing>/gs);
+  
+  if (drawingMatches) {
+    console.log('📄 Found', drawingMatches.length, 'drawings');
+    
+    drawingMatches.forEach((drawingXml, index) => {
+      try {
+        const drawing = parseDrawingContent(drawingXml);
+        if (drawing) {
+          elements.push(drawing);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error parsing drawing ${index}:`, error);
+      }
+    });
+  }
+  
+  // Find all object elements (embedded objects, symbols)
+  const objectMatches = bodyXml.match(/<w:object[^>]*>.*?<\/w:object>/gs);
+  
+  if (objectMatches) {
+    console.log('📄 Found', objectMatches.length, 'objects');
+    
+    objectMatches.forEach((objectXml, index) => {
+      try {
+        const object = parseObjectContent(objectXml);
+        if (object) {
+          elements.push(object);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error parsing object ${index}:`, error);
       }
     });
   }
@@ -226,6 +262,36 @@ const parseTextRunContent = (runXml: string): any => {
     textRun.text = textMatch[1] || '';
   }
   
+  // Extract symbol content
+  const symbolMatch = runXml.match(/<w:sym[^>]*w:char="([^"]*)"/);
+  if (symbolMatch) {
+    const charCode = symbolMatch[1];
+    const symbol = String.fromCharCode(parseInt(charCode, 16));
+    textRun.text = symbol;
+    textRun.type = 'symbol';
+  }
+  
+  // Extract tab content
+  const tabMatch = runXml.match(/<w:tab\/>/);
+  if (tabMatch) {
+    textRun.text = '\t';
+    textRun.type = 'tab';
+  }
+  
+  // Extract line break content
+  const brMatch = runXml.match(/<w:br\/>/);
+  if (brMatch) {
+    textRun.text = '\n';
+    textRun.type = 'linebreak';
+  }
+  
+  // Extract page break content
+  const pageBreakMatch = runXml.match(/<w:br[^>]*w:type="page"[^>]*\/>/);
+  if (pageBreakMatch) {
+    textRun.text = '<hr style="page-break-after: always; border: none; margin: 20px 0;" />';
+    textRun.type = 'pagebreak';
+  }
+  
   // Parse run properties
   const rPrMatch = runXml.match(/<w:rPr[^>]*>(.*?)<\/w:rPr>/s);
   if (rPrMatch) {
@@ -273,6 +339,26 @@ const parseTextRunContent = (runXml: string): any => {
     const highlightMatch = rPrXml.match(/<w:highlight[^>]*w:val="([^"]*)"/);
     if (highlightMatch) {
       textRun.formatting.highlight = highlightMatch[1];
+    }
+    
+    // Check for subscript
+    if (rPrXml.includes('<w:vertAlign[^>]*w:val="subscript"')) {
+      textRun.formatting.subscript = true;
+    }
+    
+    // Check for superscript
+    if (rPrXml.includes('<w:vertAlign[^>]*w:val="superscript"')) {
+      textRun.formatting.superscript = true;
+    }
+    
+    // Check for small caps
+    if (rPrXml.includes('<w:smallCaps')) {
+      textRun.formatting.smallCaps = true;
+    }
+    
+    // Check for all caps
+    if (rPrXml.includes('<w:caps')) {
+      textRun.formatting.allCaps = true;
     }
   }
   
@@ -350,6 +436,68 @@ const parseTableCell = (cellXml: string): any => {
   return cell;
 };
 
+// Parse drawing content (images, shapes, icons)
+const parseDrawingContent = (drawingXml: string): any => {
+  const drawing: any = { type: 'drawing', content: '' };
+  
+  // Try to extract image information
+  const blipMatch = drawingXml.match(/<a:blip[^>]*r:embed="([^"]*)"/);
+  if (blipMatch) {
+    drawing.type = 'image';
+    drawing.embedId = blipMatch[1];
+    drawing.content = `<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Image" style="max-width: 100%; height: auto;" />`;
+  }
+  
+  // Try to extract shape information
+  const shapeMatch = drawingXml.match(/<wps:spPr[^>]*>(.*?)<\/wps:spPr>/s);
+  if (shapeMatch) {
+    drawing.type = 'shape';
+    drawing.content = `<div style="width: 100px; height: 100px; background-color: #f0f0f0; border: 1px solid #ccc; display: inline-block; margin: 5px;" title="Shape"></div>`;
+  }
+  
+  // Try to extract icon information
+  const iconMatch = drawingXml.match(/<wps:bodyPr[^>]*>(.*?)<\/wps:bodyPr>/s);
+  if (iconMatch) {
+    drawing.type = 'icon';
+    drawing.content = `<span style="font-size: 24px; color: #666;" title="Icon">📋</span>`;
+  }
+  
+  return drawing;
+};
+
+// Parse object content (embedded objects, symbols)
+const parseObjectContent = (objectXml: string): any => {
+  const object: any = { type: 'object', content: '' };
+  
+  // Try to extract symbol information
+  const symbolMatch = objectXml.match(/<w:sym[^>]*w:char="([^"]*)"/);
+  if (symbolMatch) {
+    object.type = 'symbol';
+    const charCode = symbolMatch[1];
+    const symbol = String.fromCharCode(parseInt(charCode, 16));
+    object.content = `<span style="font-size: 18px; color: #333;">${symbol}</span>`;
+  }
+  
+  // Try to extract equation information
+  const equationMatch = objectXml.match(/<m:oMath[^>]*>(.*?)<\/m:oMath>/s);
+  if (equationMatch) {
+    object.type = 'equation';
+    object.content = `<div style="background-color: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; margin: 10px 0; font-family: 'Times New Roman', serif;" title="Equation">${equationMatch[1]}</div>`;
+  }
+  
+  // Try to extract embedded object information
+  const embedMatch = objectXml.match(/<o:OLEObject[^>]*>(.*?)<\/o:OLEObject>/s);
+  if (embedMatch) {
+    object.type = 'embedded';
+    object.content = `<div style="background-color: #e9ecef; padding: 15px; border: 2px dashed #6c757d; border-radius: 6px; margin: 10px 0; text-align: center; color: #6c757d;" title="Embedded Object">
+      <span style="font-size: 24px;">📎</span><br>
+      <small>Embedded Object</small>
+    </div>`;
+  }
+  
+  return object;
+};
+
 // Extract heading level from style value
 const extractHeadingLevel = (styleValue: string): number => {
   const levelMatch = styleValue.match(/\d+/);
@@ -367,6 +515,34 @@ const applyTextFormatting = (text: string, formatting: any): string => {
   
   if (formatting.underline) {
     formattedText = `<u>${formattedText}</u>`;
+  }
+  
+  if (formatting.italic) {
+    formattedText = `<em>${formattedText}</em>`;
+  }
+  
+  if (formatting.bold) {
+    formattedText = `<strong>${formattedText}</strong>`;
+  }
+  
+  // Apply subscript
+  if (formatting.subscript) {
+    formattedText = `<sub>${formattedText}</sub>`;
+  }
+  
+  // Apply superscript
+  if (formatting.superscript) {
+    formattedText = `<sup>${formattedText}</sup>`;
+  }
+  
+  // Apply small caps
+  if (formatting.smallCaps) {
+    formattedText = `<span style="font-variant: small-caps;">${formattedText}</span>`;
+  }
+  
+  // Apply all caps
+  if (formatting.allCaps) {
+    formattedText = `<span style="text-transform: uppercase;">${formattedText}</span>`;
   }
   
   if (formatting.italic) {
@@ -455,6 +631,34 @@ const convertParagraphsToHtml = (elements: any[]): string => {
       // Convert table to HTML
       const tableHtml = convertTableToHtml(element);
       htmlParts.push(tableHtml);
+      continue;
+    }
+    
+    // Handle drawings (images, shapes, icons)
+    if (element.type === 'drawing' || element.type === 'image' || element.type === 'shape' || element.type === 'icon') {
+      // Close any open list before drawing
+      if (listItems.length > 0) {
+        htmlParts.push(closeList(currentListType, listItems));
+        listItems = [];
+        currentListType = null;
+        currentListLevel = 0;
+      }
+      
+      htmlParts.push(element.content);
+      continue;
+    }
+    
+    // Handle objects (symbols, equations, embedded objects)
+    if (element.type === 'object' || element.type === 'symbol' || element.type === 'equation' || element.type === 'embedded') {
+      // Close any open list before object
+      if (listItems.length > 0) {
+        htmlParts.push(closeList(currentListType, listItems));
+        listItems = [];
+        currentListType = null;
+        currentListLevel = 0;
+      }
+      
+      htmlParts.push(element.content);
       continue;
     }
     
