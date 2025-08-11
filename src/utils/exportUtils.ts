@@ -24,13 +24,12 @@ export const importFromWord = async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
     console.log('✅ File read as ArrayBuffer');
     
-    // For now, we'll use a simpler approach since docx library doesn't have a direct load method
-    // We'll extract text content and convert to HTML
-    const textContent = await extractTextFromDocx(arrayBuffer);
-    console.log('✅ Text extracted from document');
+    // Extract structured content from docx
+    const structuredContent = await extractStructuredContentFromDocx(arrayBuffer);
+    console.log('✅ Structured content extracted from document');
     
-    // Convert text to HTML
-    const htmlContent = convertTextToHtml(textContent);
+    // Convert structured content to HTML
+    const htmlContent = convertStructuredContentToHtml(structuredContent);
     
     console.log('✅ Word import completed successfully');
     console.log('📄 Extracted HTML length:', htmlContent.length);
@@ -43,66 +42,195 @@ export const importFromWord = async (file: File): Promise<string> => {
   }
 };
 
-// Helper function to extract text from docx
-const extractTextFromDocx = async (arrayBuffer: ArrayBuffer): Promise<string> => {
+// Helper function to extract structured content from docx
+const extractStructuredContentFromDocx = async (arrayBuffer: ArrayBuffer): Promise<any[]> => {
   try {
-    // For now, we'll use a simple text extraction
-    // In a real implementation, you might want to use a library like mammoth.js
     const uint8Array = new Uint8Array(arrayBuffer);
     const textDecoder = new TextDecoder('utf-8');
-    
-    // Try to extract text from the document
-    let textContent = '';
-    
-    // Simple text extraction (this is a basic implementation)
-    // In production, you should use a proper docx parsing library
     const xmlContent = textDecoder.decode(uint8Array);
     
-    // Extract text from XML content (basic approach)
-    const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
-    if (textMatches) {
-      textContent = textMatches
-        .map(match => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
-        .join(' ');
+    console.log('📄 XML content length:', xmlContent.length);
+    
+    // Extract paragraphs with their structure
+    const paragraphs: any[] = [];
+    
+    // Find all paragraph elements
+    const paragraphMatches = xmlContent.match(/<w:p[^>]*>.*?<\/w:p>/gs);
+    
+    if (paragraphMatches) {
+      console.log('📄 Found', paragraphMatches.length, 'paragraphs');
+      
+      for (let i = 0; i < paragraphMatches.length; i++) {
+        const paragraphXml = paragraphMatches[i];
+        const paragraph = parseParagraph(paragraphXml);
+        
+        if (paragraph.text.trim()) {
+          paragraphs.push(paragraph);
+        }
+      }
     }
     
-    // If no text found, return a placeholder
-    if (!textContent.trim()) {
-      textContent = 'Content extracted from Word document';
+    // If no structured content found, fallback to simple text extraction
+    if (paragraphs.length === 0) {
+      console.log('⚠️ No structured content found, using fallback');
+      const textContent = extractSimpleText(xmlContent);
+      return [{ type: 'paragraph', text: textContent, formatting: {} }];
     }
     
-    return textContent;
+    console.log('✅ Extracted', paragraphs.length, 'structured paragraphs');
+    return paragraphs;
   } catch (error) {
-    console.warn('⚠️ Error extracting text from docx:', error);
-    return 'Content extracted from Word document';
+    console.warn('⚠️ Error extracting structured content from docx:', error);
+    return [{ type: 'paragraph', text: 'Content extracted from Word document', formatting: {} }];
   }
 };
 
-// Helper function to convert text to HTML
-const convertTextToHtml = (textContent: string): string => {
-  // Split text into paragraphs
-  const paragraphs = textContent.split(/\n+/).filter(p => p.trim());
+// Helper function to parse a single paragraph
+const parseParagraph = (paragraphXml: string): any => {
+  const paragraph: any = {
+    type: 'paragraph',
+    text: '',
+    formatting: {}
+  };
   
-  // Convert each paragraph to HTML
-  const htmlParagraphs = paragraphs.map(paragraph => {
-    // Basic formatting detection (you can enhance this)
-    let formattedText = paragraph;
-    
-    // Detect bold text (surrounded by ** or __)
-    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    formattedText = formattedText.replace(/__(.*?)__/g, '<strong>$1</strong>');
-    
-    // Detect italic text (surrounded by * or _)
-    formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    formattedText = formattedText.replace(/_(.*?)_/g, '<em>$1</em>');
-    
-    // Detect underlined text (surrounded by ++)
-    formattedText = formattedText.replace(/\+\+(.*?)\+\+/g, '<u>$1</u>');
-    
-    return `<p>${formattedText}</p>`;
-  });
+  // Extract text runs with their formatting
+  const textRunMatches = paragraphXml.match(/<w:r[^>]*>.*?<\/w:r>/gs);
   
-  return htmlParagraphs.join('\n');
+  if (textRunMatches) {
+    const textParts: string[] = [];
+    const formattedParts: string[] = [];
+    
+    for (const textRunXml of textRunMatches) {
+      const textRun = parseTextRun(textRunXml);
+      if (textRun.text) {
+        textParts.push(textRun.text);
+        
+        // Apply formatting to this text part
+        let formattedText = textRun.text;
+        if (textRun.formatting) {
+          formattedText = applyFormatting(textRun.text, textRun.formatting);
+        }
+        formattedParts.push(formattedText);
+      }
+    }
+    
+    paragraph.text = textParts.join('');
+    paragraph.formattedText = formattedParts.join('');
+  }
+  
+  // Check if this is a heading
+  const headingMatch = paragraphXml.match(/<w:pStyle[^>]*w:val="([^"]*)"/);
+  if (headingMatch) {
+    const styleValue = headingMatch[1];
+    if (styleValue.includes('Heading') || styleValue.includes('Title')) {
+      paragraph.type = 'heading';
+      paragraph.level = extractHeadingLevel(styleValue);
+    }
+  }
+  
+  return paragraph;
+};
+
+// Helper function to parse a text run
+const parseTextRun = (textRunXml: string): any => {
+  const textRun: any = {
+    text: '',
+    formatting: {}
+  };
+  
+  // Extract text content
+  const textMatch = textRunXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
+  if (textMatch) {
+    textRun.text = textMatch[1];
+  }
+  
+  // Extract formatting
+  if (textRunXml.includes('<w:b/>') || textRunXml.includes('<w:b w:val="1"/>')) {
+    textRun.formatting.bold = true;
+  }
+  
+  if (textRunXml.includes('<w:i/>') || textRunXml.includes('<w:i w:val="1"/>')) {
+    textRun.formatting.italic = true;
+  }
+  
+  if (textRunXml.includes('<w:u/>') || textRunXml.includes('<w:u w:val="1"/>')) {
+    textRun.formatting.underline = true;
+  }
+  
+  if (textRunXml.includes('<w:strike/>') || textRunXml.includes('<w:strike w:val="1"/>')) {
+    textRun.formatting.strikethrough = true;
+  }
+  
+  return textRun;
+};
+
+// Helper function to extract heading level
+const extractHeadingLevel = (styleValue: string): number => {
+  const levelMatch = styleValue.match(/\d+/);
+  return levelMatch ? parseInt(levelMatch[0]) : 1;
+};
+
+// Helper function to extract simple text (fallback)
+const extractSimpleText = (xmlContent: string): string => {
+  const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+  if (textMatches) {
+    return textMatches
+      .map(match => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
+      .join(' ');
+  }
+  return 'Content extracted from Word document';
+};
+
+// Helper function to convert structured content to HTML
+const convertStructuredContentToHtml = (structuredContent: any[]): string => {
+  const htmlParts: string[] = [];
+  
+  for (const item of structuredContent) {
+    let content = item.text;
+    
+    // Apply formatting if available
+    if (item.formatting) {
+      content = applyFormatting(content, item.formatting);
+    }
+    
+    if (item.type === 'heading') {
+      const level = Math.min(item.level || 1, 6);
+      const tag = `h${level}`;
+      htmlParts.push(`<${tag}>${content}</${tag}>`);
+    } else {
+      // Regular paragraph
+      htmlParts.push(`<p>${content}</p>`);
+    }
+  }
+  
+  return htmlParts.join('\n');
+};
+
+// Helper function to apply formatting to text
+const applyFormatting = (text: string, formatting: any): string => {
+  let formattedText = text;
+  
+  // Apply strikethrough first (innermost)
+  if (formatting.strikethrough) {
+    formattedText = `<s>${formattedText}</s>`;
+  }
+  
+  // Apply underline
+  if (formatting.underline) {
+    formattedText = `<u>${formattedText}</u>`;
+  }
+  
+  // Apply italic
+  if (formatting.italic) {
+    formattedText = `<em>${formattedText}</em>`;
+  }
+  
+  // Apply bold (outermost)
+  if (formatting.bold) {
+    formattedText = `<strong>${formattedText}</strong>`;
+  }
+  
+  return formattedText;
 };
 
 export const exportToWord = async (content: string, filename: string = 'document') => {
@@ -776,275 +904,31 @@ export const exportToPDF = async (content: string, filename: string = 'document'
       console.log('ℹ️ No images found, proceeding with text-only content');
     }
     
-    const imageConversionPromises = Array.from(images).map(async (img, index) => {
-      const imgElement = img as HTMLImageElement;
-      
-      try {
-        // Skip if already a data URL
-        if (imgElement.src.startsWith('data:')) {
-          console.log(`Image ${index + 1}: Already a data URL, skipping conversion`);
-          return;
-        }
-        
-        console.log(`Image ${index + 1}: Converting ${imgElement.src} to base64...`);
-        
-        // Convert image to base64 with fallback
-        const base64Data = await convertImageToBase64(imgElement.src);
-        imgElement.src = base64Data;
-        console.log(`Image ${index + 1}: Successfully converted to base64`);
-      } catch (error) {
-        console.warn(`Image ${index + 1}: Failed to convert image to base64:`, imgElement.src, error);
-        // Create a placeholder for failed images
-        imgElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NzM4NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pjwvc3ZnPg==';
-        imgElement.alt = 'Image failed to load';
-      }
-    });
+    // Convert HTML to canvas
+    const canvas = await html2canvas(tempDiv, { scale: 2 }); // Scale for high DPI
+    console.log('✅ HTML converted to canvas');
     
-    // Wait for all image conversions
-    console.log(`Starting conversion of ${images.length} images...`);
-    await Promise.all(imageConversionPromises);
-    console.log('All image conversions completed');
-    
-    // Style images properly for export
-    images.forEach(img => {
-      const imgElement = img as HTMLImageElement;
-      imgElement.style.maxWidth = '100%';
-      imgElement.style.height = 'auto';
-      imgElement.style.display = 'block';
-      imgElement.style.margin = '10px 0';
-      imgElement.style.objectFit = 'contain';
-      imgElement.crossOrigin = 'anonymous';
-    });
-    
-    // Style tables
-    const tables = tempDiv.querySelectorAll('table');
-    tables.forEach(table => {
-      (table as HTMLElement).style.width = '100%';
-      (table as HTMLElement).style.borderCollapse = 'collapse';
-      (table as HTMLElement).style.border = '1px solid #ccc';
-    });
-    
-    // Style code blocks
-    const codeBlocks = tempDiv.querySelectorAll('pre');
-    codeBlocks.forEach(pre => {
-      (pre as HTMLElement).style.whiteSpace = 'pre-wrap';
-      (pre as HTMLElement).style.wordWrap = 'break-word';
-      (pre as HTMLElement).style.backgroundColor = '#f8f9fa';
-      (pre as HTMLElement).style.padding = '12px';
-      (pre as HTMLElement).style.borderRadius = '4px';
-    });
-    
-    document.body.appendChild(tempDiv);
-    console.log('📋 Added temp div to document body');
-    
-    // Wait for images to load with retry mechanism
-    const imageLoadPromises = Array.from(images).map(async (img, index) => {
-      const imgElement = img as HTMLImageElement;
-      
-      try {
-        if (imgElement.complete && imgElement.naturalHeight !== 0) {
-          console.log(`Image ${index + 1}: Already loaded`);
-          return true;
-        }
-        
-        console.log(`Image ${index + 1}: Waiting for load...`);
-        await loadImageWithRetry(imgElement.src, 3);
-        console.log(`Image ${index + 1}: Successfully loaded`);
-        return true;
-      } catch (error) {
-        console.warn(`Image ${index + 1}: Failed to load after retries:`, error);
-        return true; // Continue with PDF generation even if some images fail
-      }
-    });
-    
-    await Promise.all(imageLoadPromises);
-    console.log('All images processed');
-    
-    // Additional wait to ensure rendering is complete
-    console.log('Waiting for final rendering...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Convert to canvas with improved options
-    console.log('Converting to canvas...');
-    let canvas: HTMLCanvasElement;
-    
-    try {
-      canvas = await html2canvas(tempDiv, {
-        backgroundColor: '#ffffff',
-        scale: 2, // Higher scale for better quality
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        foreignObjectRendering: true,
-        imageTimeout: 15000,
-        width: tempDiv.offsetWidth,
-        height: tempDiv.offsetHeight,
-        onclone: (clonedDoc) => {
-          // Ensure proper styling in cloned document
-          const clonedImages = clonedDoc.querySelectorAll('img');
-          clonedImages.forEach((img, index) => {
-            const originalImg = images[index] as HTMLImageElement;
-            console.log(`🔄 Cloning image ${index + 1}:`, {
-              original: {
-                width: originalImg.width,
-                height: originalImg.height,
-                styleWidth: originalImg.style.width,
-                styleHeight: originalImg.style.height
-              }
-            });
-            
-            // Preserve exact dimensions from original
-            if (originalImg.style.width) {
-              (img as HTMLElement).style.width = originalImg.style.width;
-            }
-            if (originalImg.style.height) {
-              (img as HTMLElement).style.height = originalImg.style.height;
-            }
-            
-            // Set computed dimensions
-            if (originalImg.width) {
-              (img as HTMLElement).style.width = `${originalImg.width}px`;
-            }
-            if (originalImg.height) {
-              (img as HTMLElement).style.height = `${originalImg.height}px`;
-            }
-            
-            // Ensure other styling
-            (img as HTMLElement).style.maxWidth = '100%';
-            (img as HTMLElement).style.height = 'auto';
-            (img as HTMLElement).style.objectFit = 'contain';
-            (img as HTMLElement).style.display = 'block';
-            (img as HTMLElement).style.margin = '10px 0';
-            
-            console.log(`✅ Cloned image ${index + 1} with dimensions:`, {
-              width: (img as HTMLElement).style.width,
-              height: (img as HTMLElement).style.height
-            });
-          });
-          
-          const clonedTables = clonedDoc.querySelectorAll('table');
-          clonedTables.forEach(table => {
-            (table as HTMLElement).style.border = '1px solid #000';
-          });
-        }
-      });
-      console.log('✅ html2canvas completed successfully');
-    } catch (html2canvasError) {
-      console.error('❌ html2canvas failed:', html2canvasError);
-      console.log('🔄 Trying manual canvas drawing as fallback...');
-      
-      try {
-        canvas = await drawImagesToCanvas(tempDiv);
-        console.log('✅ Manual canvas drawing completed successfully');
-      } catch (manualError) {
-        console.error('❌ Manual canvas drawing also failed:', manualError);
-        throw new Error('Both html2canvas and manual drawing failed');
-      }
-    }
-    
-    console.log('Canvas created successfully');
-    document.body.removeChild(tempDiv);
-    
-    // Try manual canvas drawing as fallback if html2canvas fails
-    let finalCanvas = canvas;
-    let useManualCanvas = false;
-    
-    // Check if canvas has content
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Could not get canvas context for fallback check');
-    }
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const hasContent = imageData.data.some(pixel => pixel !== 0);
-    
-    if (!hasContent || canvas.width === 0 || canvas.height === 0) {
-      console.log('⚠️ html2canvas produced empty canvas, trying manual drawing...');
-      try {
-        // Recreate temp div for manual drawing
-        const manualTempDiv = document.createElement('div');
-        manualTempDiv.innerHTML = content;
-        manualTempDiv.style.cssText = `
-          font-family: Arial, sans-serif;
-          font-size: 14px;
-          line-height: 1.6;
-          color: #000;
-          background: #fff;
-          padding: 20px;
-          max-width: 800px;
-          min-height: 500px;
-          position: absolute;
-          top: -9999px;
-          left: -9999px;
-          z-index: -1;
-        `;
-        
-        document.body.appendChild(manualTempDiv);
-        finalCanvas = await drawImagesToCanvas(manualTempDiv);
-        document.body.removeChild(manualTempDiv);
-        useManualCanvas = true;
-        console.log('✅ Manual canvas drawing successful');
-      } catch (manualError) {
-        console.error('❌ Manual canvas drawing also failed:', manualError);
-        // Continue with original canvas
-      }
-    }
-    
-    // Create PDF with high quality
-    console.log('Creating PDF...');
-    const imgData = finalCanvas.toDataURL('image/png', 1.0);
-    console.log('✅ Canvas converted to data URL');
-    
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      compress: true
-    });
-    console.log('✅ PDF object created');
-    
-    const pageWidth = 210; // A4 width in mm
+    // Convert canvas to PDF
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgWidth = 210; // A4 width in mm
     const pageHeight = 297; // A4 height in mm
-    const margin = 15;
-    const imgWidth = pageWidth - (2 * margin);
-    const imgHeight = (finalCanvas.height * imgWidth) / finalCanvas.width;
+    let heightLeft = canvas.height;
+    let position = 0;
     
-    console.log('📐 PDF dimensions:', {
-      pageWidth,
-      pageHeight,
-      imgWidth,
-      imgHeight,
-      canvasWidth: finalCanvas.width,
-      canvasHeight: finalCanvas.height
-    });
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, canvas.height / canvas.width * imgWidth);
     
-    let yPosition = margin;
-    let remainingHeight = imgHeight;
-    
-    // Add first page
-    pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
-    console.log('✅ First page added to PDF');
-    remainingHeight -= (pageHeight - 2 * margin);
-    
-    // Add additional pages if content overflows
-    let pageCount = 1;
-    while (remainingHeight > 0) {
+    while (heightLeft > 0) {
       pdf.addPage();
-      pageCount++;
-      yPosition = margin - (imgHeight - remainingHeight);
-      pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
-      remainingHeight -= (pageHeight - 2 * margin);
-      console.log(`✅ Page ${pageCount} added to PDF`);
+      position = heightLeft - pageHeight;
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, canvas.height / canvas.width * imgWidth);
+      heightLeft -= pageHeight;
     }
     
-    // Download the PDF
-    console.log('Saving PDF...');
     pdf.save(`${filename}.pdf`);
-    console.log(`PDF export completed successfully using ${useManualCanvas ? 'manual canvas' : 'html2canvas'} with ${pageCount} pages`);
-    
+    console.log('✅ PDF exported successfully');
     return true;
   } catch (error) {
-    console.error('❌ Error exporting to PDF:', error);
-    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    throw error; // Re-throw to show error to user
+    console.error('Error exporting to PDF:', error);
+    return false;
   }
 };
