@@ -330,9 +330,14 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
   const padding = 20;
   const lineHeight = 24;
   
-  // Process all elements in their original order
+  // Process all elements in their original order with exact positioning
   const allElements = Array.from(tempDiv.childNodes);
   console.log(`📋 Processing ${allElements.length} total elements`);
+  
+  // Track current line position for inline elements
+  let currentLineY = yOffset;
+  let currentLineX = padding;
+  let maxLineHeight = lineHeight;
   
   for (let i = 0; i < allElements.length; i++) {
     const element = allElements[i];
@@ -344,30 +349,49 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
       if (text) {
         ctx.fillStyle = '#000000';
         ctx.font = '14px Arial, sans-serif';
-        ctx.fillText(text, padding, yOffset + lineHeight);
-        yOffset += lineHeight;
-        console.log(`✅ Text drawn: "${text}"`);
+        
+        // Check if text should be inline or on new line
+        const textWidth = ctx.measureText(text).width;
+        const availableWidth = rect.width - (2 * padding);
+        
+        if (currentLineX + textWidth > availableWidth) {
+          // Move to next line
+          currentLineY += maxLineHeight;
+          currentLineX = padding;
+          maxLineHeight = lineHeight;
+        }
+        
+        ctx.fillText(text, currentLineX, currentLineY + lineHeight);
+        currentLineX += textWidth + 5; // Add small spacing
+        maxLineHeight = Math.max(maxLineHeight, lineHeight);
+        
+        console.log(`✅ Text drawn: "${text}" at (${currentLineX}, ${currentLineY})`);
       }
     } else if (element.nodeType === Node.ELEMENT_NODE) {
       const htmlElement = element as HTMLElement;
       const tagName = htmlElement.tagName.toLowerCase();
       
       if (tagName === 'img') {
-        // Handle images
+        // Handle images with exact positioning
         const img = htmlElement as HTMLImageElement;
         console.log(`🖼️ Processing image:`, img.src);
-        console.log(`📏 Image dimensions:`, {
-          naturalWidth: img.naturalWidth,
-          naturalHeight: img.naturalHeight,
-          width: img.width,
-          height: img.height,
-          style: {
-            width: img.style.width,
-            height: img.style.height,
-            display: img.style.display,
-            margin: img.style.margin
-          }
+        
+        // Get computed style for positioning
+        const computedStyle = window.getComputedStyle(img);
+        const display = computedStyle.display;
+        const float = computedStyle.float;
+        const position = computedStyle.position;
+        
+        console.log(`📍 Image positioning:`, {
+          display,
+          float,
+          position,
+          margin: computedStyle.margin,
+          padding: computedStyle.padding
         });
+        
+        // Check if image should be inline or block
+        const isInline = display === 'inline' || display === 'inline-block' || float === 'left' || float === 'right';
         
         try {
           // Create a new image element
@@ -501,20 +525,47 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
                   console.log(`📐 Scaled down to max height: ${displayWidth} x ${displayHeight}`);
                 }
                 
+                // Calculate position based on display type
+                let imageX = padding;
+                let imageY = currentLineY;
+                
+                if (isInline) {
+                  // Check if image fits on current line
+                  const availableWidth = rect.width - (2 * padding);
+                  if (currentLineX + displayWidth > availableWidth) {
+                    // Move to next line
+                    currentLineY += maxLineHeight;
+                    currentLineX = padding;
+                    maxLineHeight = lineHeight;
+                    imageY = currentLineY;
+                  }
+                  imageX = currentLineX;
+                  currentLineX += displayWidth + 10; // Add spacing after image
+                } else {
+                  // Block element - start new line
+                  currentLineY += maxLineHeight;
+                  currentLineX = padding;
+                  maxLineHeight = lineHeight;
+                  imageY = currentLineY;
+                }
+                
+                maxLineHeight = Math.max(maxLineHeight, displayHeight);
+                
                 console.log(`📐 Final calculated display dimensions:`, {
                   width: displayWidth,
                   height: displayHeight,
-                  yOffset: yOffset,
+                  x: imageX,
+                  y: imageY,
+                  isInline,
                   originalWidth: img.width,
                   originalHeight: img.height,
                   scaleFactor: scaleFactor
                 });
                 
                 // Draw image at exact position and size
-                ctx.drawImage(newImg, padding, yOffset, displayWidth, displayHeight);
-                console.log(`✅ Image drawn successfully at ${displayWidth}x${displayHeight}`);
+                ctx.drawImage(newImg, imageX, imageY, displayWidth, displayHeight);
+                console.log(`✅ Image drawn successfully at ${displayWidth}x${displayHeight} at (${imageX}, ${imageY})`);
                 
-                yOffset += displayHeight + 20; // Add spacing after image
                 resolve();
               } catch (drawError) {
                 console.error(`❌ Error drawing image:`, drawError);
@@ -533,10 +584,10 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
           console.warn(`⚠️ Skipping image due to error:`, error);
           // Draw placeholder
           ctx.fillStyle = '#f3f4f6';
-          ctx.fillRect(padding, yOffset, 200, 150);
+          ctx.fillRect(currentLineX, currentLineY, 200, 150);
           ctx.fillStyle = '#666';
-          ctx.fillText('Image failed to load', padding + 10, yOffset + 80);
-          yOffset += 170;
+          ctx.fillText('Image failed to load', currentLineX + 10, currentLineY + 80);
+          currentLineX += 210;
         }
       } else if (['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'span'].includes(tagName)) {
         // Handle text elements
@@ -558,16 +609,33 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
           const textAlign = htmlElement.style.textAlign || 'left';
           ctx.textAlign = textAlign as CanvasTextAlign;
           
-          let xPosition = padding;
+          // Check if element should start new line
+          const isBlock = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div'].includes(tagName);
+          if (isBlock) {
+            currentLineY += maxLineHeight;
+            currentLineX = padding;
+            maxLineHeight = lineHeight;
+          }
+          
+          let xPosition = currentLineX;
           if (textAlign === 'center') {
             xPosition = rect.width / 2;
           } else if (textAlign === 'right') {
             xPosition = rect.width - padding;
           }
           
-          ctx.fillText(text, xPosition, yOffset + lineHeight);
-          yOffset += lineHeight;
-          console.log(`✅ Text element drawn: "${text}" with ${fontSize}px font`);
+          ctx.fillText(text, xPosition, currentLineY + lineHeight);
+          
+          if (isBlock) {
+            currentLineY += lineHeight;
+            currentLineX = padding;
+          } else {
+            // Inline element
+            const textWidth = ctx.measureText(text).width;
+            currentLineX += textWidth + 5;
+          }
+          
+          console.log(`✅ Text element drawn: "${text}" with ${fontSize}px font at (${xPosition}, ${currentLineY})`);
         }
       }
     }
