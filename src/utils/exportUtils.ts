@@ -1,6 +1,12 @@
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = 'https://qgmluixnzhpthywyrytn.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lydG4iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNDI5NzE5NywiZXhwIjoyMDUwODczMTk3fQ.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const exportToWord = async (content: string, filename: string = 'document') => {
   try {
@@ -158,6 +164,103 @@ export const exportToWord = async (content: string, filename: string = 'document
   }
 };
 
+// Helper function to load image with retry mechanism
+const loadImageWithRetry = (src: string, maxRetries: number = 3): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    let retries = 0;
+    
+    const attemptLoad = () => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        retries++;
+        if (retries < maxRetries) {
+          console.warn(`Image load attempt ${retries} failed for ${src}, retrying...`);
+          setTimeout(attemptLoad, 1000 * retries); // Exponential backoff
+        } else {
+          reject(new Error(`Failed to load image after ${maxRetries} attempts: ${src}`));
+        }
+      };
+      
+      img.src = src;
+    };
+    
+    attemptLoad();
+  });
+};
+
+// Helper function to convert image to base64 with fallback
+const convertImageToBase64 = async (imageUrl: string): Promise<string> => {
+  try {
+    // Check if it's a Supabase signed URL
+    if (imageUrl.includes('supabase.co') && imageUrl.includes('token=')) {
+      // For Supabase signed URLs, try direct fetch first
+      const response = await fetch(imageUrl, {
+        mode: 'cors',
+        credentials: 'omit'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Supabase image: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+    
+    // For other URLs, try direct fetch
+    const response = await fetch(imageUrl, {
+      mode: 'cors',
+      credentials: 'omit'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+    
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.warn('Direct fetch failed, trying proxy:', error);
+    
+    try {
+      // Second try: Use a CORS proxy
+      const proxyUrl = `https://cors-anywhere.herokuapp.com/${imageUrl}`;
+      const response = await fetch(proxyUrl, {
+        mode: 'cors',
+        credentials: 'omit'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Proxy fetch failed: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (proxyError) {
+      console.warn('Proxy fetch also failed:', proxyError);
+      throw proxyError;
+    }
+  }
+};
+
 export const exportToPDF = async (content: string, filename: string = 'document') => {
   try {
     // Create a temporary div to render content for PDF
@@ -178,8 +281,38 @@ export const exportToPDF = async (content: string, filename: string = 'document'
       z-index: -1;
     `;
     
-    // Style images properly for export
+    // Convert all images to base64 to avoid CORS issues
     const images = tempDiv.querySelectorAll('img');
+    const imageConversionPromises = Array.from(images).map(async (img, index) => {
+      const imgElement = img as HTMLImageElement;
+      
+      try {
+        // Skip if already a data URL
+        if (imgElement.src.startsWith('data:')) {
+          console.log(`Image ${index + 1}: Already a data URL, skipping conversion`);
+          return;
+        }
+        
+        console.log(`Image ${index + 1}: Converting ${imgElement.src} to base64...`);
+        
+        // Convert image to base64 with fallback
+        const base64Data = await convertImageToBase64(imgElement.src);
+        imgElement.src = base64Data;
+        console.log(`Image ${index + 1}: Successfully converted to base64`);
+      } catch (error) {
+        console.warn(`Image ${index + 1}: Failed to convert image to base64:`, imgElement.src, error);
+        // Create a placeholder for failed images
+        imgElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NzM4NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pjwvc3ZnPg==';
+        imgElement.alt = 'Image failed to load';
+      }
+    });
+    
+    // Wait for all image conversions
+    console.log(`Starting conversion of ${images.length} images...`);
+    await Promise.all(imageConversionPromises);
+    console.log('All image conversions completed');
+    
+    // Style images properly for export
     images.forEach(img => {
       const imgElement = img as HTMLImageElement;
       imgElement.style.maxWidth = '100%';
@@ -188,14 +321,6 @@ export const exportToPDF = async (content: string, filename: string = 'document'
       imgElement.style.margin = '10px 0';
       imgElement.style.objectFit = 'contain';
       imgElement.crossOrigin = 'anonymous';
-      
-      // If image is a data URL or blob, keep it as is
-      // If it's a relative URL, convert to absolute
-      if (imgElement.src && !imgElement.src.startsWith('data:') && !imgElement.src.startsWith('blob:')) {
-        if (imgElement.src.startsWith('/')) {
-          imgElement.src = window.location.origin + imgElement.src;
-        }
-      }
     });
     
     // Style tables
@@ -218,58 +343,43 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     
     document.body.appendChild(tempDiv);
     
-    // Wait for images to load and handle CORS
-    const imagePromises = Array.from(images).map(img => {
-      return new Promise((resolve) => {
-        const imgElement = img as HTMLImageElement;
-        
+    // Wait for images to load with retry mechanism
+    const imageLoadPromises = Array.from(images).map(async (img, index) => {
+      const imgElement = img as HTMLImageElement;
+      
+      try {
         if (imgElement.complete && imgElement.naturalHeight !== 0) {
-          resolve(true);
-        } else {
-          const handleLoad = () => {
-            imgElement.removeEventListener('load', handleLoad);
-            imgElement.removeEventListener('error', handleError);
-            resolve(true);
-          };
-          
-          const handleError = () => {
-            imgElement.removeEventListener('load', handleLoad);
-            imgElement.removeEventListener('error', handleError);
-            console.warn('Image failed to load:', imgElement.src);
-            resolve(true);
-          };
-          
-          imgElement.addEventListener('load', handleLoad);
-          imgElement.addEventListener('error', handleError);
-          
-          // If image is not loading, try to reload it
-          if (!imgElement.src || imgElement.src === '') {
-            resolve(true);
-          } else {
-            // Timeout fallback
-            setTimeout(() => {
-              imgElement.removeEventListener('load', handleLoad);
-              imgElement.removeEventListener('error', handleError);
-              resolve(true);
-            }, 5000);
-          }
+          console.log(`Image ${index + 1}: Already loaded`);
+          return true;
         }
-      });
+        
+        console.log(`Image ${index + 1}: Waiting for load...`);
+        await loadImageWithRetry(imgElement.src, 3);
+        console.log(`Image ${index + 1}: Successfully loaded`);
+        return true;
+      } catch (error) {
+        console.warn(`Image ${index + 1}: Failed to load after retries:`, error);
+        return true; // Continue with PDF generation even if some images fail
+      }
     });
     
-    await Promise.all(imagePromises);
+    await Promise.all(imageLoadPromises);
+    console.log('All images processed');
     
     // Additional wait to ensure rendering is complete
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('Waiting for final rendering...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Convert to canvas with improved options
+    console.log('Converting to canvas...');
     const canvas = await html2canvas(tempDiv, {
       backgroundColor: '#ffffff',
-      scale: 1.2,
+      scale: 2, // Higher scale for better quality
       useCORS: true,
       allowTaint: true,
       logging: false,
       foreignObjectRendering: true,
+      imageTimeout: 15000,
       onclone: (clonedDoc) => {
         // Ensure proper styling in cloned document
         const clonedImages = clonedDoc.querySelectorAll('img');
@@ -277,6 +387,8 @@ export const exportToPDF = async (content: string, filename: string = 'document'
           (img as HTMLElement).style.maxWidth = '100%';
           (img as HTMLElement).style.height = 'auto';
           (img as HTMLElement).style.objectFit = 'contain';
+          (img as HTMLElement).style.display = 'block';
+          (img as HTMLElement).style.margin = '10px 0';
         });
         
         const clonedTables = clonedDoc.querySelectorAll('table');
@@ -286,9 +398,11 @@ export const exportToPDF = async (content: string, filename: string = 'document'
       }
     });
     
+    console.log('Canvas created successfully');
     document.body.removeChild(tempDiv);
     
     // Create PDF with high quality
+    console.log('Creating PDF...');
     const imgData = canvas.toDataURL('image/png', 1.0);
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -319,7 +433,9 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     }
     
     // Download the PDF
+    console.log('Saving PDF...');
     pdf.save(`${filename}.pdf`);
+    console.log('PDF export completed successfully');
     
     return true;
   } catch (error) {
