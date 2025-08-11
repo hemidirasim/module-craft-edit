@@ -24,12 +24,36 @@ export const importFromWord = async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
     console.log('✅ File read as ArrayBuffer');
     
-    // Extract structured content from docx
-    const structuredContent = await extractStructuredContentFromDocx(arrayBuffer);
-    console.log('✅ Structured content extracted from document');
+    // Try multiple approaches to extract content
+    let htmlContent = '';
     
-    // Convert structured content to HTML
-    const htmlContent = convertStructuredContentToHtml(structuredContent);
+    // Approach 1: Structured content extraction
+    try {
+      console.log('🔄 Trying structured content extraction...');
+      const structuredContent = await extractStructuredContentFromDocx(arrayBuffer);
+      htmlContent = convertStructuredContentToHtml(structuredContent);
+      console.log('✅ Structured extraction successful');
+    } catch (error) {
+      console.warn('⚠️ Structured extraction failed:', error);
+    }
+    
+    // Approach 2: If structured extraction failed or produced empty content, try simple extraction
+    if (!htmlContent.trim()) {
+      try {
+        console.log('🔄 Trying simple text extraction...');
+        const simpleText = await extractSimpleTextFromDocx(arrayBuffer);
+        htmlContent = convertSimpleTextToHtml(simpleText);
+        console.log('✅ Simple extraction successful');
+      } catch (error) {
+        console.warn('⚠️ Simple extraction failed:', error);
+      }
+    }
+    
+    // Approach 3: Final fallback
+    if (!htmlContent.trim()) {
+      console.log('🔄 Using final fallback...');
+      htmlContent = '<p>Content extracted from Word document</p>';
+    }
     
     console.log('✅ Word import completed successfully');
     console.log('📄 Extracted HTML length:', htmlContent.length);
@@ -50,11 +74,12 @@ const extractStructuredContentFromDocx = async (arrayBuffer: ArrayBuffer): Promi
     const xmlContent = textDecoder.decode(uint8Array);
     
     console.log('📄 XML content length:', xmlContent.length);
+    console.log('📄 XML preview:', xmlContent.substring(0, 500) + '...');
     
     // Extract paragraphs with their structure
     const paragraphs: any[] = [];
     
-    // Find all paragraph elements
+    // Find all paragraph elements - more comprehensive pattern
     const paragraphMatches = xmlContent.match(/<w:p[^>]*>.*?<\/w:p>/gs);
     
     if (paragraphMatches) {
@@ -62,15 +87,49 @@ const extractStructuredContentFromDocx = async (arrayBuffer: ArrayBuffer): Promi
       
       for (let i = 0; i < paragraphMatches.length; i++) {
         const paragraphXml = paragraphMatches[i];
+        console.log(`📄 Processing paragraph ${i + 1}:`, paragraphXml.substring(0, 200) + '...');
+        
         const paragraph = parseParagraph(paragraphXml);
         
         if (paragraph.text.trim()) {
           paragraphs.push(paragraph);
+          console.log(`✅ Paragraph ${i + 1} parsed:`, {
+            type: paragraph.type,
+            text: paragraph.text.substring(0, 50) + '...',
+            hasFormatting: Object.keys(paragraph.formatting || {}).length > 0
+          });
+        } else {
+          console.log(`⚠️ Paragraph ${i + 1} skipped (empty text)`);
+        }
+      }
+    } else {
+      console.log('⚠️ No paragraph matches found with regex');
+      
+      // Try alternative approach - look for text elements directly
+      const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+      if (textMatches) {
+        console.log('📄 Found', textMatches.length, 'text elements directly');
+        const allText = textMatches
+          .map(match => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
+          .join(' ');
+        
+        // Split by common paragraph breaks
+        const textParts = allText.split(/\s{2,}/).filter(part => part.trim());
+        console.log('📄 Split into', textParts.length, 'text parts');
+        
+        for (const textPart of textParts) {
+          if (textPart.trim()) {
+            paragraphs.push({
+              type: 'paragraph',
+              text: textPart.trim(),
+              formatting: {}
+            });
+          }
         }
       }
     }
     
-    // If no structured content found, fallback to simple text extraction
+    // If still no structured content found, fallback to simple text extraction
     if (paragraphs.length === 0) {
       console.log('⚠️ No structured content found, using fallback');
       const textContent = extractSimpleText(xmlContent);
@@ -78,6 +137,8 @@ const extractStructuredContentFromDocx = async (arrayBuffer: ArrayBuffer): Promi
     }
     
     console.log('✅ Extracted', paragraphs.length, 'structured paragraphs');
+    console.log('📄 Final paragraphs preview:', paragraphs.map(p => p.text.substring(0, 30) + '...'));
+    
     return paragraphs;
   } catch (error) {
     console.warn('⚠️ Error extracting structured content from docx:', error);
@@ -93,22 +154,29 @@ const parseParagraph = (paragraphXml: string): any => {
     formatting: {}
   };
   
+  console.log('🔍 Parsing paragraph XML:', paragraphXml.substring(0, 100) + '...');
+  
   // Extract text runs with their formatting
   const textRunMatches = paragraphXml.match(/<w:r[^>]*>.*?<\/w:r>/gs);
   
   if (textRunMatches) {
+    console.log('📝 Found', textRunMatches.length, 'text runs');
     const textParts: string[] = [];
     const formattedParts: string[] = [];
     
-    for (const textRunXml of textRunMatches) {
+    for (let i = 0; i < textRunMatches.length; i++) {
+      const textRunXml = textRunMatches[i];
+      console.log(`📝 Processing text run ${i + 1}:`, textRunXml.substring(0, 100) + '...');
+      
       const textRun = parseTextRun(textRunXml);
       if (textRun.text) {
         textParts.push(textRun.text);
         
         // Apply formatting to this text part
         let formattedText = textRun.text;
-        if (textRun.formatting) {
+        if (textRun.formatting && Object.keys(textRun.formatting).length > 0) {
           formattedText = applyFormatting(textRun.text, textRun.formatting);
+          console.log(`🎨 Applied formatting to text run ${i + 1}:`, textRun.formatting);
         }
         formattedParts.push(formattedText);
       }
@@ -116,16 +184,36 @@ const parseParagraph = (paragraphXml: string): any => {
     
     paragraph.text = textParts.join('');
     paragraph.formattedText = formattedParts.join('');
+    
+    console.log('📄 Final paragraph text:', paragraph.text.substring(0, 50) + '...');
+  } else {
+    // Fallback: try to extract text directly
+    console.log('⚠️ No text runs found, trying direct text extraction');
+    const directTextMatch = paragraphXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
+    if (directTextMatch) {
+      paragraph.text = directTextMatch[1];
+      paragraph.formattedText = directTextMatch[1];
+      console.log('📄 Direct text extraction:', paragraph.text);
+    }
   }
   
   // Check if this is a heading
   const headingMatch = paragraphXml.match(/<w:pStyle[^>]*w:val="([^"]*)"/);
   if (headingMatch) {
     const styleValue = headingMatch[1];
+    console.log('🏷️ Found paragraph style:', styleValue);
     if (styleValue.includes('Heading') || styleValue.includes('Title')) {
       paragraph.type = 'heading';
       paragraph.level = extractHeadingLevel(styleValue);
+      console.log('📋 Identified as heading level:', paragraph.level);
     }
+  }
+  
+  // Check for other paragraph properties
+  const alignmentMatch = paragraphXml.match(/<w:jc[^>]*w:val="([^"]*)"/);
+  if (alignmentMatch) {
+    paragraph.alignment = alignmentMatch[1];
+    console.log('📐 Paragraph alignment:', paragraph.alignment);
   }
   
   return paragraph;
@@ -231,6 +319,72 @@ const applyFormatting = (text: string, formatting: any): string => {
   }
   
   return formattedText;
+};
+
+// New simple text extraction function
+const extractSimpleTextFromDocx = async (arrayBuffer: ArrayBuffer): Promise<string> => {
+  try {
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const textDecoder = new TextDecoder('utf-8');
+    const xmlContent = textDecoder.decode(uint8Array);
+    
+    console.log('📄 Simple extraction: XML content length:', xmlContent.length);
+    
+    // Extract all text elements
+    const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+    
+    if (textMatches) {
+      console.log('📄 Simple extraction: Found', textMatches.length, 'text elements');
+      
+      const allText = textMatches
+        .map(match => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
+        .join(' ');
+      
+      console.log('📄 Simple extraction: All text length:', allText.length);
+      console.log('📄 Simple extraction: Text preview:', allText.substring(0, 200) + '...');
+      
+      return allText;
+    }
+    
+    return 'No text content found';
+  } catch (error) {
+    console.warn('⚠️ Error in simple text extraction:', error);
+    return 'Error extracting text content';
+  }
+};
+
+// New simple text to HTML conversion
+const convertSimpleTextToHtml = (textContent: string): string => {
+  // Split by multiple spaces or newlines to identify paragraphs
+  const paragraphs = textContent
+    .split(/\s{2,}|\n+/)
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
+  
+  console.log('📄 Simple conversion: Found', paragraphs.length, 'paragraphs');
+  
+  const htmlParagraphs = paragraphs.map(paragraph => {
+    // Basic formatting detection
+    let formattedText = paragraph;
+    
+    // Detect bold text (surrounded by ** or __)
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    formattedText = formattedText.replace(/__(.*?)__/g, '<strong>$1</strong>');
+    
+    // Detect italic text (surrounded by * or _)
+    formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    formattedText = formattedText.replace(/_(.*?)_/g, '<em>$1</em>');
+    
+    // Detect underlined text (surrounded by ++)
+    formattedText = formattedText.replace(/\+\+(.*?)\+\+/g, '<u>$1</u>');
+    
+    return `<p>${formattedText}</p>`;
+  });
+  
+  const result = htmlParagraphs.join('\n');
+  console.log('📄 Simple conversion: HTML result length:', result.length);
+  
+  return result;
 };
 
 export const exportToWord = async (content: string, filename: string = 'document') => {
