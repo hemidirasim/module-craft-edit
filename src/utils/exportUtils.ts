@@ -44,79 +44,140 @@ export const importFromWord = async (file: File): Promise<string> => {
   }
 };
 
-// Simple and effective Word content extraction
+// Improved Word content extraction
 const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => {
   try {
     const uint8Array = new Uint8Array(arrayBuffer);
     
-    // Try different encodings
-    let xmlContent = '';
-    const encodings = ['utf-8', 'utf-16', 'utf-16le', 'utf-16be', 'windows-1252', 'iso-8859-1'];
+    // Check if this is a valid .docx file (should start with PK header)
+    const header = new Uint8Array(arrayBuffer.slice(0, 4));
+    const headerString = String.fromCharCode(...header);
     
-    for (const encoding of encodings) {
-      try {
-        const textDecoder = new TextDecoder(encoding);
-        xmlContent = textDecoder.decode(uint8Array);
-        
-        // Check if we got readable content
-        if (xmlContent.includes('<?xml') || xmlContent.includes('<w:document')) {
-          console.log('✅ Successfully decoded with encoding:', encoding);
-          break;
-        }
-      } catch (error) {
-        console.warn(`⚠️ Failed to decode with ${encoding}:`, error);
-      }
+    if (headerString !== 'PK\x03\x04') {
+      console.warn('⚠️ File does not appear to be a valid .docx file');
+      return '<p>Invalid Word document format. Please ensure you are importing a .docx file.</p>';
     }
     
-    if (!xmlContent || xmlContent.length === 0) {
-      console.warn('⚠️ Could not decode content with any encoding');
+    console.log('✅ Valid .docx file detected');
+    
+    // Try to extract document.xml from the ZIP structure
+    const documentXml = await extractDocumentXmlFromZip(arrayBuffer);
+    
+    if (!documentXml) {
+      console.warn('⚠️ Could not extract document.xml, trying fallback');
       return await extractSimpleWordContent(arrayBuffer);
     }
     
-    console.log('📄 XML content length:', xmlContent.length);
-    console.log('📄 XML preview:', xmlContent.substring(0, 500) + '...');
-    
-    // Extract document.xml content (main content)
-    const documentMatch = xmlContent.match(/<w:document[^>]*>.*?<\/w:document>/s);
-    if (!documentMatch) {
-      console.warn('⚠️ Could not find document content, trying alternative method');
-      return await extractSimpleWordContent(arrayBuffer);
-    }
-    
-    const documentXml = documentMatch[0];
     console.log('📄 Document XML extracted, length:', documentXml.length);
     
     // Parse body content
     const bodyMatch = documentXml.match(/<w:body[^>]*>(.*?)<\/w:body>/s);
     if (!bodyMatch) {
-      console.warn('⚠️ Could not find body content, trying alternative method');
+      console.warn('⚠️ Could not find body content, trying fallback');
       return await extractSimpleWordContent(arrayBuffer);
     }
     
     const bodyXml = bodyMatch[1];
     console.log('📄 Body XML extracted, length:', bodyXml.length);
-    console.log('📄 Body preview:', bodyXml.substring(0, 300) + '...');
     
-    // Parse paragraphs and tables
-    const elements = parseBodyContent(bodyXml);
-    console.log('📄 Parsed elements:', elements.length);
-    console.log('📄 Element types:', elements.map(el => el.type));
+    // Extract only text content
+    const textContent = extractTextFromBody(bodyXml);
     
-    // Convert to HTML
-    const htmlContent = convertParagraphsToHtml(elements);
-    
-    // Check if we got meaningful content
-    if (!htmlContent || htmlContent.trim().length < 50) {
-      console.warn('⚠️ Generated HTML is too short, trying fallback');
+    if (!textContent || textContent.trim().length === 0) {
+      console.warn('⚠️ No text content found, trying fallback');
       return await extractSimpleWordContent(arrayBuffer);
     }
+    
+    console.log('📄 Text content extracted, length:', textContent.length);
+    console.log('📄 Text preview:', textContent.substring(0, 200) + '...');
+    
+    // Convert to HTML
+    const htmlContent = convertTextToHtml(textContent);
     
     return htmlContent;
   } catch (error) {
     console.warn('⚠️ Error in extractWordContent:', error);
-    // Fallback to simple extraction
     return await extractSimpleWordContent(arrayBuffer);
   }
+};
+
+// Extract document.xml from ZIP structure
+const extractDocumentXmlFromZip = async (arrayBuffer: ArrayBuffer): Promise<string | null> => {
+  try {
+    // Simple ZIP parsing to find document.xml
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const content = new TextDecoder('utf-8').decode(uint8Array);
+    
+    // Look for document.xml content
+    const documentMatch = content.match(/word\/document\.xml[^>]*>(.*?)<\/w:document>/s);
+    if (documentMatch) {
+      return documentMatch[1];
+    }
+    
+    // Try alternative pattern
+    const altMatch = content.match(/<w:document[^>]*>.*?<\/w:document>/s);
+    if (altMatch) {
+      return altMatch[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn('⚠️ Error extracting document.xml:', error);
+    return null;
+  }
+};
+
+// Extract text content from body XML
+const extractTextFromBody = (bodyXml: string): string => {
+  try {
+    // Extract all text elements
+    const textMatches = bodyXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+    
+    if (!textMatches || textMatches.length === 0) {
+      return '';
+    }
+    
+    const allText = textMatches
+      .map(match => {
+        const text = match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1');
+        // Clean up any encoding issues
+        return text.replace(/[\uFFFD\uFFFE\uFFFF]/g, ''); // Remove replacement characters
+      })
+      .filter(text => text.trim().length > 0)
+      .join(' ');
+    
+    // Clean up the text
+    const cleanedText = allText
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/[^\w\s.,!?;:()[\]{}"'\-–—…]/g, '') // Remove special characters but keep basic punctuation
+      .trim();
+    
+    return cleanedText;
+  } catch (error) {
+    console.warn('⚠️ Error extracting text from body:', error);
+    return '';
+  }
+};
+
+// Convert text to HTML
+const convertTextToHtml = (text: string): string => {
+  if (!text || text.trim().length === 0) {
+    return '<p>No readable text found in Word document.</p>';
+  }
+  
+  // Split into sentences or paragraphs
+  const sentences = text
+    .split(/[.!?]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .slice(0, 20); // Limit to first 20 sentences
+  
+  if (sentences.length === 0) {
+    return '<p>No readable text found in Word document.</p>';
+  }
+  
+  const htmlContent = sentences.map(sentence => `<p>${sentence}.</p>`).join('\n');
+  return htmlContent;
 };
 
 // Parse body content to find all possible elements
@@ -820,36 +881,14 @@ const convertTableToHtml = (table: any): string => {
 const extractSimpleWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => {
   try {
     const uint8Array = new Uint8Array(arrayBuffer);
-    
-    // Try different encodings for fallback
-    let xmlContent = '';
-    const encodings = ['utf-8', 'utf-16', 'utf-16le', 'utf-16be', 'windows-1252', 'iso-8859-1'];
-    
-    for (const encoding of encodings) {
-      try {
-        const textDecoder = new TextDecoder(encoding);
-        xmlContent = textDecoder.decode(uint8Array);
-        
-        // Check if we got readable content
-        if (xmlContent.includes('<w:t') || xmlContent.includes('<?xml')) {
-          console.log('✅ Fallback decoded with encoding:', encoding);
-          break;
-        }
-      } catch (error) {
-        console.warn(`⚠️ Fallback failed to decode with ${encoding}:`, error);
-      }
-    }
-    
-    if (!xmlContent || xmlContent.length === 0) {
-      console.warn('⚠️ Could not decode content with any encoding in fallback');
-      return '<p>Could not read Word document. Please check if the file is corrupted or try a different file.</p>';
-    }
+    const textDecoder = new TextDecoder('utf-8');
+    const content = textDecoder.decode(uint8Array);
     
     console.log('🔄 Using simple fallback extraction');
-    console.log('📄 XML content length:', xmlContent.length);
+    console.log('📄 Content length:', content.length);
     
     // Extract all text elements
-    const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+    const textMatches = content.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
     
     if (textMatches && textMatches.length > 0) {
       console.log('📄 Found', textMatches.length, 'text elements');
@@ -863,52 +902,33 @@ const extractSimpleWordContent = async (arrayBuffer: ArrayBuffer): Promise<strin
         .filter(text => text.trim().length > 0)
         .join(' ');
       
-      console.log('📄 Extracted text length:', allText.length);
-      console.log('📄 Text preview:', allText.substring(0, 200) + '...');
+      // Clean up the text
+      const cleanedText = allText
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .replace(/[^\w\s.,!?;:()[\]{}"'\-–—…]/g, '') // Remove special characters but keep basic punctuation
+        .trim();
       
-      // Check if text contains readable content
-      if (allText.length === 0 || allText.match(/^[\s\uFFFD\uFFFE\uFFFF]*$/)) {
-        console.warn('⚠️ Extracted text contains only whitespace or invalid characters');
-        return '<p>No readable text found in Word document. The file may be corrupted or contain only images/drawings.</p>';
-      }
+      console.log('📄 Extracted text length:', cleanedText.length);
+      console.log('📄 Text preview:', cleanedText.substring(0, 200) + '...');
       
-      // Split into paragraphs
-      const paragraphs = allText
-        .split(/\s{2,}|\n+/)
-        .map(p => p.trim())
-        .filter(p => p.length > 0 && !p.match(/^[\s\uFFFD\uFFFE\uFFFF]*$/));
-      
-      console.log('📄 Created', paragraphs.length, 'paragraphs');
-      
-      if (paragraphs.length > 0) {
-        const htmlContent = paragraphs.map(p => `<p>${p}</p>`).join('\n');
-        console.log('✅ Simple extraction successful');
-        return htmlContent;
-      }
-    }
-    
-    // Try alternative extraction methods
-    console.log('🔄 Trying alternative extraction methods');
-    
-    // Try to find any text content
-    const anyTextMatch = xmlContent.match(/>([^<>]{10,})</g);
-    if (anyTextMatch && anyTextMatch.length > 0) {
-      console.log('📄 Found', anyTextMatch.length, 'potential text blocks');
-      
-      const extractedText = anyTextMatch
-        .map(match => match.replace(/[<>]/g, ''))
-        .filter(text => text.trim().length > 5)
-        .slice(0, 10); // Limit to first 10 blocks
-      
-      if (extractedText.length > 0) {
-        const htmlContent = extractedText.map(text => `<p>${text.trim()}</p>`).join('\n');
-        console.log('✅ Alternative extraction successful');
-        return htmlContent;
+      if (cleanedText.length > 0) {
+        // Split into sentences
+        const sentences = cleanedText
+          .split(/[.!?]+/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0)
+          .slice(0, 10); // Limit to first 10 sentences
+        
+        if (sentences.length > 0) {
+          const htmlContent = sentences.map(sentence => `<p>${sentence}.</p>`).join('\n');
+          console.log('✅ Simple extraction successful');
+          return htmlContent;
+        }
       }
     }
     
-    console.warn('⚠️ No meaningful content found');
-    return '<p>No readable content found in Word document. Please check if the file contains text content.</p>';
+    console.warn('⚠️ No readable text found');
+    return '<p>No readable text found in Word document. Please check if the file contains text content.</p>';
   } catch (error) {
     console.error('❌ Error in simple extraction:', error);
     return '<p>Error extracting content from Word document. Please try a different file.</p>';
