@@ -458,6 +458,10 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
 
 export const exportToPDF = async (content: string, filename: string = 'document') => {
   try {
+    console.log('🚀 Starting PDF export process...');
+    console.log('📄 Content length:', content.length);
+    console.log('📄 Content preview:', content.substring(0, 200) + '...');
+    
     // Create a temporary div to render content for PDF
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = content;
@@ -476,8 +480,16 @@ export const exportToPDF = async (content: string, filename: string = 'document'
       z-index: -1;
     `;
     
+    console.log('📋 Created temporary div');
+    
     // Convert all images to base64 to avoid CORS issues
     const images = tempDiv.querySelectorAll('img');
+    console.log(`🖼️ Found ${images.length} images in content`);
+    
+    if (images.length === 0) {
+      console.log('ℹ️ No images found, proceeding with text-only content');
+    }
+    
     const imageConversionPromises = Array.from(images).map(async (img, index) => {
       const imgElement = img as HTMLImageElement;
       
@@ -537,6 +549,7 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     });
     
     document.body.appendChild(tempDiv);
+    console.log('📋 Added temp div to document body');
     
     // Wait for images to load with retry mechanism
     const imageLoadPromises = Array.from(images).map(async (img, index) => {
@@ -567,65 +580,81 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     
     // Convert to canvas with improved options
     console.log('Converting to canvas...');
-    const canvas = await html2canvas(tempDiv, {
-      backgroundColor: '#ffffff',
-      scale: 2, // Higher scale for better quality
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      foreignObjectRendering: true,
-      imageTimeout: 15000,
-      width: tempDiv.offsetWidth,
-      height: tempDiv.offsetHeight,
-      onclone: (clonedDoc) => {
-        // Ensure proper styling in cloned document
-        const clonedImages = clonedDoc.querySelectorAll('img');
-        clonedImages.forEach((img, index) => {
-          const originalImg = images[index] as HTMLImageElement;
-          console.log(`🔄 Cloning image ${index + 1}:`, {
-            original: {
-              width: originalImg.width,
-              height: originalImg.height,
-              styleWidth: originalImg.style.width,
-              styleHeight: originalImg.style.height
+    let canvas: HTMLCanvasElement;
+    
+    try {
+      canvas = await html2canvas(tempDiv, {
+        backgroundColor: '#ffffff',
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        foreignObjectRendering: true,
+        imageTimeout: 15000,
+        width: tempDiv.offsetWidth,
+        height: tempDiv.offsetHeight,
+        onclone: (clonedDoc) => {
+          // Ensure proper styling in cloned document
+          const clonedImages = clonedDoc.querySelectorAll('img');
+          clonedImages.forEach((img, index) => {
+            const originalImg = images[index] as HTMLImageElement;
+            console.log(`🔄 Cloning image ${index + 1}:`, {
+              original: {
+                width: originalImg.width,
+                height: originalImg.height,
+                styleWidth: originalImg.style.width,
+                styleHeight: originalImg.style.height
+              }
+            });
+            
+            // Preserve exact dimensions from original
+            if (originalImg.style.width) {
+              (img as HTMLElement).style.width = originalImg.style.width;
             }
+            if (originalImg.style.height) {
+              (img as HTMLElement).style.height = originalImg.style.height;
+            }
+            
+            // Set computed dimensions
+            if (originalImg.width) {
+              (img as HTMLElement).style.width = `${originalImg.width}px`;
+            }
+            if (originalImg.height) {
+              (img as HTMLElement).style.height = `${originalImg.height}px`;
+            }
+            
+            // Ensure other styling
+            (img as HTMLElement).style.maxWidth = '100%';
+            (img as HTMLElement).style.height = 'auto';
+            (img as HTMLElement).style.objectFit = 'contain';
+            (img as HTMLElement).style.display = 'block';
+            (img as HTMLElement).style.margin = '10px 0';
+            
+            console.log(`✅ Cloned image ${index + 1} with dimensions:`, {
+              width: (img as HTMLElement).style.width,
+              height: (img as HTMLElement).style.height
+            });
           });
           
-          // Preserve exact dimensions from original
-          if (originalImg.style.width) {
-            (img as HTMLElement).style.width = originalImg.style.width;
-          }
-          if (originalImg.style.height) {
-            (img as HTMLElement).style.height = originalImg.style.height;
-          }
-          
-          // Set computed dimensions
-          if (originalImg.width) {
-            (img as HTMLElement).style.width = `${originalImg.width}px`;
-          }
-          if (originalImg.height) {
-            (img as HTMLElement).style.height = `${originalImg.height}px`;
-          }
-          
-          // Ensure other styling
-          (img as HTMLElement).style.maxWidth = '100%';
-          (img as HTMLElement).style.height = 'auto';
-          (img as HTMLElement).style.objectFit = 'contain';
-          (img as HTMLElement).style.display = 'block';
-          (img as HTMLElement).style.margin = '10px 0';
-          
-          console.log(`✅ Cloned image ${index + 1} with dimensions:`, {
-            width: (img as HTMLElement).style.width,
-            height: (img as HTMLElement).style.height
+          const clonedTables = clonedDoc.querySelectorAll('table');
+          clonedTables.forEach(table => {
+            (table as HTMLElement).style.border = '1px solid #000';
           });
-        });
-        
-        const clonedTables = clonedDoc.querySelectorAll('table');
-        clonedTables.forEach(table => {
-          (table as HTMLElement).style.border = '1px solid #000';
-        });
+        }
+      });
+      console.log('✅ html2canvas completed successfully');
+    } catch (html2canvasError) {
+      console.error('❌ html2canvas failed:', html2canvasError);
+      console.log('🔄 Trying manual canvas drawing as fallback...');
+      
+      try {
+        canvas = await drawImagesToCanvas(tempDiv);
+        console.log('✅ Manual canvas drawing completed successfully');
+      } catch (manualError) {
+        console.error('❌ Manual canvas drawing also failed:', manualError);
+        throw new Error('Both html2canvas and manual drawing failed');
       }
-    });
+    }
     
     console.log('Canvas created successfully');
     document.body.removeChild(tempDiv);
@@ -677,12 +706,15 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     // Create PDF with high quality
     console.log('Creating PDF...');
     const imgData = finalCanvas.toDataURL('image/png', 1.0);
+    console.log('✅ Canvas converted to data URL');
+    
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
       compress: true
     });
+    console.log('✅ PDF object created');
     
     const pageWidth = 210; // A4 width in mm
     const pageHeight = 297; // A4 height in mm
@@ -690,29 +722,43 @@ export const exportToPDF = async (content: string, filename: string = 'document'
     const imgWidth = pageWidth - (2 * margin);
     const imgHeight = (finalCanvas.height * imgWidth) / finalCanvas.width;
     
+    console.log('📐 PDF dimensions:', {
+      pageWidth,
+      pageHeight,
+      imgWidth,
+      imgHeight,
+      canvasWidth: finalCanvas.width,
+      canvasHeight: finalCanvas.height
+    });
+    
     let yPosition = margin;
     let remainingHeight = imgHeight;
     
     // Add first page
     pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
+    console.log('✅ First page added to PDF');
     remainingHeight -= (pageHeight - 2 * margin);
     
     // Add additional pages if content overflows
+    let pageCount = 1;
     while (remainingHeight > 0) {
       pdf.addPage();
+      pageCount++;
       yPosition = margin - (imgHeight - remainingHeight);
       pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
       remainingHeight -= (pageHeight - 2 * margin);
+      console.log(`✅ Page ${pageCount} added to PDF`);
     }
     
     // Download the PDF
     console.log('Saving PDF...');
     pdf.save(`${filename}.pdf`);
-    console.log(`PDF export completed successfully using ${useManualCanvas ? 'manual canvas' : 'html2canvas'}`);
+    console.log(`PDF export completed successfully using ${useManualCanvas ? 'manual canvas' : 'html2canvas'} with ${pageCount} pages`);
     
     return true;
   } catch (error) {
-    console.error('Error exporting to PDF:', error);
-    return false;
+    console.error('❌ Error exporting to PDF:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    throw error; // Re-throw to show error to user
   }
 };
