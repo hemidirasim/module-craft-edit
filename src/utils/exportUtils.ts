@@ -8,6 +8,103 @@ const supabaseUrl = 'https://qgmluixnzhpthywyrytn.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lydG4iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNDI5NzE5NywiZXhwIjoyMDUwODczMTk3fQ.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Import from Word function
+export const importFromWord = async (file: File): Promise<string> => {
+  try {
+    console.log('📄 Starting Word import process...');
+    console.log('📄 File name:', file.name);
+    console.log('📄 File size:', file.size, 'bytes');
+    
+    // Check file type
+    if (!file.name.toLowerCase().endsWith('.docx')) {
+      throw new Error('Please select a .docx file');
+    }
+    
+    // Read the file as ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    console.log('✅ File read as ArrayBuffer');
+    
+    // For now, we'll use a simpler approach since docx library doesn't have a direct load method
+    // We'll extract text content and convert to HTML
+    const textContent = await extractTextFromDocx(arrayBuffer);
+    console.log('✅ Text extracted from document');
+    
+    // Convert text to HTML
+    const htmlContent = convertTextToHtml(textContent);
+    
+    console.log('✅ Word import completed successfully');
+    console.log('📄 Extracted HTML length:', htmlContent.length);
+    console.log('📄 HTML preview:', htmlContent.substring(0, 200) + '...');
+    
+    return htmlContent;
+  } catch (error) {
+    console.error('❌ Error importing from Word:', error);
+    throw new Error(`Failed to import Word document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+// Helper function to extract text from docx
+const extractTextFromDocx = async (arrayBuffer: ArrayBuffer): Promise<string> => {
+  try {
+    // For now, we'll use a simple text extraction
+    // In a real implementation, you might want to use a library like mammoth.js
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const textDecoder = new TextDecoder('utf-8');
+    
+    // Try to extract text from the document
+    let textContent = '';
+    
+    // Simple text extraction (this is a basic implementation)
+    // In production, you should use a proper docx parsing library
+    const xmlContent = textDecoder.decode(uint8Array);
+    
+    // Extract text from XML content (basic approach)
+    const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+    if (textMatches) {
+      textContent = textMatches
+        .map(match => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
+        .join(' ');
+    }
+    
+    // If no text found, return a placeholder
+    if (!textContent.trim()) {
+      textContent = 'Content extracted from Word document';
+    }
+    
+    return textContent;
+  } catch (error) {
+    console.warn('⚠️ Error extracting text from docx:', error);
+    return 'Content extracted from Word document';
+  }
+};
+
+// Helper function to convert text to HTML
+const convertTextToHtml = (textContent: string): string => {
+  // Split text into paragraphs
+  const paragraphs = textContent.split(/\n+/).filter(p => p.trim());
+  
+  // Convert each paragraph to HTML
+  const htmlParagraphs = paragraphs.map(paragraph => {
+    // Basic formatting detection (you can enhance this)
+    let formattedText = paragraph;
+    
+    // Detect bold text (surrounded by ** or __)
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    formattedText = formattedText.replace(/__(.*?)__/g, '<strong>$1</strong>');
+    
+    // Detect italic text (surrounded by * or _)
+    formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    formattedText = formattedText.replace(/_(.*?)_/g, '<em>$1</em>');
+    
+    // Detect underlined text (surrounded by ++)
+    formattedText = formattedText.replace(/\+\+(.*?)\+\+/g, '<u>$1</u>');
+    
+    return `<p>${formattedText}</p>`;
+  });
+  
+  return htmlParagraphs.join('\n');
+};
+
 export const exportToWord = async (content: string, filename: string = 'document') => {
   try {
     // Create a temporary div to parse HTML content

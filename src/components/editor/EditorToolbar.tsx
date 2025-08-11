@@ -11,7 +11,7 @@ import { MediaDialog } from "./MediaDialog";
 import { BookmarkDialog } from "./BookmarkDialog";
 import { CodeSampleDialog } from "./CodeSampleDialog";
 import { DateTimeDialog } from "./DateTimeDialog";
-import { exportToWord, exportToPDF } from "../../utils/exportUtils";
+import { FileMenu } from "./FileMenu";
 import { toast } from "sonner";
 import { 
   Bold, 
@@ -71,6 +71,8 @@ interface EditorToolbarProps {
   setShowDateTimeDialog?: (show: boolean) => void;
   showMediaDialog?: boolean;
   setShowMediaDialog?: (show: boolean) => void;
+  content?: string;
+  onContentChange?: (content: string) => void;
 }
 
 export const EditorToolbar = ({ 
@@ -83,7 +85,9 @@ export const EditorToolbar = ({
   showDateTimeDialog = false,
   setShowDateTimeDialog,
   showMediaDialog = false,
-  setShowMediaDialog
+  setShowMediaDialog,
+  content = "",
+  onContentChange
 }: EditorToolbarProps) => {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
@@ -160,6 +164,11 @@ export const EditorToolbar = ({
 
   return (
     <div className="border-b border-border p-2 flex gap-1 flex-wrap bg-background/50 backdrop-blur-sm">
+      {/* File Menu */}
+      {content && onContentChange && (
+        <FileMenu content={content} onContentChange={onContentChange} />
+      )}
+      
       {/* Edit Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -198,36 +207,6 @@ export const EditorToolbar = ({
           <DropdownMenuItem onClick={() => onCommand('findReplace')} className="cursor-pointer hover:bg-accent">
             <Search size={16} className="mr-2" />
             Find & Replace (Ctrl+F)
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={async () => {
-              const editorContent = document.querySelector('[contenteditable="true"]')?.innerHTML || '';
-              const success = await exportToWord(editorContent);
-              if (success) {
-                toast.success('Document exported to Word successfully!');
-              } else {
-                toast.error('Failed to export document to Word');
-              }
-            }} 
-            className="cursor-pointer hover:bg-accent"
-          >
-            <FileText size={16} className="mr-2" />
-            Export to Word
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={async () => {
-              const editorContent = document.querySelector('[contenteditable="true"]')?.innerHTML || '';
-              const success = await exportToPDF(editorContent);
-              if (success) {
-                toast.success('Document exported to PDF successfully!');
-              } else {
-                toast.error('Failed to export document to PDF');
-              }
-            }} 
-            className="cursor-pointer hover:bg-accent"
-          >
-            <Download size={16} className="mr-2" />
-            Export to PDF
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

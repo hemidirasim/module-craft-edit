@@ -1389,6 +1389,13 @@ export const RichTextEditor = ({
           setShowDateTimeDialog={setShowDateTimeDialog}
           showMediaDialog={showMediaDialog}
           setShowMediaDialog={setShowMediaDialog}
+          content={editorRef.current?.innerHTML || content}
+          onContentChange={(newContent) => {
+            if (editorRef.current) {
+              editorRef.current.innerHTML = newContent;
+            }
+            onChange?.(newContent);
+          }}
         />
         {isHtmlView ? (
           <Textarea
