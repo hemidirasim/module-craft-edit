@@ -345,10 +345,21 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
     }
   }
   
-  // Process images
+  // Process images with exact dimensions
   for (let i = 0; i < images.length; i++) {
     const img = images[i] as HTMLImageElement;
     console.log(`🖼️ Processing image ${i + 1}/${images.length}:`, img.src);
+    console.log(`📏 Original image dimensions:`, {
+      naturalWidth: img.naturalWidth,
+      naturalHeight: img.naturalHeight,
+      width: img.width,
+      height: img.height,
+      style: {
+        width: img.style.width,
+        height: img.style.height,
+        maxWidth: img.style.maxWidth
+      }
+    });
     
     try {
       // Create a new image element
@@ -358,31 +369,64 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
       await new Promise<void>((resolve, reject) => {
         newImg.onload = () => {
           try {
-            // Calculate image dimensions
+            // Get the actual displayed dimensions from the original image
+            let displayWidth = img.width || img.naturalWidth;
+            let displayHeight = img.height || img.naturalHeight;
+            
+            // Parse style dimensions if available
+            if (img.style.width) {
+              const widthValue = img.style.width;
+              if (widthValue.includes('px')) {
+                displayWidth = parseInt(widthValue);
+              } else if (widthValue.includes('%')) {
+                const percentage = parseInt(widthValue) / 100;
+                displayWidth = (rect.width - (2 * padding)) * percentage;
+              }
+            }
+            
+            if (img.style.height && img.style.height !== 'auto') {
+              const heightValue = img.style.height;
+              if (heightValue.includes('px')) {
+                displayHeight = parseInt(heightValue);
+              } else if (heightValue.includes('%')) {
+                const percentage = parseInt(heightValue) / 100;
+                displayHeight = 300 * percentage; // Use reasonable max height
+              }
+            }
+            
+            // Maintain aspect ratio if only width is specified
+            if (img.style.width && !img.style.height) {
+              const aspectRatio = newImg.naturalHeight / newImg.naturalWidth;
+              displayHeight = displayWidth * aspectRatio;
+            }
+            
+            // Ensure minimum and maximum dimensions
             const maxWidth = rect.width - (2 * padding);
-            const maxHeight = 300; // Max height for images
+            const maxHeight = 400;
             
-            let imgWidth = newImg.naturalWidth;
-            let imgHeight = newImg.naturalHeight;
-            
-            // Scale down if too large
-            if (imgWidth > maxWidth) {
-              const ratio = maxWidth / imgWidth;
-              imgWidth = maxWidth;
-              imgHeight = imgHeight * ratio;
+            if (displayWidth > maxWidth) {
+              const ratio = maxWidth / displayWidth;
+              displayWidth = maxWidth;
+              displayHeight = displayHeight * ratio;
             }
             
-            if (imgHeight > maxHeight) {
-              const ratio = maxHeight / imgHeight;
-              imgHeight = maxHeight;
-              imgWidth = imgWidth * ratio;
+            if (displayHeight > maxHeight) {
+              const ratio = maxHeight / displayHeight;
+              displayHeight = maxHeight;
+              displayWidth = displayWidth * ratio;
             }
             
-            // Draw image
-            ctx.drawImage(newImg, padding, yOffset, imgWidth, imgHeight);
-            console.log(`✅ Image ${i + 1} drawn successfully`);
+            console.log(`📐 Calculated display dimensions:`, {
+              width: displayWidth,
+              height: displayHeight,
+              yOffset: yOffset
+            });
             
-            yOffset += imgHeight + 20; // Add spacing after image
+            // Draw image at exact position and size
+            ctx.drawImage(newImg, padding, yOffset, displayWidth, displayHeight);
+            console.log(`✅ Image ${i + 1} drawn successfully at ${displayWidth}x${displayHeight}`);
+            
+            yOffset += displayHeight + 20; // Add spacing after image
             resolve();
           } catch (drawError) {
             console.error(`❌ Error drawing image ${i + 1}:`, drawError);
@@ -531,15 +575,49 @@ export const exportToPDF = async (content: string, filename: string = 'document'
       logging: false,
       foreignObjectRendering: true,
       imageTimeout: 15000,
+      width: tempDiv.offsetWidth,
+      height: tempDiv.offsetHeight,
       onclone: (clonedDoc) => {
         // Ensure proper styling in cloned document
         const clonedImages = clonedDoc.querySelectorAll('img');
-        clonedImages.forEach(img => {
+        clonedImages.forEach((img, index) => {
+          const originalImg = images[index] as HTMLImageElement;
+          console.log(`🔄 Cloning image ${index + 1}:`, {
+            original: {
+              width: originalImg.width,
+              height: originalImg.height,
+              styleWidth: originalImg.style.width,
+              styleHeight: originalImg.style.height
+            }
+          });
+          
+          // Preserve exact dimensions from original
+          if (originalImg.style.width) {
+            (img as HTMLElement).style.width = originalImg.style.width;
+          }
+          if (originalImg.style.height) {
+            (img as HTMLElement).style.height = originalImg.style.height;
+          }
+          
+          // Set computed dimensions
+          if (originalImg.width) {
+            (img as HTMLElement).style.width = `${originalImg.width}px`;
+          }
+          if (originalImg.height) {
+            (img as HTMLElement).style.height = `${originalImg.height}px`;
+          }
+          
+          // Ensure other styling
           (img as HTMLElement).style.maxWidth = '100%';
           (img as HTMLElement).style.height = 'auto';
           (img as HTMLElement).style.objectFit = 'contain';
           (img as HTMLElement).style.display = 'block';
           (img as HTMLElement).style.margin = '10px 0';
+          
+          console.log(`✅ Cloned image ${index + 1} with dimensions:`, {
+            width: (img as HTMLElement).style.width,
+            height: (img as HTMLElement).style.height
+          });
         });
         
         const clonedTables = clonedDoc.querySelectorAll('table');
