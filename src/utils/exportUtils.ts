@@ -123,7 +123,9 @@ const parseParagraphContent = (paragraphXml: string): any => {
     type: 'paragraph',
     text: '',
     formatting: {},
-    alignment: 'left'
+    alignment: 'left',
+    listType: null,
+    listLevel: 0
   };
   
   // Check for paragraph properties
@@ -145,6 +147,29 @@ const parseParagraphContent = (paragraphXml: string): any => {
     const alignMatch = pPrXml.match(/<w:jc[^>]*w:val="([^"]*)"/);
     if (alignMatch) {
       paragraph.alignment = alignMatch[1];
+    }
+    
+    // Check for list properties
+    const listMatch = pPrXml.match(/<w:numPr[^>]*>(.*?)<\/w:numPr>/s);
+    if (listMatch) {
+      const numPrXml = listMatch[1];
+      
+      // Check for numbered list
+      const numIdMatch = numPrXml.match(/<w:numId[^>]*w:val="([^"]*)"/);
+      if (numIdMatch) {
+        paragraph.listType = 'numbered';
+      }
+      
+      // Check for bulleted list
+      const ilvlMatch = numPrXml.match(/<w:ilvl[^>]*w:val="([^"]*)"/);
+      if (ilvlMatch) {
+        paragraph.listLevel = parseInt(ilvlMatch[1]);
+      }
+    }
+    
+    // Check for bulleted list (alternative method)
+    if (pPrXml.includes('<w:pStyle') && pPrXml.includes('List')) {
+      paragraph.listType = 'bulleted';
     }
   }
   
@@ -232,6 +257,30 @@ const parseTextRunContent = (runXml: string): any => {
     if (rPrXml.includes('<w:strike/>') || rPrXml.includes('<w:strike w:val="1"/>')) {
       textRun.formatting.strikethrough = true;
     }
+    
+    // Font size
+    const sizeMatch = rPrXml.match(/<w:sz[^>]*w:val="([^"]*)"/);
+    if (sizeMatch) {
+      textRun.formatting.fontSize = parseInt(sizeMatch[1]) / 2; // Convert from half-points to points
+    }
+    
+    // Font family
+    const fontMatch = rPrXml.match(/<w:rFonts[^>]*w:ascii="([^"]*)"/);
+    if (fontMatch) {
+      textRun.formatting.fontFamily = fontMatch[1];
+    }
+    
+    // Color
+    const colorMatch = rPrXml.match(/<w:color[^>]*w:val="([^"]*)"/);
+    if (colorMatch) {
+      textRun.formatting.color = colorMatch[1];
+    }
+    
+    // Background color
+    const highlightMatch = rPrXml.match(/<w:highlight[^>]*w:val="([^"]*)"/);
+    if (highlightMatch) {
+      textRun.formatting.highlight = highlightMatch[1];
+    }
   }
   
   return textRun;
@@ -264,39 +313,139 @@ const applyTextFormatting = (text: string, formatting: any): string => {
     formattedText = `<strong>${formattedText}</strong>`;
   }
   
+  // Apply inline styles for font properties
+  const styles: string[] = [];
+  
+  if (formatting.fontSize) {
+    styles.push(`font-size: ${formatting.fontSize}pt`);
+  }
+  
+  if (formatting.fontFamily) {
+    styles.push(`font-family: "${formatting.fontFamily}", Arial, sans-serif`);
+  }
+  
+  if (formatting.color) {
+    // Convert Word color to hex if needed
+    const color = formatting.color;
+    if (color.startsWith('FF')) {
+      styles.push(`color: #${color.substring(2)}`);
+    } else {
+      styles.push(`color: #${color}`);
+    }
+  }
+  
+  if (formatting.highlight) {
+    // Convert highlight color to background color
+    const highlightColors: { [key: string]: string } = {
+      'yellow': '#FFFF00',
+      'green': '#00FF00',
+      'cyan': '#00FFFF',
+      'magenta': '#FF00FF',
+      'blue': '#0000FF',
+      'red': '#FF0000',
+      'darkBlue': '#000080',
+      'darkCyan': '#008080',
+      'darkGreen': '#008000',
+      'darkMagenta': '#800080',
+      'darkRed': '#800000',
+      'darkYellow': '#808000',
+      'darkGray': '#808080',
+      'lightGray': '#C0C0C0',
+      'black': '#000000',
+      'white': '#FFFFFF'
+    };
+    
+    const bgColor = highlightColors[formatting.highlight] || '#FFFF00';
+    styles.push(`background-color: ${bgColor}`);
+  }
+  
+  // Apply all styles if any exist
+  if (styles.length > 0) {
+    const styleAttr = ` style="${styles.join('; ')}"`;
+    formattedText = `<span${styleAttr}>${formattedText}</span>`;
+  }
+  
   return formattedText;
 };
 
 // Convert paragraphs to HTML
 const convertParagraphsToHtml = (paragraphs: any[]): string => {
   const htmlParts: string[] = [];
+  let currentListType = null;
+  let currentListLevel = 0;
+  let listItems: string[] = [];
   
-  for (const paragraph of paragraphs) {
+  for (let i = 0; i < paragraphs.length; i++) {
+    const paragraph = paragraphs[i];
     let content = paragraph.formattedText || paragraph.text;
     
-    // Apply paragraph-level formatting
-    if (paragraph.alignment && paragraph.alignment !== 'left') {
-      const alignStyle = ` style="text-align: ${paragraph.alignment};"`;
-      
-      if (paragraph.type === 'heading') {
-        const level = Math.min(paragraph.level || 1, 6);
-        const tag = `h${level}`;
-        htmlParts.push(`<${tag}${alignStyle}>${content}</${tag}>`);
-      } else {
-        htmlParts.push(`<p${alignStyle}>${content}</p>`);
+    // Handle lists
+    if (paragraph.listType) {
+      // Start new list or continue existing list
+      if (currentListType !== paragraph.listType || currentListLevel !== paragraph.listLevel) {
+        // Close previous list if exists
+        if (listItems.length > 0) {
+          htmlParts.push(closeList(currentListType, listItems));
+          listItems = [];
+        }
+        
+        // Start new list
+        currentListType = paragraph.listType;
+        currentListLevel = paragraph.listLevel;
       }
+      
+      // Add item to current list
+      listItems.push(content);
     } else {
+      // Close any open list
+      if (listItems.length > 0) {
+        htmlParts.push(closeList(currentListType, listItems));
+        listItems = [];
+        currentListType = null;
+        currentListLevel = 0;
+      }
+      
+      // Handle regular paragraph or heading
       if (paragraph.type === 'heading') {
         const level = Math.min(paragraph.level || 1, 6);
         const tag = `h${level}`;
-        htmlParts.push(`<${tag}>${content}</${tag}>`);
+        
+        if (paragraph.alignment && paragraph.alignment !== 'left') {
+          const alignStyle = ` style="text-align: ${paragraph.alignment};"`;
+          htmlParts.push(`<${tag}${alignStyle}>${content}</${tag}>`);
+        } else {
+          htmlParts.push(`<${tag}>${content}</${tag}>`);
+        }
       } else {
-        htmlParts.push(`<p>${content}</p>`);
+        // Regular paragraph
+        if (paragraph.alignment && paragraph.alignment !== 'left') {
+          const alignStyle = ` style="text-align: ${paragraph.alignment};"`;
+          htmlParts.push(`<p${alignStyle}>${content}</p>`);
+        } else {
+          htmlParts.push(`<p>${content}</p>`);
+        }
       }
     }
   }
   
+  // Close any remaining list
+  if (listItems.length > 0) {
+    htmlParts.push(closeList(currentListType, listItems));
+  }
+  
   return htmlParts.join('\n');
+};
+
+// Helper function to close a list
+const closeList = (listType: string | null, items: string[]): string => {
+  if (!listType || items.length === 0) {
+    return '';
+  }
+  
+  const tag = listType === 'numbered' ? 'ol' : 'ul';
+  const listItems = items.map(item => `<li>${item}</li>`).join('\n');
+  
+  return `<${tag}>\n${listItems}\n</${tag}>`;
 };
 
 // Simple fallback extraction
