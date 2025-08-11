@@ -27,6 +27,17 @@ export const importFromWord = async (file: File): Promise<string> => {
     // Extract content using improved method
     const htmlContent = await extractWordContent(arrayBuffer);
     
+    // Validate extracted content
+    if (!htmlContent || htmlContent.trim().length === 0) {
+      console.warn('⚠️ Extracted content is empty, using fallback');
+      return '<p>No content could be extracted from the Word document. Please check if the file contains text content.</p>';
+    }
+    
+    // Check if content looks like demo content
+    if (htmlContent.includes('CKEditor') || htmlContent.includes('Discover the riches')) {
+      console.log('ℹ️ Detected demo content in Word document');
+    }
+    
     console.log('✅ Word import completed successfully');
     console.log('📄 Extracted HTML length:', htmlContent.length);
     console.log('📄 HTML preview:', htmlContent.substring(0, 200) + '...');
@@ -316,6 +327,58 @@ const extractSimpleWordContent = async (arrayBuffer: ArrayBuffer): Promise<strin
   } catch (error) {
     console.warn('⚠️ Error in simple extraction:', error);
     return '<p>Error extracting content from Word document</p>';
+  }
+};
+
+// Test function to debug Word import
+export const testWordImport = async (file: File): Promise<any> => {
+  try {
+    console.log('🧪 Testing Word import...');
+    console.log('📄 File name:', file.name);
+    console.log('📄 File size:', file.size, 'bytes');
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const textDecoder = new TextDecoder('utf-8');
+    const xmlContent = textDecoder.decode(uint8Array);
+    
+    const result = {
+      fileInfo: {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      },
+      xmlInfo: {
+        length: xmlContent.length,
+        preview: xmlContent.substring(0, 500),
+        hasDocument: xmlContent.includes('<w:document'),
+        hasBody: xmlContent.includes('<w:body'),
+        hasParagraphs: xmlContent.includes('<w:p'),
+        hasText: xmlContent.includes('<w:t')
+      },
+      extractedContent: null as string | null
+    };
+    
+    // Try to extract content
+    try {
+      result.extractedContent = await extractWordContent(arrayBuffer);
+    } catch (error) {
+      console.error('❌ Content extraction failed:', error);
+      result.extractedContent = 'Extraction failed: ' + (error instanceof Error ? error.message : 'Unknown error');
+    }
+    
+    console.log('🧪 Test results:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Test failed:', error);
+    return {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      fileInfo: {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      }
+    };
   }
 };
 
