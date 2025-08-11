@@ -299,9 +299,9 @@ const convertImageToBase64 = async (imageUrl: string): Promise<string> => {
   }
 };
 
-// Helper function to manually draw images to canvas
+// Helper function to manually draw images to canvas with exact editor formatting
 const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasElement> => {
-  console.log('🎨 Starting manual image drawing to canvas');
+  console.log('🎨 Starting manual image drawing to canvas with exact formatting');
   
   // Create a canvas with the same dimensions as the div
   const rect = tempDiv.getBoundingClientRect();
@@ -321,138 +321,179 @@ const drawImagesToCanvas = async (tempDiv: HTMLElement): Promise<HTMLCanvasEleme
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Convert div content to canvas
+  // Convert div content to canvas with exact positioning
   const images = tempDiv.querySelectorAll('img');
-  console.log(`🖼️ Found ${images.length} images to process`);
+  const textElements = tempDiv.querySelectorAll('p, h1, h2, h3, h4, h5, h6, div, span');
+  console.log(`🖼️ Found ${images.length} images and ${textElements.length} text elements`);
   
-  let yOffset = 0;
+  let yOffset = 20; // Start with some padding
   const padding = 20;
   const lineHeight = 24;
   
-  // Process text content first
-  const textContent = tempDiv.innerText || tempDiv.textContent || '';
-  const lines = textContent.split('\n');
+  // Process all elements in their original order
+  const allElements = Array.from(tempDiv.childNodes);
+  console.log(`📋 Processing ${allElements.length} total elements`);
   
-  ctx.fillStyle = '#000000';
-  ctx.font = '14px Arial, sans-serif';
-  
-  for (const line of lines) {
-    if (line.trim()) {
-      ctx.fillText(line.trim(), padding, yOffset + lineHeight);
-      yOffset += lineHeight;
-    } else {
-      yOffset += lineHeight / 2;
-    }
-  }
-  
-  // Process images with exact dimensions
-  for (let i = 0; i < images.length; i++) {
-    const img = images[i] as HTMLImageElement;
-    console.log(`🖼️ Processing image ${i + 1}/${images.length}:`, img.src);
-    console.log(`📏 Original image dimensions:`, {
-      naturalWidth: img.naturalWidth,
-      naturalHeight: img.naturalHeight,
-      width: img.width,
-      height: img.height,
-      style: {
-        width: img.style.width,
-        height: img.style.height,
-        maxWidth: img.style.maxWidth
-      }
-    });
+  for (let i = 0; i < allElements.length; i++) {
+    const element = allElements[i];
+    console.log(`📝 Processing element ${i + 1}:`, element.nodeType, element.nodeName);
     
-    try {
-      // Create a new image element
-      const newImg = new Image();
-      newImg.crossOrigin = 'anonymous';
+    if (element.nodeType === Node.TEXT_NODE) {
+      // Handle text nodes
+      const text = element.textContent?.trim();
+      if (text) {
+        ctx.fillStyle = '#000000';
+        ctx.font = '14px Arial, sans-serif';
+        ctx.fillText(text, padding, yOffset + lineHeight);
+        yOffset += lineHeight;
+        console.log(`✅ Text drawn: "${text}"`);
+      }
+    } else if (element.nodeType === Node.ELEMENT_NODE) {
+      const htmlElement = element as HTMLElement;
+      const tagName = htmlElement.tagName.toLowerCase();
       
-      await new Promise<void>((resolve, reject) => {
-        newImg.onload = () => {
-          try {
-            // Get the actual displayed dimensions from the original image
-            let displayWidth = img.width || img.naturalWidth;
-            let displayHeight = img.height || img.naturalHeight;
-            
-            // Parse style dimensions if available
-            if (img.style.width) {
-              const widthValue = img.style.width;
-              if (widthValue.includes('px')) {
-                displayWidth = parseInt(widthValue);
-              } else if (widthValue.includes('%')) {
-                const percentage = parseInt(widthValue) / 100;
-                displayWidth = (rect.width - (2 * padding)) * percentage;
-              }
-            }
-            
-            if (img.style.height && img.style.height !== 'auto') {
-              const heightValue = img.style.height;
-              if (heightValue.includes('px')) {
-                displayHeight = parseInt(heightValue);
-              } else if (heightValue.includes('%')) {
-                const percentage = parseInt(heightValue) / 100;
-                displayHeight = 300 * percentage; // Use reasonable max height
-              }
-            }
-            
-            // Maintain aspect ratio if only width is specified
-            if (img.style.width && !img.style.height) {
-              const aspectRatio = newImg.naturalHeight / newImg.naturalWidth;
-              displayHeight = displayWidth * aspectRatio;
-            }
-            
-            // Ensure minimum and maximum dimensions
-            const maxWidth = rect.width - (2 * padding);
-            const maxHeight = 400;
-            
-            if (displayWidth > maxWidth) {
-              const ratio = maxWidth / displayWidth;
-              displayWidth = maxWidth;
-              displayHeight = displayHeight * ratio;
-            }
-            
-            if (displayHeight > maxHeight) {
-              const ratio = maxHeight / displayHeight;
-              displayHeight = maxHeight;
-              displayWidth = displayWidth * ratio;
-            }
-            
-            console.log(`📐 Calculated display dimensions:`, {
-              width: displayWidth,
-              height: displayHeight,
-              yOffset: yOffset
-            });
-            
-            // Draw image at exact position and size
-            ctx.drawImage(newImg, padding, yOffset, displayWidth, displayHeight);
-            console.log(`✅ Image ${i + 1} drawn successfully at ${displayWidth}x${displayHeight}`);
-            
-            yOffset += displayHeight + 20; // Add spacing after image
-            resolve();
-          } catch (drawError) {
-            console.error(`❌ Error drawing image ${i + 1}:`, drawError);
-            reject(drawError);
+      if (tagName === 'img') {
+        // Handle images
+        const img = htmlElement as HTMLImageElement;
+        console.log(`🖼️ Processing image:`, img.src);
+        console.log(`📏 Image dimensions:`, {
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          width: img.width,
+          height: img.height,
+          style: {
+            width: img.style.width,
+            height: img.style.height,
+            display: img.style.display,
+            margin: img.style.margin
           }
-        };
+        });
         
-        newImg.onerror = (error) => {
-          console.error(`❌ Error loading image ${i + 1}:`, error);
-          reject(new Error(`Failed to load image ${i + 1}`));
-        };
-        
-        newImg.src = img.src;
-      });
-    } catch (error) {
-      console.warn(`⚠️ Skipping image ${i + 1} due to error:`, error);
-      // Draw placeholder
-      ctx.fillStyle = '#f3f4f6';
-      ctx.fillRect(padding, yOffset, 200, 150);
-      ctx.fillStyle = '#666';
-      ctx.fillText('Image failed to load', padding + 10, yOffset + 80);
-      yOffset += 170;
+        try {
+          // Create a new image element
+          const newImg = new Image();
+          newImg.crossOrigin = 'anonymous';
+          
+          await new Promise<void>((resolve, reject) => {
+            newImg.onload = () => {
+              try {
+                // Get the actual displayed dimensions from the original image
+                let displayWidth = img.width || img.naturalWidth;
+                let displayHeight = img.height || img.naturalHeight;
+                
+                // Parse style dimensions if available
+                if (img.style.width) {
+                  const widthValue = img.style.width;
+                  if (widthValue.includes('px')) {
+                    displayWidth = parseInt(widthValue);
+                  } else if (widthValue.includes('%')) {
+                    const percentage = parseInt(widthValue) / 100;
+                    displayWidth = (rect.width - (2 * padding)) * percentage;
+                  }
+                }
+                
+                if (img.style.height && img.style.height !== 'auto') {
+                  const heightValue = img.style.height;
+                  if (heightValue.includes('px')) {
+                    displayHeight = parseInt(heightValue);
+                  } else if (heightValue.includes('%')) {
+                    const percentage = parseInt(heightValue) / 100;
+                    displayHeight = 300 * percentage;
+                  }
+                }
+                
+                // Maintain aspect ratio if only width is specified
+                if (img.style.width && !img.style.height) {
+                  const aspectRatio = newImg.naturalHeight / newImg.naturalWidth;
+                  displayHeight = displayWidth * aspectRatio;
+                }
+                
+                // Ensure minimum and maximum dimensions
+                const maxWidth = rect.width - (2 * padding);
+                const maxHeight = 400;
+                
+                if (displayWidth > maxWidth) {
+                  const ratio = maxWidth / displayWidth;
+                  displayWidth = maxWidth;
+                  displayHeight = displayHeight * ratio;
+                }
+                
+                if (displayHeight > maxHeight) {
+                  const ratio = maxHeight / displayHeight;
+                  displayHeight = maxHeight;
+                  displayWidth = displayWidth * ratio;
+                }
+                
+                console.log(`📐 Calculated display dimensions:`, {
+                  width: displayWidth,
+                  height: displayHeight,
+                  yOffset: yOffset
+                });
+                
+                // Draw image at exact position and size
+                ctx.drawImage(newImg, padding, yOffset, displayWidth, displayHeight);
+                console.log(`✅ Image drawn successfully at ${displayWidth}x${displayHeight}`);
+                
+                yOffset += displayHeight + 20; // Add spacing after image
+                resolve();
+              } catch (drawError) {
+                console.error(`❌ Error drawing image:`, drawError);
+                reject(drawError);
+              }
+            };
+            
+            newImg.onerror = (error) => {
+              console.error(`❌ Error loading image:`, error);
+              reject(new Error(`Failed to load image`));
+            };
+            
+            newImg.src = img.src;
+          });
+        } catch (error) {
+          console.warn(`⚠️ Skipping image due to error:`, error);
+          // Draw placeholder
+          ctx.fillStyle = '#f3f4f6';
+          ctx.fillRect(padding, yOffset, 200, 150);
+          ctx.fillStyle = '#666';
+          ctx.fillText('Image failed to load', padding + 10, yOffset + 80);
+          yOffset += 170;
+        }
+      } else if (['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'span'].includes(tagName)) {
+        // Handle text elements
+        const text = htmlElement.textContent?.trim();
+        if (text) {
+          // Set font based on tag
+          let fontSize = 14;
+          let fontWeight = 'normal';
+          
+          if (tagName.startsWith('h')) {
+            fontSize = 24 - (parseInt(tagName[1]) * 2); // h1=22, h2=20, etc.
+            fontWeight = 'bold';
+          }
+          
+          ctx.fillStyle = '#000000';
+          ctx.font = `${fontWeight} ${fontSize}px Arial, sans-serif`;
+          
+          // Handle text alignment
+          const textAlign = htmlElement.style.textAlign || 'left';
+          ctx.textAlign = textAlign as CanvasTextAlign;
+          
+          let xPosition = padding;
+          if (textAlign === 'center') {
+            xPosition = rect.width / 2;
+          } else if (textAlign === 'right') {
+            xPosition = rect.width - padding;
+          }
+          
+          ctx.fillText(text, xPosition, yOffset + lineHeight);
+          yOffset += lineHeight;
+          console.log(`✅ Text element drawn: "${text}" with ${fontSize}px font`);
+        }
+      }
     }
   }
   
-  console.log('✅ Manual canvas drawing completed');
+  console.log('✅ Manual canvas drawing completed with exact formatting');
   return canvas;
 };
 
