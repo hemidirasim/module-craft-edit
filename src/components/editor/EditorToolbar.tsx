@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { EmojiPicker } from "./EmojiPicker";
 import { TableSelector } from "./TableSelector";
 import { LinkDialog } from "./LinkDialog";
@@ -46,7 +46,10 @@ import {
   Calendar,
   FileText,
   Download,
-  SeparatorHorizontal
+  SeparatorHorizontal,
+  Upload,
+  FileImage,
+  File as FileIcon
 } from "lucide-react";
 
 interface EditorToolbarProps {
@@ -164,12 +167,7 @@ export const EditorToolbar = ({
 
   return (
     <div className="border-b border-border p-2 flex gap-1 flex-wrap bg-background/50 backdrop-blur-sm">
-      {/* File Menu */}
-      {content && onContentChange && (
-        <FileMenu content={content} onContentChange={onContentChange} />
-      )}
-      
-      {/* Edit Menu */}
+      {/* Edit Menu (includes File operations) */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -184,6 +182,82 @@ export const EditorToolbar = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+          {/* File Operations */}
+          {content && onContentChange && (
+            <>
+              <DropdownMenuItem 
+                onClick={() => {
+                  const fileInput = document.createElement('input');
+                  fileInput.type = 'file';
+                  fileInput.accept = '.docx';
+                  fileInput.onchange = async (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                      try {
+                        const { importFromWord } = await import('@/utils/exportUtils');
+                        const importedContent = await importFromWord(file);
+                        onContentChange(importedContent);
+                        toast.success('Word document imported successfully!');
+                      } catch (error) {
+                        console.error('Word import error:', error);
+                        toast.error('Failed to import Word document');
+                      }
+                    }
+                  };
+                  fileInput.click();
+                }}
+                className="cursor-pointer hover:bg-accent"
+              >
+                <Upload size={16} className="mr-2" />
+                Import from Word
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={async () => {
+                  try {
+                    const { exportToPDF } = await import('@/utils/exportUtils');
+                    const filename = `document-${new Date().toISOString().split('T')[0]}`;
+                    const success = await exportToPDF(content, filename);
+                    if (success) {
+                      toast.success('Document exported to PDF successfully!');
+                    } else {
+                      toast.error('Failed to export to PDF');
+                    }
+                  } catch (error) {
+                    console.error('PDF export error:', error);
+                    toast.error('Failed to export to PDF');
+                  }
+                }}
+                className="cursor-pointer hover:bg-accent"
+              >
+                <FileImage size={16} className="mr-2" />
+                Export to PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={async () => {
+                  try {
+                    const { exportToWord } = await import('@/utils/exportUtils');
+                    const filename = `document-${new Date().toISOString().split('T')[0]}`;
+                    const success = await exportToWord(content, filename);
+                    if (success) {
+                      toast.success('Document exported to Word successfully!');
+                    } else {
+                      toast.error('Failed to export to Word');
+                    }
+                  } catch (error) {
+                    console.error('Word export error:', error);
+                    toast.error('Failed to export to Word');
+                  }
+                }}
+                className="cursor-pointer hover:bg-accent"
+              >
+                <FileIcon size={16} className="mr-2" />
+                Export to Word
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          
+          {/* Edit Operations */}
           <DropdownMenuItem onClick={() => onCommand('undo')} className="cursor-pointer hover:bg-accent">
             <Undo2 size={16} className="mr-2" />
             Undo (Ctrl+Z)
