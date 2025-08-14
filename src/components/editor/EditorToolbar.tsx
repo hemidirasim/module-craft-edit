@@ -167,10 +167,8 @@ export const EditorToolbar = ({
 
   return (
     <div className="border-b border-border p-2 flex gap-1 flex-wrap bg-background/50 backdrop-blur-sm">
-      {/* File Menu */}
-      {content && onContentChange && (
-        <FileMenu content={content} onContentChange={onContentChange} />
-      )}
+      {/* File Menu - Always visible */}
+      <FileMenu content={content || ""} onContentChange={onContentChange || (() => {})} />
       
       {/* Edit Menu */}
       <DropdownMenu>

@@ -2,16 +2,17 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { createClient } from '@supabase/supabase-js';
+import mammoth from 'mammoth';
 
 // Initialize Supabase client
 const supabaseUrl = 'https://qgmluixnzhpthywyrytn.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbWx1aXhuemhwdGh5d3lydG4iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNDI5NzE5NywiZXhwIjoyMDUwODczMTk3fQ.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbGx1aXhuemhwdGh5d3lydG4iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNDI5NzE5NywiZXhwIjoyMDUwODczMTk3fQ.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Import from Word function
+// Import from Word function using mammoth.js
 export const importFromWord = async (file: File): Promise<string> => {
   try {
-    console.log('📄 Starting Word import process...');
+    console.log('📄 Starting Word import process with mammoth.js...');
     console.log('📄 File name:', file.name);
     console.log('📄 File size:', file.size, 'bytes');
     
@@ -20,885 +21,301 @@ export const importFromWord = async (file: File): Promise<string> => {
       throw new Error('Please select a .docx file');
     }
     
-    // Read the file as ArrayBuffer
+    // Use mammoth.js to convert Word to HTML with enhanced options
     const arrayBuffer = await file.arrayBuffer();
-    console.log('✅ File read as ArrayBuffer');
+    const result = await mammoth.convertToHtml({ 
+      arrayBuffer,
+      styleMap: [
+        "p[style-name='Heading 1'] => h1:fresh",
+        "p[style-name='Heading 2'] => h2:fresh",
+        "p[style-name='Heading 3'] => h3:fresh",
+        "p[style-name='Heading 4'] => h4:fresh",
+        "p[style-name='Heading 5'] => h5:fresh",
+        "p[style-name='Heading 6'] => h6:fresh",
+        "p[style-name='Title'] => h1:fresh",
+        "p[style-name='Subtitle'] => h2:fresh",
+        "p[style-name='Quote'] => blockquote:fresh",
+        "p[style-name='Intense Quote'] => blockquote:fresh",
+        "p[style-name='List Paragraph'] => li:fresh",
+        "r[style-name='Strong'] => strong",
+        "r[style-name='Emphasis'] => em",
+        "r[style-name='Code'] => code",
+        "r[style-name='Strikethrough'] => s",
+        "r[style-name='Underline'] => u"
+      ],
+      ignoreEmptyParagraphs: false,
+      preserveNumbering: true,
+      preserveHighlighting: true
+    });
     
-    // Extract content using improved method
-    const htmlContent = await extractWordContent(arrayBuffer);
+    console.log('✅ Mammoth.js conversion completed');
+    console.log('📄 Extracted HTML length:', result.value.length);
+    console.log('📄 HTML preview:', result.value.substring(0, 200) + '...');
+    
+    // Check for any messages from mammoth
+    if (result.messages.length > 0) {
+      console.log('📋 Mammoth messages:', result.messages);
+    }
     
     // Validate extracted content
-    if (!htmlContent || htmlContent.trim().length === 0) {
-      console.warn('⚠️ Extracted content is empty, using fallback');
+    if (!result.value || result.value.trim().length === 0) {
+      console.warn('⚠️ Extracted content is empty');
       return '<p>No content could be extracted from the Word document. Please check if the file contains text content.</p>';
     }
     
-    console.log('✅ Word import completed successfully');
-    console.log('📄 Extracted HTML length:', htmlContent.length);
-    console.log('📄 HTML preview:', htmlContent.substring(0, 200) + '...');
+    // Clean up the HTML content
+    const cleanedHtml = cleanWordHtml(result.value);
     
-    return htmlContent;
+    console.log('✅ Word import completed successfully');
+    console.log('📄 Final HTML length:', cleanedHtml.length);
+    
+    return cleanedHtml;
   } catch (error) {
     console.error('❌ Error importing from Word:', error);
     throw new Error(`Failed to import Word document: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
-// Simple and effective Word content extraction
-const extractWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => {
+// Clean up HTML content from Word while preserving colors and formatting
+const cleanWordHtml = (html: string): string => {
   try {
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const textDecoder = new TextDecoder('utf-8');
-    const xmlContent = textDecoder.decode(uint8Array);
+    // Create a temporary div to parse and clean the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
     
-    console.log('📄 XML content length:', xmlContent.length);
-    console.log('📄 XML preview:', xmlContent.substring(0, 500) + '...');
+    // Remove only truly unnecessary Word-specific elements
+    const elementsToRemove = tempDiv.querySelectorAll('o:p, w:sdt, w:sdtContent, w:sdtPr, w:sdtEndPr');
+    elementsToRemove.forEach(el => el.remove());
     
-    // Extract document.xml content (main content)
-    const documentMatch = xmlContent.match(/<w:document[^>]*>.*?<\/w:document>/s);
-    if (!documentMatch) {
-      console.warn('⚠️ Could not find document content, trying alternative method');
-      return await extractSimpleWordContent(arrayBuffer);
-    }
-    
-    const documentXml = documentMatch[0];
-    console.log('📄 Document XML extracted, length:', documentXml.length);
-    
-    // Parse body content
-    const bodyMatch = documentXml.match(/<w:body[^>]*>(.*?)<\/w:body>/s);
-    if (!bodyMatch) {
-      console.warn('⚠️ Could not find body content, trying alternative method');
-      return await extractSimpleWordContent(arrayBuffer);
-    }
-    
-    const bodyXml = bodyMatch[1];
-    console.log('📄 Body XML extracted, length:', bodyXml.length);
-    console.log('📄 Body preview:', bodyXml.substring(0, 300) + '...');
-    
-    // Parse paragraphs and tables
-    const elements = parseBodyContent(bodyXml);
-    console.log('📄 Parsed elements:', elements.length);
-    console.log('📄 Element types:', elements.map(el => el.type));
-    
-    // Convert to HTML
-    const htmlContent = convertParagraphsToHtml(elements);
-    
-    // Check if we got meaningful content
-    if (!htmlContent || htmlContent.trim().length < 50) {
-      console.warn('⚠️ Generated HTML is too short, trying fallback');
-      return await extractSimpleWordContent(arrayBuffer);
-    }
-    
-    return htmlContent;
-  } catch (error) {
-    console.warn('⚠️ Error in extractWordContent:', error);
-    // Fallback to simple extraction
-    return await extractSimpleWordContent(arrayBuffer);
-  }
-};
-
-// Parse body content to find all possible elements
-const parseBodyContent = (bodyXml: string): any[] => {
-  const elements: any[] = [];
-  
-  // Find all paragraph elements
-  const paragraphMatches = bodyXml.match(/<w:p[^>]*>.*?<\/w:p>/gs);
-  
-  if (paragraphMatches) {
-    console.log('📄 Found', paragraphMatches.length, 'paragraphs');
-    
-    paragraphMatches.forEach((paragraphXml, index) => {
-      try {
-        const paragraph = parseParagraphContent(paragraphXml);
-        if (paragraph && paragraph.text.trim()) {
-          elements.push(paragraph);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Error parsing paragraph ${index}:`, error);
-      }
-    });
-  }
-  
-  // Find all table elements
-  const tableMatches = bodyXml.match(/<w:tbl[^>]*>.*?<\/w:tbl>/gs);
-  
-  if (tableMatches) {
-    console.log('📄 Found', tableMatches.length, 'tables');
-    
-    tableMatches.forEach((tableXml, index) => {
-      try {
-        const table = parseTableContent(tableXml);
-        if (table && table.rows.length > 0) {
-          elements.push(table);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Error parsing table ${index}:`, error);
-      }
-    });
-  }
-  
-  // Find all drawing elements (images, shapes, icons)
-  const drawingMatches = bodyXml.match(/<w:drawing[^>]*>.*?<\/w:drawing>/gs);
-  
-  if (drawingMatches) {
-    console.log('📄 Found', drawingMatches.length, 'drawings');
-    
-    drawingMatches.forEach((drawingXml, index) => {
-      try {
-        const drawing = parseDrawingContent(drawingXml);
-        if (drawing) {
-          elements.push(drawing);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Error parsing drawing ${index}:`, error);
-      }
-    });
-  }
-  
-  // Find all object elements (embedded objects, symbols)
-  const objectMatches = bodyXml.match(/<w:object[^>]*>.*?<\/w:object>/gs);
-  
-  if (objectMatches) {
-    console.log('📄 Found', objectMatches.length, 'objects');
-    
-    objectMatches.forEach((objectXml, index) => {
-      try {
-        const object = parseObjectContent(objectXml);
-        if (object) {
-          elements.push(object);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Error parsing object ${index}:`, error);
-      }
-    });
-  }
-  
-  return elements;
-};
-
-// Parse individual paragraph content
-const parseParagraphContent = (paragraphXml: string): any => {
-  const paragraph: any = { 
-    type: 'paragraph', 
-    text: '', 
-    formatting: {}, 
-    alignment: 'left', 
-    listType: null, 
-    listLevel: 0 
-  };
-  
-  // Parse paragraph properties
-  const pPrMatch = paragraphXml.match(/<w:pPr[^>]*>(.*?)<\/w:pPr>/s);
-  if (pPrMatch) {
-    const pPrXml = pPrMatch[1];
-    
-    // Check for heading style
-    const styleMatch = pPrXml.match(/<w:pStyle[^>]*w:val="([^"]*)"/);
-    if (styleMatch) {
-      const styleValue = styleMatch[1];
-      if (styleValue.includes('Heading') || styleValue.includes('heading')) {
-        const levelMatch = styleValue.match(/(\d+)/);
-        paragraph.type = 'heading';
-        paragraph.level = levelMatch ? parseInt(levelMatch[1]) : 1;
-      }
-    }
-    
-    // Check for alignment
-    const alignMatch = pPrXml.match(/<w:jc[^>]*w:val="([^"]*)"/);
-    if (alignMatch) {
-      paragraph.alignment = alignMatch[1];
-    }
-    
-    // Check for list properties
-    const numPrMatch = pPrXml.match(/<w:numPr[^>]*>(.*?)<\/w:numPr>/s);
-    if (numPrMatch) {
-      const numPrXml = numPrMatch[1];
-      const numIdMatch = numPrXml.match(/<w:numId[^>]*w:val="([^"]*)"/);
-      const ilvlMatch = numPrXml.match(/<w:ilvl[^>]*w:val="([^"]*)"/);
+    // Clean up style attributes while preserving colors and important formatting
+    const elementsWithStyles = tempDiv.querySelectorAll('[style]');
+    elementsWithStyles.forEach(el => {
+      const element = el as HTMLElement;
+      let style = element.getAttribute('style') || '';
       
-      if (numIdMatch) {
-        paragraph.listType = 'numbered';
-        paragraph.listLevel = ilvlMatch ? parseInt(ilvlMatch[1]) : 0;
-      }
-    }
-  }
-  
-  // Parse text runs
-  const textRuns = parseTextRuns(paragraphXml);
-  
-  // Combine text runs
-  let combinedText = '';
-  const combinedFormatting: any = {};
-  
-  textRuns.forEach((run: any) => {
-    combinedText += run.text;
-    // Merge formatting
-    Object.assign(combinedFormatting, run.formatting);
-  });
-  
-  paragraph.text = combinedText;
-  paragraph.formatting = combinedFormatting;
-  
-  return paragraph;
-};
-
-// Parse text runs within a paragraph
-const parseTextRuns = (paragraphXml: string): any[] => {
-  const textRuns: any[] = [];
-  
-  const runMatches = paragraphXml.match(/<w:r[^>]*>.*?<\/w:r>/gs);
-  
-  if (runMatches) {
-    runMatches.forEach((runXml) => {
-      try {
-        const textRun = parseTextRunContent(runXml);
-        if (textRun && textRun.text) {
-          textRuns.push(textRun);
-        }
-      } catch (error) {
-        console.warn('⚠️ Error parsing text run:', error);
-      }
-    });
-  }
-  
-  return textRuns;
-};
-
-// Parse individual text run content
-const parseTextRunContent = (runXml: string): any => {
-  const textRun: any = { text: '', formatting: {} };
-  
-  // Extract text content
-  const textMatch = runXml.match(/<w:t[^>]*>(.*?)<\/w:t>/s);
-  if (textMatch) {
-    textRun.text = textMatch[1] || '';
-  }
-  
-  // Extract symbol content
-  const symbolMatch = runXml.match(/<w:sym[^>]*w:char="([^"]*)"/);
-  if (symbolMatch) {
-    const charCode = symbolMatch[1];
-    const symbol = String.fromCharCode(parseInt(charCode, 16));
-    textRun.text = symbol;
-    textRun.type = 'symbol';
-  }
-  
-  // Extract tab content
-  const tabMatch = runXml.match(/<w:tab\/>/);
-  if (tabMatch) {
-    textRun.text = '\t';
-    textRun.type = 'tab';
-  }
-  
-  // Extract line break content
-  const brMatch = runXml.match(/<w:br\/>/);
-  if (brMatch) {
-    textRun.text = '\n';
-    textRun.type = 'linebreak';
-  }
-  
-  // Extract page break content
-  const pageBreakMatch = runXml.match(/<w:br[^>]*w:type="page"[^>]*\/>/);
-  if (pageBreakMatch) {
-    textRun.text = '<hr style="page-break-after: always; border: none; margin: 20px 0;" />';
-    textRun.type = 'pagebreak';
-  }
-  
-  // Parse run properties
-  const rPrMatch = runXml.match(/<w:rPr[^>]*>(.*?)<\/w:rPr>/s);
-  if (rPrMatch) {
-    const rPrXml = rPrMatch[1];
-    
-    // Check for bold
-    if (rPrXml.includes('<w:b') || rPrXml.includes('<w:bCs')) {
-      textRun.formatting.bold = true;
-    }
-    
-    // Check for italic
-    if (rPrXml.includes('<w:i') || rPrXml.includes('<w:iCs')) {
-      textRun.formatting.italic = true;
-    }
-    
-    // Check for underline
-    if (rPrXml.includes('<w:u')) {
-      textRun.formatting.underline = true;
-    }
-    
-    // Check for strikethrough
-    if (rPrXml.includes('<w:strike')) {
-      textRun.formatting.strikethrough = true;
-    }
-    
-    // Check for font size
-    const szMatch = rPrXml.match(/<w:sz[^>]*w:val="([^"]*)"/);
-    if (szMatch) {
-      textRun.formatting.fontSize = szMatch[1];
-    }
-    
-    // Check for font family
-    const fontMatch = rPrXml.match(/<w:rFonts[^>]*w:ascii="([^"]*)"/);
-    if (fontMatch) {
-      textRun.formatting.fontFamily = fontMatch[1];
-    }
-    
-    // Check for color
-    const colorMatch = rPrXml.match(/<w:color[^>]*w:val="([^"]*)"/);
-    if (colorMatch) {
-      textRun.formatting.color = colorMatch[1];
-    }
-    
-    // Check for highlight
-    const highlightMatch = rPrXml.match(/<w:highlight[^>]*w:val="([^"]*)"/);
-    if (highlightMatch) {
-      textRun.formatting.highlight = highlightMatch[1];
-    }
-    
-    // Check for subscript
-    if (rPrXml.includes('<w:vertAlign[^>]*w:val="subscript"')) {
-      textRun.formatting.subscript = true;
-    }
-    
-    // Check for superscript
-    if (rPrXml.includes('<w:vertAlign[^>]*w:val="superscript"')) {
-      textRun.formatting.superscript = true;
-    }
-    
-    // Check for small caps
-    if (rPrXml.includes('<w:smallCaps')) {
-      textRun.formatting.smallCaps = true;
-    }
-    
-    // Check for all caps
-    if (rPrXml.includes('<w:caps')) {
-      textRun.formatting.allCaps = true;
-    }
-  }
-  
-  return textRun;
-};
-
-// Parse table content
-const parseTableContent = (tableXml: string): any => {
-  const table: any = { type: 'table', rows: [] };
-  
-  // Find all table rows
-  const rowMatches = tableXml.match(/<w:tr[^>]*>.*?<\/w:tr>/gs);
-  
-  if (rowMatches) {
-    console.log('📄 Found', rowMatches.length, 'table rows');
-    
-    rowMatches.forEach((rowXml, rowIndex) => {
-      try {
-        const row = parseTableRow(rowXml);
-        if (row && row.cells.length > 0) {
-          table.rows.push(row);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Error parsing table row ${rowIndex}:`, error);
-      }
-    });
-  }
-  
-  return table;
-};
-
-// Parse table row
-const parseTableRow = (rowXml: string): any => {
-  const row: any = { type: 'row', cells: [] };
-  
-  // Find all table cells
-  const cellMatches = rowXml.match(/<w:tc[^>]*>.*?<\/w:tc>/gs);
-  
-  if (cellMatches) {
-    cellMatches.forEach((cellXml, cellIndex) => {
-      try {
-        const cell = parseTableCell(cellXml);
-        if (cell) {
-          row.cells.push(cell);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Error parsing table cell ${cellIndex}:`, error);
-      }
-    });
-  }
-  
-  return row;
-};
-
-// Parse table cell
-const parseTableCell = (cellXml: string): any => {
-  const cell: any = { type: 'cell', content: [] };
-  
-  // Find paragraphs within the cell
-  const paragraphMatches = cellXml.match(/<w:p[^>]*>.*?<\/w:p>/gs);
-  
-  if (paragraphMatches) {
-    paragraphMatches.forEach((paragraphXml) => {
-      try {
-        const paragraph = parseParagraphContent(paragraphXml);
-        if (paragraph && paragraph.text.trim()) {
-          cell.content.push(paragraph);
-        }
-      } catch (error) {
-        console.warn('⚠️ Error parsing cell paragraph:', error);
-      }
-    });
-  }
-  
-  return cell;
-};
-
-// Parse drawing content (images, shapes, icons)
-const parseDrawingContent = (drawingXml: string): any => {
-  const drawing: any = { type: 'drawing', content: '' };
-  
-  // Try to extract image information
-  const blipMatch = drawingXml.match(/<a:blip[^>]*r:embed="([^"]*)"/);
-  if (blipMatch) {
-    drawing.type = 'image';
-    drawing.embedId = blipMatch[1];
-    drawing.content = `<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Image" style="max-width: 100%; height: auto;" />`;
-  }
-  
-  // Try to extract shape information
-  const shapeMatch = drawingXml.match(/<wps:spPr[^>]*>(.*?)<\/wps:spPr>/s);
-  if (shapeMatch) {
-    drawing.type = 'shape';
-    drawing.content = `<div style="width: 100px; height: 100px; background-color: #f0f0f0; border: 1px solid #ccc; display: inline-block; margin: 5px;" title="Shape"></div>`;
-  }
-  
-  // Try to extract icon information
-  const iconMatch = drawingXml.match(/<wps:bodyPr[^>]*>(.*?)<\/wps:bodyPr>/s);
-  if (iconMatch) {
-    drawing.type = 'icon';
-    drawing.content = `<span style="font-size: 24px; color: #666;" title="Icon">📋</span>`;
-  }
-  
-  return drawing;
-};
-
-// Parse object content (embedded objects, symbols)
-const parseObjectContent = (objectXml: string): any => {
-  const object: any = { type: 'object', content: '' };
-  
-  // Try to extract symbol information
-  const symbolMatch = objectXml.match(/<w:sym[^>]*w:char="([^"]*)"/);
-  if (symbolMatch) {
-    object.type = 'symbol';
-    const charCode = symbolMatch[1];
-    const symbol = String.fromCharCode(parseInt(charCode, 16));
-    object.content = `<span style="font-size: 18px; color: #333;">${symbol}</span>`;
-  }
-  
-  // Try to extract equation information
-  const equationMatch = objectXml.match(/<m:oMath[^>]*>(.*?)<\/m:oMath>/s);
-  if (equationMatch) {
-    object.type = 'equation';
-    object.content = `<div style="background-color: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; margin: 10px 0; font-family: 'Times New Roman', serif;" title="Equation">${equationMatch[1]}</div>`;
-  }
-  
-  // Try to extract embedded object information
-  const embedMatch = objectXml.match(/<o:OLEObject[^>]*>(.*?)<\/o:OLEObject>/s);
-  if (embedMatch) {
-    object.type = 'embedded';
-    object.content = `<div style="background-color: #e9ecef; padding: 15px; border: 2px dashed #6c757d; border-radius: 6px; margin: 10px 0; text-align: center; color: #6c757d;" title="Embedded Object">
-      <span style="font-size: 24px;">📎</span><br>
-      <small>Embedded Object</small>
-    </div>`;
-  }
-  
-  return object;
-};
-
-// Extract heading level from style value
-const extractHeadingLevel = (styleValue: string): number => {
-  const levelMatch = styleValue.match(/\d+/);
-  return levelMatch ? parseInt(levelMatch[0]) : 1;
-};
-
-// Apply text formatting
-const applyTextFormatting = (text: string, formatting: any): string => {
-  let formattedText = text;
-  
-  // Apply formatting in order (innermost to outermost)
-  if (formatting.strikethrough) {
-    formattedText = `<s>${formattedText}</s>`;
-  }
-  
-  if (formatting.underline) {
-    formattedText = `<u>${formattedText}</u>`;
-  }
-  
-  if (formatting.italic) {
-    formattedText = `<em>${formattedText}</em>`;
-  }
-  
-  if (formatting.bold) {
-    formattedText = `<strong>${formattedText}</strong>`;
-  }
-  
-  // Apply subscript
-  if (formatting.subscript) {
-    formattedText = `<sub>${formattedText}</sub>`;
-  }
-  
-  // Apply superscript
-  if (formatting.superscript) {
-    formattedText = `<sup>${formattedText}</sup>`;
-  }
-  
-  // Apply small caps
-  if (formatting.smallCaps) {
-    formattedText = `<span style="font-variant: small-caps;">${formattedText}</span>`;
-  }
-  
-  // Apply all caps
-  if (formatting.allCaps) {
-    formattedText = `<span style="text-transform: uppercase;">${formattedText}</span>`;
-  }
-  
-  if (formatting.italic) {
-    formattedText = `<em>${formattedText}</em>`;
-  }
-  
-  if (formatting.bold) {
-    formattedText = `<strong>${formattedText}</strong>`;
-  }
-  
-  // Apply inline styles for font properties
-  const styles: string[] = [];
-  
-  if (formatting.fontSize) {
-    styles.push(`font-size: ${formatting.fontSize}pt`);
-  }
-  
-  if (formatting.fontFamily) {
-    styles.push(`font-family: "${formatting.fontFamily}", Arial, sans-serif`);
-  }
-  
-  if (formatting.color) {
-    // Convert Word color to hex if needed
-    const color = formatting.color;
-    if (color.startsWith('FF')) {
-      styles.push(`color: #${color.substring(2)}`);
-    } else {
-      styles.push(`color: #${color}`);
-    }
-  }
-  
-  if (formatting.highlight) {
-    // Convert highlight color to background color
-    const highlightColors: { [key: string]: string } = {
-      'yellow': '#FFFF00',
-      'green': '#00FF00',
-      'cyan': '#00FFFF',
-      'magenta': '#FF00FF',
-      'blue': '#0000FF',
-      'red': '#FF0000',
-      'darkBlue': '#000080',
-      'darkCyan': '#008080',
-      'darkGreen': '#008000',
-      'darkMagenta': '#800080',
-      'darkRed': '#800000',
-      'darkYellow': '#808000',
-      'darkGray': '#808080',
-      'lightGray': '#C0C0C0',
-      'black': '#000000',
-      'white': '#FFFFFF'
-    };
-    
-    const bgColor = highlightColors[formatting.highlight] || '#FFFF00';
-    styles.push(`background-color: ${bgColor}`);
-  }
-  
-  // Apply all styles if any exist
-  if (styles.length > 0) {
-    const styleAttr = ` style="${styles.join('; ')}"`;
-    formattedText = `<span${styleAttr}>${formattedText}</span>`;
-  }
-  
-  return formattedText;
-};
-
-// Convert paragraphs to HTML
-const convertParagraphsToHtml = (elements: any[]): string => {
-  const htmlParts: string[] = [];
-  let currentListType = null;
-  let currentListLevel = 0;
-  let listItems: string[] = [];
-  
-  for (let i = 0; i < elements.length; i++) {
-    const element = elements[i];
-    
-    // Handle tables
-    if (element.type === 'table') {
-      // Close any open list before table
-      if (listItems.length > 0) {
-        htmlParts.push(closeList(currentListType, listItems));
-        listItems = [];
-        currentListType = null;
-        currentListLevel = 0;
+      // Convert Word color formats to hex
+      style = style.replace(/color:\s*#([0-9A-Fa-f]{6})/g, (match, color) => {
+        // Word sometimes uses BGR format, convert to RGB
+        const r = color.substring(4, 6);
+        const g = color.substring(2, 4);
+        const b = color.substring(0, 2);
+        return `color: #${r}${g}${b}`;
+      });
+      
+      // Convert Word background colors
+      style = style.replace(/background-color:\s*#([0-9A-Fa-f]{6})/g, (match, color) => {
+        const r = color.substring(4, 6);
+        const g = color.substring(2, 4);
+        const b = color.substring(0, 2);
+        return `background-color: #${r}${g}${b}`;
+      });
+      
+      // Convert Word highlight colors to background colors
+      const highlightColors: { [key: string]: string } = {
+        'yellow': '#FFFF00',
+        'green': '#00FF00',
+        'cyan': '#00FFFF',
+        'magenta': '#FF00FF',
+        'blue': '#0000FF',
+        'red': '#FF0000',
+        'darkBlue': '#000080',
+        'darkCyan': '#008080',
+        'darkGreen': '#008000',
+        'darkMagenta': '#800080',
+        'darkRed': '#800000',
+        'darkYellow': '#808000',
+        'darkGray': '#808080',
+        'lightGray': '#C0C0C0',
+        'black': '#000000',
+        'white': '#FFFFFF'
+      };
+      
+      Object.entries(highlightColors).forEach(([wordColor, hexColor]) => {
+        style = style.replace(new RegExp(`background-color:\\s*${wordColor}`, 'gi'), `background-color: ${hexColor}`);
+      });
+      
+      // Convert font sizes from pt to px (1pt ≈ 1.33px)
+      style = style.replace(/font-size:\s*(\d+)pt/g, (match, size) => {
+        const pxSize = Math.round(parseInt(size) * 1.33);
+        return `font-size: ${pxSize}px`;
+      });
+      
+      // Remove only problematic Word-specific styles, keep useful ones
+      style = style.replace(/mso-[^;]+;?/g, ''); // Remove mso-* styles
+      style = style.replace(/line-height:\s*normal;?/g, ''); // Remove normal line-height
+      style = style.replace(/margin:\s*0cm;?/g, ''); // Remove 0cm margins
+      style = style.replace(/text-indent:\s*0cm;?/g, ''); // Remove text-indent
+      
+      // Clean up multiple semicolons and spaces
+      style = style.replace(/;+/g, ';').replace(/;\s*;/g, ';').trim();
+      if (style.endsWith(';')) {
+        style = style.slice(0, -1);
       }
       
-      // Convert table to HTML
-      const tableHtml = convertTableToHtml(element);
-      htmlParts.push(tableHtml);
-      continue;
-    }
-    
-    // Handle drawings (images, shapes, icons)
-    if (element.type === 'drawing' || element.type === 'image' || element.type === 'shape' || element.type === 'icon') {
-      // Close any open list before drawing
-      if (listItems.length > 0) {
-        htmlParts.push(closeList(currentListType, listItems));
-        listItems = [];
-        currentListType = null;
-        currentListLevel = 0;
-      }
-      
-      htmlParts.push(element.content);
-      continue;
-    }
-    
-    // Handle objects (symbols, equations, embedded objects)
-    if (element.type === 'object' || element.type === 'symbol' || element.type === 'equation' || element.type === 'embedded') {
-      // Close any open list before object
-      if (listItems.length > 0) {
-        htmlParts.push(closeList(currentListType, listItems));
-        listItems = [];
-        currentListType = null;
-        currentListLevel = 0;
-      }
-      
-      htmlParts.push(element.content);
-      continue;
-    }
-    
-    let content = element.formattedText || element.text;
-    
-    // Handle lists
-    if (element.listType) {
-      // Start new list or continue existing list
-      if (currentListType !== element.listType || currentListLevel !== element.listLevel) {
-        // Close previous list if exists
-        if (listItems.length > 0) {
-          htmlParts.push(closeList(currentListType, listItems));
-          listItems = [];
-        }
-        
-        // Start new list
-        currentListType = element.listType;
-        currentListLevel = element.listLevel;
-      }
-      
-      // Add item to current list
-      listItems.push(content);
-    } else {
-      // Close any open list
-      if (listItems.length > 0) {
-        htmlParts.push(closeList(currentListType, listItems));
-        listItems = [];
-        currentListType = null;
-        currentListLevel = 0;
-      }
-      
-      // Handle regular paragraph or heading
-      if (element.type === 'heading') {
-        const level = Math.min(element.level || 1, 6);
-        const tag = `h${level}`;
-        
-        if (element.alignment && element.alignment !== 'left') {
-          const alignStyle = ` style="text-align: ${element.alignment};"`;
-          htmlParts.push(`<${tag}${alignStyle}>${content}</${tag}>`);
-        } else {
-          htmlParts.push(`<${tag}>${content}</${tag}>`);
-        }
+      if (style) {
+        element.setAttribute('style', style);
       } else {
-        // Regular paragraph
-        if (element.alignment && element.alignment !== 'left') {
-          const alignStyle = ` style="text-align: ${element.alignment};"`;
-          htmlParts.push(`<p${alignStyle}>${content}</p>`);
-        } else {
-          htmlParts.push(`<p>${content}</p>`);
-        }
+        element.removeAttribute('style');
       }
-    }
-  }
-  
-  // Close any remaining list
-  if (listItems.length > 0) {
-    htmlParts.push(closeList(currentListType, listItems));
-  }
-  
-  return htmlParts.join('\n');
-};
-
-// Helper function to close a list
-const closeList = (listType: string | null, items: string[]): string => {
-  if (!listType || items.length === 0) {
-    return '';
-  }
-  
-  const tag = listType === 'numbered' ? 'ol' : 'ul';
-  const listItems = items.map(item => `<li>${item}</li>`).join('\n');
-  
-  return `<${tag}>\n${listItems}\n</${tag}>`;
-};
-
-// Convert table to HTML
-const convertTableToHtml = (table: any): string => {
-  if (!table.rows || table.rows.length === 0) {
-    return '';
-  }
-  
-  const tableRows: string[] = [];
-  
-  table.rows.forEach((row: any) => {
-    if (!row.cells || row.cells.length === 0) {
-      return;
-    }
-    
-    const tableCells: string[] = [];
-    
-    row.cells.forEach((cell: any) => {
-      let cellContent = '';
-      
-      if (cell.content && cell.content.length > 0) {
-        // Convert cell content (paragraphs) to HTML
-        const cellParagraphs: string[] = [];
-        
-        cell.content.forEach((paragraph: any) => {
-          let content = paragraph.formattedText || paragraph.text;
-          
-          // Apply formatting if available
-          if (paragraph.formatting && Object.keys(paragraph.formatting).length > 0) {
-            content = applyTextFormatting(content, paragraph.formatting);
-          }
-          
-          cellParagraphs.push(content);
-        });
-        
-        cellContent = cellParagraphs.join('<br>');
-      }
-      
-      tableCells.push(`<td>${cellContent}</td>`);
     });
     
-    tableRows.push(`<tr>${tableCells.join('')}</tr>`);
-  });
-  
-  return `<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">
-    <tbody>
-      ${tableRows.join('\n')}
-    </tbody>
-  </table>`;
-};
-
-// Simple fallback extraction
-const extractSimpleWordContent = async (arrayBuffer: ArrayBuffer): Promise<string> => {
-  try {
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const textDecoder = new TextDecoder('utf-8');
-    const xmlContent = textDecoder.decode(uint8Array);
-    
-    console.log('🔄 Using simple fallback extraction');
-    console.log('📄 XML content length:', xmlContent.length);
-    
-    // Extract all text elements
-    const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
-    
-    if (textMatches && textMatches.length > 0) {
-      console.log('📄 Found', textMatches.length, 'text elements');
+    // Convert Word headings to proper HTML headings while preserving formatting
+    const paragraphs = tempDiv.querySelectorAll('p');
+    paragraphs.forEach(p => {
+      const element = p as HTMLElement;
+      const style = element.getAttribute('style') || '';
+      const text = element.textContent?.trim() || '';
       
-      const allText = textMatches
-        .map(match => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
-        .join(' ');
+      // Check if it's a heading based on style, font size, or content
+      const isBold = style.includes('font-weight: bold') || style.includes('font-weight:bold');
+      const hasLargeFont = style.includes('font-size:') && (style.includes('font-size: 18px') || style.includes('font-size: 20px') || style.includes('font-size: 22px') || style.includes('font-size: 24px'));
+      const isShortText = text.length < 100;
       
-      console.log('📄 Extracted text length:', allText.length);
-      console.log('📄 Text preview:', allText.substring(0, 200) + '...');
-      
-      // Split into paragraphs
-      const paragraphs = allText
-        .split(/\s{2,}|\n+/)
-        .map(p => p.trim())
-        .filter(p => p.length > 0);
-      
-      console.log('📄 Created', paragraphs.length, 'paragraphs');
-      
-      if (paragraphs.length > 0) {
-        const htmlContent = paragraphs.map(p => `<p>${p}</p>`).join('\n');
-        console.log('✅ Simple extraction successful');
-        return htmlContent;
+      if ((isBold || hasLargeFont) && isShortText) {
+        // Determine heading level based on font size or text length
+        let headingLevel = 2; // Default to h2
+        
+        if (style.includes('font-size: 24px') || text.length < 30) {
+          headingLevel = 1;
+        } else if (style.includes('font-size: 22px') || text.length < 50) {
+          headingLevel = 2;
+        } else if (style.includes('font-size: 20px') || text.length < 70) {
+          headingLevel = 3;
+        } else if (style.includes('font-size: 18px')) {
+          headingLevel = 4;
+        }
+        
+        const heading = document.createElement(`h${headingLevel}`);
+        heading.innerHTML = element.innerHTML;
+        
+        // Preserve the original styling
+        if (style) {
+          heading.setAttribute('style', style);
+        }
+        
+        element.parentNode?.replaceChild(heading, element);
       }
-    }
+    });
     
-    // Try alternative extraction methods
-    console.log('🔄 Trying alternative extraction methods');
-    
-    // Try to find any text content
-    const anyTextMatch = xmlContent.match(/>([^<>]{10,})</g);
-    if (anyTextMatch && anyTextMatch.length > 0) {
-      console.log('📄 Found', anyTextMatch.length, 'potential text blocks');
+    // Process lists and preserve formatting
+    const listItems = tempDiv.querySelectorAll('li');
+    listItems.forEach(li => {
+      const element = li as HTMLElement;
+      const style = element.getAttribute('style') || '';
       
-      const extractedText = anyTextMatch
-        .map(match => match.replace(/[<>]/g, ''))
-        .filter(text => text.trim().length > 5)
-        .slice(0, 10); // Limit to first 10 blocks
-      
-      if (extractedText.length > 0) {
-        const htmlContent = extractedText.map(text => `<p>${text.trim()}</p>`).join('\n');
-        console.log('✅ Alternative extraction successful');
-        return htmlContent;
+      // Preserve list item formatting
+      if (style) {
+        element.setAttribute('style', style);
       }
-    }
+    });
     
-    console.warn('⚠️ No meaningful content found');
-    return '<p>No readable content found in Word document. Please check if the file contains text content.</p>';
+    // Process tables and preserve formatting
+    const tables = tempDiv.querySelectorAll('table');
+    tables.forEach(table => {
+      const element = table as HTMLElement;
+      const style = element.getAttribute('style') || '';
+      
+      // Add default table styling if none exists
+      if (!style.includes('border-collapse')) {
+        element.setAttribute('style', style + '; border-collapse: collapse; width: 100%; margin: 10px 0;');
+      }
+    });
+    
+    // Process table cells and preserve formatting
+    const cells = tempDiv.querySelectorAll('td, th');
+    cells.forEach(cell => {
+      const element = cell as HTMLElement;
+      const style = element.getAttribute('style') || '';
+      
+      // Add default cell styling if none exists
+      if (!style.includes('border')) {
+        element.setAttribute('style', style + '; border: 1px solid #ddd; padding: 8px;');
+      }
+    });
+    
+    // Clean up empty elements
+    const emptyElements = tempDiv.querySelectorAll('p:empty, div:empty, span:empty');
+    emptyElements.forEach(el => el.remove());
+    
+    // Get the cleaned HTML
+    let cleanedHtml = tempDiv.innerHTML;
+    
+    // Remove only Word-specific tags that don't affect content
+    cleanedHtml = cleanedHtml
+      .replace(/<o:p[^>]*>.*?<\/o:p>/g, '') // Remove o:p tags
+      .replace(/<w:sdt[^>]*>.*?<\/w:sdt>/g, '') // Remove w:sdt tags
+      .replace(/<w:sdtContent[^>]*>.*?<\/w:sdtContent>/g, '') // Remove w:sdtContent tags
+      .replace(/<w:sdtPr[^>]*>.*?<\/w:sdtPr>/g, '') // Remove w:sdtPr tags
+      .replace(/<w:sdtEndPr[^>]*>.*?<\/w:sdtEndPr>/g, '') // Remove w:sdtEndPr tags
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    console.log('✅ HTML cleaning completed with preserved colors and formatting');
+    return cleanedHtml;
   } catch (error) {
-    console.error('❌ Error in simple extraction:', error);
-    return '<p>Error extracting content from Word document. Please try a different file.</p>';
+    console.warn('⚠️ Error cleaning HTML, returning original:', error);
+    return html;
   }
 };
 
 // Test function to debug Word import
 export const testWordImport = async (file: File): Promise<any> => {
   try {
-    console.log('🧪 Testing Word import...');
+    console.log('🧪 Testing Word import with mammoth.js...');
     console.log('📄 File name:', file.name);
     console.log('📄 File size:', file.size, 'bytes');
     
     const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const textDecoder = new TextDecoder('utf-8');
-    const xmlContent = textDecoder.decode(uint8Array);
+    const result = await mammoth.convertToHtml({ 
+      arrayBuffer,
+      styleMap: [
+        "p[style-name='Heading 1'] => h1:fresh",
+        "p[style-name='Heading 2'] => h2:fresh",
+        "p[style-name='Heading 3'] => h3:fresh",
+        "p[style-name='Heading 4'] => h4:fresh",
+        "p[style-name='Heading 5'] => h5:fresh",
+        "p[style-name='Heading 6'] => h6:fresh",
+        "p[style-name='Title'] => h1:fresh",
+        "p[style-name='Subtitle'] => h2:fresh",
+        "p[style-name='Quote'] => blockquote:fresh",
+        "p[style-name='Intense Quote'] => blockquote:fresh",
+        "p[style-name='List Paragraph'] => li:fresh",
+        "r[style-name='Strong'] => strong",
+        "r[style-name='Emphasis'] => em",
+        "r[style-name='Code'] => code",
+        "r[style-name='Strikethrough'] => s",
+        "r[style-name='Underline'] => u"
+      ],
+      ignoreEmptyParagraphs: false,
+      preserveNumbering: true,
+      preserveHighlighting: true
+    });
     
-    const result = {
+    const testResult = {
       fileInfo: {
         name: file.name,
         size: file.size,
         type: file.type
       },
-      xmlInfo: {
-        length: xmlContent.length,
-        preview: xmlContent.substring(0, 500),
-        hasDocument: xmlContent.includes('<w:document'),
-        hasBody: xmlContent.includes('<w:body'),
-        hasParagraphs: xmlContent.includes('<w:p'),
-        hasText: xmlContent.includes('<w:t')
+      mammothResult: {
+        htmlLength: result.value.length,
+        htmlPreview: result.value.substring(0, 500),
+        messages: result.messages,
+        messageCount: result.messages.length
       },
-      extractedContent: null as string | null
+      cleanedHtml: null as string | null
     };
     
-    // Try to extract content
+    // Try to clean the HTML
     try {
-      result.extractedContent = await extractWordContent(arrayBuffer);
+      testResult.cleanedHtml = cleanWordHtml(result.value);
     } catch (error) {
-      console.error('❌ Content extraction failed:', error);
-      result.extractedContent = 'Extraction failed: ' + (error instanceof Error ? error.message : 'Unknown error');
+      console.error('❌ HTML cleaning failed:', error);
+      testResult.cleanedHtml = 'Cleaning failed: ' + (error instanceof Error ? error.message : 'Unknown error');
     }
     
-    console.log('🧪 Test results:', result);
-    return result;
+    console.log('🧪 Test results:', testResult);
+    return testResult;
   } catch (error) {
     console.error('❌ Test failed:', error);
     return {

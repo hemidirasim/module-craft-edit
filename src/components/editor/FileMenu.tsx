@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { FileText, Download, Upload, FileImage, File as FileIcon, Bug } from 'lucide-react';
+import { FileText, Download, Upload, FileImage, File as FileIcon, Bug, ChevronDown } from 'lucide-react';
 import { exportToPDF, exportToWord, importFromWord, testWordImport } from '@/utils/exportUtils';
 import { toast } from 'sonner';
 
@@ -10,7 +10,7 @@ interface FileMenuProps {
   onContentChange: (content: string) => void;
 }
 
-export const FileMenu: React.FC<FileMenuProps> = ({ content, onContentChange }) => {
+export const FileMenu: React.FC<FileMenuProps> = ({ content = "", onContentChange }) => {
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -141,17 +141,18 @@ export const FileMenu: React.FC<FileMenuProps> = ({ content, onContentChange }) 
       
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="h-8 px-3 hover:bg-accent flex items-center gap-2">
             <FileText className="h-4 w-4" />
             File
+            <ChevronDown size={12} className="ml-1" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuContent align="start" className="w-48 bg-background border border-border shadow-lg z-50">
           {/* Import Section */}
           <DropdownMenuItem 
             onClick={triggerFileInput}
             disabled={isImporting}
-            className="flex items-center gap-2"
+            className="cursor-pointer hover:bg-accent flex items-center gap-2"
           >
             <Upload className="h-4 w-4" />
             {isImporting ? 'Importing...' : 'Import from Word'}
@@ -160,7 +161,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({ content, onContentChange }) 
           <DropdownMenuItem 
             onClick={triggerTestInput}
             disabled={isImporting}
-            className="flex items-center gap-2"
+            className="cursor-pointer hover:bg-accent flex items-center gap-2"
           >
             <Bug className="h-4 w-4" />
             {isImporting ? 'Testing...' : 'Test Word Import'}
@@ -172,7 +173,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({ content, onContentChange }) 
           <DropdownMenuItem 
             onClick={handleExportPDF}
             disabled={isExporting}
-            className="flex items-center gap-2"
+            className="cursor-pointer hover:bg-accent flex items-center gap-2"
           >
             <FileImage className="h-4 w-4" />
             {isExporting ? 'Exporting...' : 'Export to PDF'}
@@ -181,7 +182,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({ content, onContentChange }) 
           <DropdownMenuItem 
             onClick={handleExportWord}
             disabled={isExporting}
-            className="flex items-center gap-2"
+            className="cursor-pointer hover:bg-accent flex items-center gap-2"
           >
             <FileIcon className="h-4 w-4" />
             {isExporting ? 'Exporting...' : 'Export to Word'}
