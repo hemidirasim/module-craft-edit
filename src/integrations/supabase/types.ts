@@ -277,6 +277,71 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_users: {
+        Row: {
+          id: string
+          session_id: string
+          created_at: string
+          expires_at: string
+          is_active: boolean
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          created_at?: string
+          expires_at?: string
+          is_active?: boolean
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          created_at?: string
+          expires_at?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      demo_files: {
+        Row: {
+          id: string
+          demo_user_id: string
+          file_name: string
+          file_type: string
+          file_size: number
+          public_url: string
+          storage_path: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          demo_user_id: string
+          file_name: string
+          file_type: string
+          file_size: number
+          public_url: string
+          storage_path: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          demo_user_id?: string
+          file_name?: string
+          file_type?: string
+          file_size?: number
+          public_url?: string
+          storage_path?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_files_demo_user_id_fkey"
+            columns: ["demo_user_id"]
+            isOneToOne: false
+            referencedRelation: "demo_users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -299,6 +364,36 @@ export type Database = {
       validate_domain: {
         Args: { domain_input: string }
         Returns: boolean
+      }
+      create_demo_user: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      add_demo_file: {
+        Args: {
+          p_session_id: string
+          p_file_name: string
+          p_file_type: string
+          p_file_size: number
+          p_public_url: string
+          p_storage_path: string
+        }
+        Returns: string
+      }
+      get_demo_files: {
+        Args: { p_session_id: string }
+        Returns: {
+          id: string
+          file_name: string
+          file_type: string
+          file_size: number
+          public_url: string
+          created_at: string
+        }[]
+      }
+      cleanup_expired_demo_data: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
     }
     Enums: {
