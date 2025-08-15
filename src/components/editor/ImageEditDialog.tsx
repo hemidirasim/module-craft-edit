@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlignLeft, AlignCenter, AlignRight, Crop, Type, WrapText, FileImage } from "lucide-react";
 import { CropDialog } from "./CropDialog";
 import { FileManagerDialog } from "./FileManagerDialog";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client"; // Deprecated - using new auth system
 import { toast } from "sonner";
 
 interface ImageEditDialogProps {

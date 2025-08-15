@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client'; // Deprecated - using new auth system
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Plus, Code, Copy, Eye, Settings, Edit, Trash2 } from 'lucide-react';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';

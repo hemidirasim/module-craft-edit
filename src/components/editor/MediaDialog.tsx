@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Code, Youtube, X, Image, Files } from "lucide-react";
 import { FileManagerDialog } from "./FileManagerDialog";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client"; // Deprecated - using new auth system
 import { toast } from "sonner";
 
 interface MediaDialogProps {

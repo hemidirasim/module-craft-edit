@@ -1,5 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+// import { supabase } from '@/integrations/supabase/client'; // Deprecated - using new auth system
+// import type { Database } from '@/integrations/supabase/types'; // Deprecated
 
 // Demo session ID-ni localStorage-də saxla
 const DEMO_SESSION_KEY = 'demo_session_id';

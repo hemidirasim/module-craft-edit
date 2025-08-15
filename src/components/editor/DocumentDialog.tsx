@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Upload, Link2, X, Files, Download } from "lucide-react";
 import { FileManagerDialog } from "./FileManagerDialog";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client"; // Deprecated - using new auth system
 
 interface DocumentDialogProps {
   open: boolean;
