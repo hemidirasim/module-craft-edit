@@ -43,6 +43,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const checkSession = async () => {
       try {
         const token = localStorage.getItem('auth_token');
+        console.log('🔍 Checking session, token:', token ? 'exists' : 'not found');
+        
         if (token) {
           // Verify token with backend
           const response = await fetch('/api/auth/verify', {
@@ -51,17 +53,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
           });
 
+          console.log('🔍 Verify response status:', response.status);
+
           if (response.ok) {
             const sessionData = await response.json();
+            console.log('✅ Session verified:', sessionData);
             setSession(sessionData.session);
             setUser(sessionData.session.user);
           } else {
-            // Token is invalid, clear it
+            console.log('❌ Token invalid, clearing');
             localStorage.removeItem('auth_token');
           }
         }
       } catch (error) {
-        console.error('Session check error:', error);
+        console.error('❌ Session check error:', error);
         localStorage.removeItem('auth_token');
       } finally {
         setLoading(false);
@@ -73,6 +78,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('🔐 Signing in with:', email);
+      
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: {
@@ -81,21 +88,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('🔐 Signin response status:', response.status);
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Sign in failed');
       }
 
       const data = await response.json();
+      console.log('✅ Signin response:', data);
+      
       const sessionData = data.session;
+      console.log('🔐 Session data:', sessionData);
 
       // Store token
       localStorage.setItem('auth_token', sessionData.access_token);
+      console.log('💾 Token stored:', sessionData.access_token ? 'yes' : 'no');
       
       setSession(sessionData);
       setUser(sessionData.user);
+      console.log('👤 User set:', sessionData.user);
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('❌ Sign in error:', error);
       throw error;
     }
   };

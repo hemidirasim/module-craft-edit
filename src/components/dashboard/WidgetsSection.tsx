@@ -111,7 +111,7 @@ export const WidgetsSection = () => {
       if (error) throw error;
 
       // Generate embed code
-      const embedCode = `<div id="custom-editor-widget"></div>\n<script src="https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/widget-js/${data.id}.js"></script>`;
+              const embedCode = `<div id="custom-editor-widget"></div>\n<script src="/api/widget-js/${data.id}.js"></script>`;
       
       await (supabase as any)
         .from('editor_widgets')

@@ -146,3 +146,5 @@ async function getDetailedComparison() {
 // Run detailed check
 getDetailedComparison();
 
+
+

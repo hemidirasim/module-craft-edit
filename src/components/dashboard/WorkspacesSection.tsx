@@ -38,13 +38,20 @@ export const WorkspacesSection = () => {
 
   const loadWorkspaces = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('workspaces')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await fetch('/api/workspaces', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
 
-      if (error) throw error;
-      setWorkspaces(data || []);
+      if (!response.ok) {
+        throw new Error('Failed to load workspaces');
+      }
+
+      const data = await response.json();
+      setWorkspaces(data.workspaces || []);
     } catch (error) {
       toast({
         title: "Failed to load workspaces",
@@ -61,16 +68,23 @@ export const WorkspacesSection = () => {
     if (!user) return;
 
     try {
-      const { error } = await (supabase as any)
-        .from('workspaces')
-        .insert([{
-          user_id: user.id,
+      const response = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
           name: formData.name,
           domain: formData.domain,
           description: formData.description
-        }]);
+        })
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create workspace');
+      }
 
       toast({
         title: "Workspace created!",
