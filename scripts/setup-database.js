@@ -1,5 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { execSync } from 'child_process';
 
 const prisma = new PrismaClient();
 
@@ -15,7 +16,6 @@ async function setupDatabase() {
     console.log('📋 Creating database schema...');
     
     // Push the schema to the database
-    const { execSync } = require('child_process');
     try {
       execSync('npx prisma db push', { stdio: 'inherit' });
       console.log('✅ Database schema created successfully');
