@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface SignupFormProps {
@@ -16,22 +16,38 @@ export const SignupForm = ({ onToggleMode }: SignupFormProps) => {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await signUp(email, password);
-      toast({
-        title: "Account created!",
-        description: "Your account has been created successfully.",
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
       });
+
+      if (error) {
+        toast({
+          title: "Signup failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Account created!",
+          description: "Please check your email to verify your account.",
+        });
+      }
     } catch (error) {
       toast({
-        title: "Signup failed",
-        description: error instanceof Error ? error.message : "Please try again later.",
+        title: "An error occurred",
+        description: "Please try again later.",
         variant: "destructive",
       });
     } finally {

@@ -8,7 +8,7 @@ import { Image, Upload, Link2, X, Files, Crop } from "lucide-react";
 import { CropDialog } from "./CropDialog";
 import { FileManagerDialog } from "./FileManagerDialog";
 import { toast } from "sonner";
-// // import { supabase } from "@/integrations/supabase/client"; // Deprecated - using new auth system // Deprecated - using new auth system
+import { supabase } from "@/integrations/supabase/client";
 
 interface ImageDialogProps {
   open: boolean;
@@ -58,18 +58,18 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
       
       try {
         // Get session for authentication
-        const token = localStorage.getItem('auth_token');
-        if (!token) throw new Error('User not authenticated');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('User not authenticated');
 
         const formData = new FormData();
         formData.append('file', file);
         // Don't set folder_id so it goes to root folder in file manager
 
-        // Use new API instead of Supabase
-        const response = await fetch('/api/upload-file', {
+        // Use file-upload function (same as FileManager) instead of upload-image
+        const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/file-upload`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
           body: formData,
         });
@@ -81,10 +81,16 @@ export const ImageDialog = ({ open, onOpenChange, onInsertImage }: ImageDialogPr
         const result = await response.json();
         console.log('Upload result:', result);
         
-        // Use public URL directly from Vercel Blob
-        const publicUrl = result.file.public_url;
-        setUploadedImageUrl(publicUrl);
-        setPreviewUrl(publicUrl);
+        // Get signed URL for the uploaded file
+        const { data, error } = await supabase.storage
+          .from('user-files')
+          .createSignedUrl(result.file.storage_path, 3600);
+
+        if (error) throw error;
+
+        const signedUrl = data.signedUrl;
+        setUploadedImageUrl(signedUrl);
+        setPreviewUrl(signedUrl);
         toast.success('Image uploaded successfully and added to File Manager!');
         
         // Set default alt text from filename

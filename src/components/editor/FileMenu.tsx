@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { FileText, Download, Upload, File as FileIcon, ChevronDown } from 'lucide-react';
-import { exportToPDF, exportToWord, importFromWord } from '@/utils/exportUtils';
+import { FileText, Download, Upload, FileImage, File as FileIcon, Bug, ChevronDown } from 'lucide-react';
+import { exportToPDF, exportToWord, importFromWord, testWordImport } from '@/utils/exportUtils';
 import { toast } from 'sonner';
 
 interface FileMenuProps {
@@ -81,8 +81,51 @@ export const FileMenu: React.FC<FileMenuProps> = ({ content = "", onContentChang
     }
   };
 
+  const handleTestWordImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsImporting(true);
+      console.log('🧪 Starting Word import test...');
+      
+      const testResult = await testWordImport(file);
+      console.log('🧪 Test completed:', testResult);
+      
+      // Show test results in toast
+      const hasContent = testResult.extractedContent && testResult.extractedContent.length > 0;
+      if (hasContent) {
+        toast.success(`Test successful! Content length: ${testResult.extractedContent.length} characters`);
+      } else {
+        toast.error('Test failed: No content extracted');
+      }
+      
+      // Also log detailed results
+      console.log('🧪 Detailed test results:', JSON.stringify(testResult, null, 2));
+      
+    } catch (error) {
+      console.error('Test error:', error);
+      toast.error('Test failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsImporting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const triggerFileInput = () => {
     fileInputRef.current?.click();
+  };
+
+  const triggerTestInput = () => {
+    // Create a new file input for testing
+    const testInput = document.createElement('input');
+    testInput.type = 'file';
+    testInput.accept = '.docx';
+    testInput.onchange = handleTestWordImport;
+    testInput.click();
   };
 
   return (
@@ -115,6 +158,15 @@ export const FileMenu: React.FC<FileMenuProps> = ({ content = "", onContentChang
             {isImporting ? 'Importing...' : 'Import from Word'}
           </DropdownMenuItem>
           
+          <DropdownMenuItem 
+            onClick={triggerTestInput}
+            disabled={isImporting}
+            className="cursor-pointer hover:bg-accent flex items-center gap-2"
+          >
+            <Bug className="h-4 w-4" />
+            {isImporting ? 'Testing...' : 'Test Word Import'}
+          </DropdownMenuItem>
+          
           <DropdownMenuSeparator />
           
           {/* Export Section */}
@@ -123,7 +175,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({ content = "", onContentChang
             disabled={isExporting}
             className="cursor-pointer hover:bg-accent flex items-center gap-2"
           >
-            <FileText className="h-4 w-4" />
+            <FileImage className="h-4 w-4" />
             {isExporting ? 'Exporting...' : 'Export to PDF'}
           </DropdownMenuItem>
           

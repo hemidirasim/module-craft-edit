@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { RichTextEditor } from "./editor/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Play, Code, Eye, Zap, Sparkles, ArrowRight } from "lucide-react";
-import { getOrCreateDemoSession } from "@/utils/prismaDemoUtils";
 
 export const Demo = () => {
   const [editorContent, setEditorContent] = useState(`
@@ -27,19 +26,6 @@ export const Demo = () => {
   `);
   
   const [viewMode, setViewMode] = useState<"editor" | "code" | "preview">("editor");
-
-  // Arxa fonda demo session yarat
-  useEffect(() => {
-    const initDemoSession = async () => {
-      try {
-        await getOrCreateDemoSession();
-      } catch (error) {
-        console.error('Demo session initialization error:', error);
-      }
-    };
-    
-    initDemoSession();
-  }, []);
 
   return (
     <section className="py-24 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">

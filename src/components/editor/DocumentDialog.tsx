@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Upload, Link2, X, Files, Download } from "lucide-react";
 import { FileManagerDialog } from "./FileManagerDialog";
 import { toast } from "sonner";
-// import { supabase } from "@/integrations/supabase/client"; // Deprecated - using new auth system
+import { supabase } from "@/integrations/supabase/client";
 
 interface DocumentDialogProps {
   open: boolean;
@@ -52,18 +52,18 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
       setIsUploading(true);
       
       try {
-        // Get token from localStorage
-        const token = localStorage.getItem('auth_token');
-        if (!token) throw new Error('User not authenticated');
+        // Get session for authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('User not authenticated');
 
         const formData = new FormData();
         formData.append('file', file);
 
-        // Use backend file-upload endpoint
-        const response = await fetch(`/api/file-upload`, {
+        // Use file-upload function
+        const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/file-upload`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
           body: formData,
         });
@@ -75,9 +75,15 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
         const result = await response.json();
         console.log('Upload result:', result);
         
-        // Use the public_url from the database record
-        const publicUrl = result.file.public_url;
-        setUploadedDocumentUrl(publicUrl);
+        // Get signed URL for the uploaded file
+        const { data, error } = await supabase.storage
+          .from('user-files')
+          .createSignedUrl(result.file.storage_path, 3600);
+
+        if (error) throw error;
+
+        const signedUrl = data.signedUrl;
+        setUploadedDocumentUrl(signedUrl);
         toast.success('Document uploaded successfully and added to File Manager!');
         
         // Set default name from filename
@@ -138,16 +144,27 @@ export const DocumentDialog = ({ open, onOpenChange, onInsertDocument }: Documen
     if (isValidDocumentType(file.file_type)) {
       try {
         console.log('Selected file:', file);
-        console.log('Public URL:', file.public_url);
+        console.log('Storage path:', file.storage_path);
         
-        // Use the public_url from the database record
-        const fullUrl = file.public_url;
+        // Use Supabase client to get signed URL
+        const { data, error } = await supabase.storage
+          .from('user-files')
+          .createSignedUrl(file.storage_path, 3600);
+
+        if (error) {
+          console.error('Supabase storage error:', error);
+          throw error;
+        }
+
+        console.log('Signed URL data:', data);
+        
+        const fullUrl = data.signedUrl;
         console.log('Final document URL:', fullUrl);
         
         setUploadedDocumentUrl(fullUrl);
         setDocumentName(file.original_name);
       } catch (error) {
-        console.error('Error loading document:', error);
+        console.error('Error getting signed URL:', error);
         toast.error('Failed to load document');
       }
     } else {

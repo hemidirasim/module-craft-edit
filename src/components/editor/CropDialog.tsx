@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Crop, Square, Monitor, Smartphone } from "lucide-react";
-// // import { supabase } from "@/integrations/supabase/client"; // Deprecated - using new auth system // Deprecated - using new auth system
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface AspectRatio {
@@ -324,8 +324,8 @@ export const CropDialog = ({
 
       console.log('Getting user session...');
       // Get session for authentication
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         throw new Error('User not authenticated');
       }
 
@@ -335,13 +335,13 @@ export const CropDialog = ({
       const formData = new FormData();
       formData.append('file', file);
 
-      console.log('Uploading to Vercel...');
+      console.log('Uploading to Supabase...');
 
-      // Upload using new API
-      const response = await fetch('/api/upload-file', {
+      // Upload using file-upload function
+      const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/file-upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: formData,
       });
@@ -353,10 +353,16 @@ export const CropDialog = ({
       const result = await response.json();
       console.log('Crop upload result:', result);
       
-      // Use the public URL directly from Vercel Blob
-      const publicUrl = result.file.public_url;
+      // Get signed URL for the uploaded cropped file
+      const { data, error } = await supabase.storage
+        .from('user-files')
+        .createSignedUrl(result.file.storage_path, 3600);
+
+      if (error) throw error;
+
+      const signedUrl = data.signedUrl;
       toast.success('Image cropped and uploaded successfully!');
-      onApplyChanges(publicUrl);
+      onApplyChanges(signedUrl);
       onOpenChange(false);
       
     } catch (error) {

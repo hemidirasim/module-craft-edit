@@ -32,13 +32,13 @@ export const FileManagerDialog = ({
           </DialogTitle>
         </DialogHeader>
         
-                    <div className="overflow-y-auto max-h-[75vh]">
-              <FileManager
-                onSelectFile={handleFileSelect}
-                selectMode={true}
-                fileTypeFilter={fileTypeFilter}
-              />
-            </div>
+        <div className="overflow-y-auto max-h-[75vh]">
+          <FileManager 
+            onSelectFile={handleFileSelect}
+            selectMode={true}
+            fileTypeFilter={fileTypeFilter}
+          />
+        </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>

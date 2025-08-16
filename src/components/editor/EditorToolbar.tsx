@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { EmojiPicker } from "./EmojiPicker";
 import { TableSelector } from "./TableSelector";
 import { LinkDialog } from "./LinkDialog";
 import { ImageDialog } from "./ImageDialog";
-import { FileDialog } from "./FileDialog";
 import { MediaDialog } from "./MediaDialog";
 import { BookmarkDialog } from "./BookmarkDialog";
 import { CodeSampleDialog } from "./CodeSampleDialog";
@@ -95,7 +94,6 @@ export const EditorToolbar = ({
 }: EditorToolbarProps) => {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
-  const [showFileDialog, setShowFileDialog] = useState(false);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   const [showTableSelector, setShowTableSelector] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -337,10 +335,13 @@ export const EditorToolbar = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
-          {/* Media Section */}
-          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1">
-            Media
-          </DropdownMenuLabel>
+          <DropdownMenuItem 
+            onClick={() => setShowLinkDialog(true)}
+            className="cursor-pointer hover:bg-accent"
+          >
+            <Link size={16} className="mr-2" />
+            Link
+          </DropdownMenuItem>
           <DropdownMenuItem 
             onClick={() => setShowImageDialog(true)}
             className="cursor-pointer hover:bg-accent"
@@ -354,34 +355,6 @@ export const EditorToolbar = ({
           >
             <Play size={16} className="mr-2" />
             Media/Embed
-          </DropdownMenuItem>
-          
-          <DropdownMenuSeparator />
-          
-          {/* Files Section */}
-          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1">
-            Files
-          </DropdownMenuLabel>
-          <DropdownMenuItem 
-            onClick={() => setShowFileDialog(true)}
-            className="cursor-pointer hover:bg-accent"
-          >
-            <FileIcon size={16} className="mr-2" />
-            File
-          </DropdownMenuItem>
-          
-          <DropdownMenuSeparator />
-          
-          {/* Content Section */}
-          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1">
-            Content
-          </DropdownMenuLabel>
-          <DropdownMenuItem 
-            onClick={() => setShowLinkDialog(true)}
-            className="cursor-pointer hover:bg-accent"
-          >
-            <Link size={16} className="mr-2" />
-            Link
           </DropdownMenuItem>
           <DropdownMenuItem 
             onClick={() => setShowBookmarkDialog(true)}
@@ -404,13 +377,6 @@ export const EditorToolbar = ({
             <Calendar size={16} className="mr-2" />
             Date/Time
           </DropdownMenuItem>
-          
-          <DropdownMenuSeparator />
-          
-          {/* Layout Section */}
-          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1">
-            Layout
-          </DropdownMenuLabel>
           <DropdownMenuItem 
             onClick={() => onCommand('insertPageBreak')}
             className="cursor-pointer hover:bg-accent"
@@ -642,15 +608,6 @@ export const EditorToolbar = ({
         onInsertDateTime={(dateTime) => {
           const dateTimeHtml = `<span style="background: #e8f4fd; padding: 2px 6px; border-radius: 3px; font-weight: 500;">${dateTime}</span>`;
           onCommand('insertHTML', dateTimeHtml);
-        }}
-      />
-      
-      <FileDialog
-        open={showFileDialog}
-        onOpenChange={setShowFileDialog}
-        onInsert={(fileUrl, fileName, fileType) => {
-          const fileHtml = `<a href="${fileUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 4px; color: #0369a1; text-decoration: none; font-weight: 500;"><FileText size={14} />${fileName}</a>`;
-          onCommand('insertHTML', fileHtml);
         }}
       />
     </div>

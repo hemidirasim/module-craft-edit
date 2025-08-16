@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-// import { supabase } from '@/integrations/supabase/client'; // Deprecated - using new auth system
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Plus, Globe, Settings } from 'lucide-react';
 
@@ -38,20 +38,13 @@ export const WorkspacesSection = () => {
 
   const loadWorkspaces = async () => {
     try {
-      const response = await fetch('/api/workspaces', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const { data, error } = await (supabase as any)
+        .from('workspaces')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (!response.ok) {
-        throw new Error('Failed to load workspaces');
-      }
-
-      const data = await response.json();
-      setWorkspaces(data.workspaces || []);
+      if (error) throw error;
+      setWorkspaces(data || []);
     } catch (error) {
       toast({
         title: "Failed to load workspaces",
@@ -68,23 +61,16 @@ export const WorkspacesSection = () => {
     if (!user) return;
 
     try {
-      const response = await fetch('/api/workspaces', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
+      const { error } = await (supabase as any)
+        .from('workspaces')
+        .insert([{
+          user_id: user.id,
           name: formData.name,
           domain: formData.domain,
           description: formData.description
-        })
-      });
+        }]);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create workspace');
-      }
+      if (error) throw error;
 
       toast({
         title: "Workspace created!",
