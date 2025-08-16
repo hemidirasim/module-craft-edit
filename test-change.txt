@@ -1,0 +1,2 @@
+Bu test faylıdır. Auto-push funksiyasını yoxlamaq üçün yaradılıb.
+Test tarixi: $(date)
