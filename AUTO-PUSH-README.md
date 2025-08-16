@@ -23,6 +23,13 @@ node auto-push.js
 ./auto-push.sh
 ```
 
+### Seçim 4: Həm development server, həm də auto-push (tövsiyə olunur)
+```bash
+npm start
+# və ya
+./start-auto-push.sh
+```
+
 ## ⚙️ Konfiqurasiya
 
 ### Node.js skripti (auto-push.js)

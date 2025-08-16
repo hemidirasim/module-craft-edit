@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "auto-push": "node auto-push.js",
-    "auto-push:bash": "./auto-push.sh"
+    "auto-push:bash": "./auto-push.sh",
+    "start": "./start-auto-push.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
