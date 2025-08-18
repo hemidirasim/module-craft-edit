@@ -149,6 +149,12 @@ export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter =
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    if (isGuestMode) {
+      toast.error('Qeydiyyatdan keçin ki, fayl yükləyə biləsiniz');
+      event.target.value = '';
+      return;
+    }
+
     setIsUploading(true);
     try {
       for (const file of Array.from(files)) {
@@ -317,6 +323,11 @@ export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter =
     
     const droppedFiles = Array.from(e.dataTransfer.files);
     if (droppedFiles.length === 0) return;
+
+    if (isGuestMode) {
+      toast.error('Qeydiyyatdan keçin ki, fayl yükləyə biləsiniz');
+      return;
+    }
 
     setIsUploading(true);
     try {
@@ -506,55 +517,59 @@ export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter =
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <Dialog open={showNewFolderDialog} onOpenChange={setShowNewFolderDialog}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                New Folder
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Folder</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Folder name"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCreateFolder();
-                    }
-                  }}
-                />
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setShowNewFolderDialog(false)}>
-                    Cancel
+          {!isGuestMode && (
+            <>
+              <Dialog open={showNewFolderDialog} onOpenChange={setShowNewFolderDialog}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Folder
                   </Button>
-                  <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
-                    Create
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Folder</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Input
+                      placeholder="Folder name"
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCreateFolder();
+                        }
+                      }}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" onClick={() => setShowNewFolderDialog(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
+                        Create
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
-          <label className="cursor-pointer">
-            <Button size="sm" disabled={isUploading} asChild>
-              <span>
-                <Upload className="w-4 h-4 mr-2" />
-                {isUploading ? 'Uploading...' : 'Upload Files'}
-              </span>
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </label>
+              <label className="cursor-pointer">
+                <Button size="sm" disabled={isUploading} asChild>
+                  <span>
+                    <Upload className="w-4 h-4 mr-2" />
+                    {isUploading ? 'Uploading...' : 'Upload Files'}
+                  </span>
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-1">
