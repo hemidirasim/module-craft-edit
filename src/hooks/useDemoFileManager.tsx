@@ -1,5 +1,56 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
+
+// Static demo files - no upload needed
+const DEMO_FILES = [
+  {
+    id: '1',
+    file_name: 'sample-document.pdf',
+    file_type: 'pdf',
+    file_size: 245760,
+    public_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+  },
+  {
+    id: '2', 
+    file_name: 'company-logo.png',
+    file_type: 'image',
+    file_size: 89432,
+    public_url: 'https://via.placeholder.com/400x300/6366f1/ffffff?text=Company+Logo',
+    created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), // 12 hours ago
+  },
+  {
+    id: '3',
+    file_name: 'presentation.pptx',
+    file_type: 'document', 
+    file_size: 1024000,
+    public_url: 'https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-ppt-file.ppt',
+    created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+  },
+  {
+    id: '4',
+    file_name: 'data-analysis.xlsx',
+    file_type: 'excel',
+    file_size: 567890, 
+    public_url: 'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-xlsx-file-for-testing.xlsx',
+    created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+  },
+  {
+    id: '5',
+    file_name: 'profile-image.jpg',
+    file_type: 'image',
+    file_size: 156789,
+    public_url: 'https://via.placeholder.com/300x300/8b5cf6/ffffff?text=Profile+Photo',
+    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+  },
+  {
+    id: '6',
+    file_name: 'demo-video.mp4',
+    file_type: 'video',
+    file_size: 2048000,
+    public_url: 'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4',
+    created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+  }
+];
 
 interface DemoFile {
   id: string;
@@ -11,154 +62,30 @@ interface DemoFile {
 }
 
 export const useDemoFileManager = () => {
-  const [files, setFiles] = useState<DemoFile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-
-  // Get or create demo session
-  const getOrCreateSession = async () => {
-    try {
-      // Check if we already have a session in localStorage
-      const existingSessionId = localStorage.getItem('demo_session_id');
-      const sessionExpiry = localStorage.getItem('demo_session_expiry');
-      
-      if (existingSessionId && sessionExpiry && new Date() < new Date(sessionExpiry)) {
-        setSessionId(existingSessionId);
-        return existingSessionId;
-      }
-
-      // Create new demo session
-      const { data, error } = await supabase.rpc('create_demo_user');
-      if (error) throw error;
-      
-      const newSessionId = data;
-      const expiryTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-      
-      localStorage.setItem('demo_session_id', newSessionId);
-      localStorage.setItem('demo_session_expiry', expiryTime.toISOString());
-      
-      setSessionId(newSessionId);
-      return newSessionId;
-    } catch (error) {
-      console.error('Error creating demo session:', error);
-      throw error;
-    }
-  };
-
-  const fetchDemoFiles = async () => {
-    try {
-      if (!sessionId) return;
-      
-      const { data, error } = await supabase.rpc('get_demo_files', {
-        p_session_id: sessionId
-      });
-      
-      if (error) throw error;
-      setFiles(data || []);
-    } catch (error) {
-      console.error('Error fetching demo files:', error);
-      setFiles([]);
-    }
-  };
-
-  const uploadDemoFile = async (file: File) => {
-    try {
-      if (!sessionId) {
-        throw new Error('No demo session available');
-      }
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('session_id', sessionId);
-
-      const response = await fetch(`https://qgmluixnzhpthywyrytn.supabase.co/functions/v1/demo-file-upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'Upload failed');
-      }
-
-      const result = await response.json();
-      await fetchDemoFiles(); // Refresh files list
-      return result;
-    } catch (error) {
-      console.error('Error uploading demo file:', error);
-      throw error;
-    }
-  };
-
-  const deleteDemoFile = async (fileId: string) => {
-    try {
-      // Demo files auto-expire, no need for manual deletion
-      // Just remove from UI for now
-      setFiles(prev => prev.filter(f => f.id !== fileId));
-    } catch (error) {
-      console.error('Error deleting demo file:', error);
-      throw error;
-    }
-  };
+  const [files] = useState<DemoFile[]>(DEMO_FILES);
+  const [loading] = useState(false);
 
   const getFileUrl = (file: DemoFile) => {
     return file.public_url;
   };
 
   const downloadFile = (file: DemoFile) => {
+    // Create download link
     const link = document.createElement('a');
     link.href = file.public_url;
     link.download = file.file_name;
+    link.target = '_blank';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const getSessionTimeRemaining = () => {
-    const sessionExpiry = localStorage.getItem('demo_session_expiry');
-    if (!sessionExpiry) return 0;
-    
-    const expiryTime = new Date(sessionExpiry).getTime();
-    const currentTime = Date.now();
-    return Math.max(0, expiryTime - currentTime);
-  };
-
-  // Initialize session and load files
-  useEffect(() => {
-    const initializeDemo = async () => {
-      setLoading(true);
-      try {
-        const session = await getOrCreateSession();
-        if (session) {
-          await fetchDemoFiles();
-        }
-      } catch (error) {
-        console.error('Error initializing demo:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeDemo();
-  }, []);
-
-  // Refresh files when sessionId changes
-  useEffect(() => {
-    if (sessionId) {
-      fetchDemoFiles();
-    }
-  }, [sessionId]);
-
   return {
     files,
     loading,
-    sessionId,
-    uploadFile: uploadDemoFile,
-    deleteFile: deleteDemoFile,
     getFileUrl,
     downloadFile,
-    refresh: fetchDemoFiles,
-    getSessionTimeRemaining,
-    isSessionValid: () => sessionId !== null
+    refresh: () => {}, // No need to refresh static data
+    isSessionValid: () => true, // Always valid for demo
   };
 };

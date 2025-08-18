@@ -5,10 +5,11 @@ import {
   Video, 
   FileText, 
   Download,
-  Upload,
   Clock,
   AlertCircle,
-  Eye
+  Eye,
+  Play,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -26,17 +27,10 @@ export const DemoFileManager = ({ onSelectFile, selectMode = false }: DemoFileMa
   const {
     files,
     loading,
-    uploadFile,
     downloadFile,
     getFileUrl,
-    getSessionTimeRemaining,
     isSessionValid
   } = useDemoFileManager();
-
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const getFileIcon = (fileType: string) => {
     switch (fileType) {
@@ -63,58 +57,16 @@ export const DemoFileManager = ({ onSelectFile, selectMode = false }: DemoFileMa
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatTimeRemaining = (milliseconds: number) => {
-    const minutes = Math.floor(milliseconds / (1000 * 60));
-    const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
-    return `${minutes}m ${seconds}s`;
-  };
-
-  const handleFileUpload = async (uploadFiles: FileList) => {
-    if (!uploadFiles || uploadFiles.length === 0) return;
-
-    setIsUploading(true);
-    try {
-      for (const file of Array.from(uploadFiles)) {
-        await uploadFile(file);
-      }
-      toast.success(`${uploadFiles.length} file(s) uploaded successfully`);
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload files');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadFiles = event.target.files;
-    if (uploadFiles) {
-      handleFileUpload(uploadFiles);
-    }
-    event.target.value = '';
-  };
-
-  // Drag & Drop handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!dropZoneRef.current?.contains(e.relatedTarget as Node)) {
-      setIsDragging(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     
-    const droppedFiles = e.dataTransfer.files;
-    if (droppedFiles.length > 0) {
-      handleFileUpload(droppedFiles);
-    }
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
   };
 
   const handleFileSelect = (file: any) => {
@@ -127,6 +79,7 @@ export const DemoFileManager = ({ onSelectFile, selectMode = false }: DemoFileMa
         size: file.file_size
       };
       onSelectFile(fileData);
+      toast.success(`Selected: ${file.file_name}`);
     }
   };
 
@@ -135,14 +88,23 @@ export const DemoFileManager = ({ onSelectFile, selectMode = false }: DemoFileMa
     window.open(url, '_blank');
   };
 
+  const handleDownload = (file: any) => {
+    try {
+      downloadFile(file);
+      toast.success(`Downloaded: ${file.file_name}`);
+    } catch (error) {
+      toast.error('Failed to download file');
+    }
+  };
+
   if (!isSessionValid()) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <p className="text-muted-foreground mb-4">Demo session expired or invalid</p>
+          <p className="text-muted-foreground mb-4">Demo session invalid</p>
           <Button onClick={() => window.location.reload()}>
-            Start New Demo Session
+            Refresh Demo
           </Button>
         </div>
       </div>
@@ -150,57 +112,22 @@ export const DemoFileManager = ({ onSelectFile, selectMode = false }: DemoFileMa
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Demo Info Alert */}
       <Alert>
-        <Clock className="h-4 w-4" />
-        <AlertDescription className="flex items-center justify-between">
-          <span>
-            Demo mode: Files will be automatically deleted after session expires
-          </span>
-          <Badge variant="secondary">
-            Time remaining: {formatTimeRemaining(getSessionTimeRemaining())}
-          </Badge>
+        <Users className="h-4 w-4" />
+        <AlertDescription>
+          <div className="flex items-center justify-between">
+            <span>
+              <strong>Demo Mode:</strong> These are sample files to showcase our file manager features.
+            </span>
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Play className="w-3 h-3" />
+              Demo
+            </Badge>
+          </div>
         </AlertDescription>
       </Alert>
-
-      {/* Upload Section */}
-      <div 
-        ref={dropZoneRef}
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          isDragging 
-            ? 'border-primary bg-primary/5' 
-            : 'border-border bg-muted/20'
-        }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-        <div className="space-y-2">
-          <p className="text-lg font-medium">
-            {isDragging ? 'Drop files here' : 'Upload Demo Files'}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Drag and drop files here, or click to select files
-          </p>
-          <Button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="mt-4"
-          >
-            {isUploading ? 'Uploading...' : 'Choose Files'}
-          </Button>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={handleInputChange}
-          accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx"
-        />
-      </div>
 
       {/* Files Grid */}
       {loading ? (
@@ -210,35 +137,43 @@ export const DemoFileManager = ({ onSelectFile, selectMode = false }: DemoFileMa
       ) : files.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <File className="w-16 h-16 mx-auto mb-4 opacity-50" />
-          <p className="text-lg">No demo files yet</p>
-          <p className="text-sm">Upload some files to get started</p>
+          <p className="text-lg">No demo files available</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {files.map((file) => (
             <Card 
               key={file.id} 
-              className={`p-4 hover:shadow-md transition-shadow cursor-pointer ${
-                selectMode ? 'hover:bg-muted/50' : ''
+              className={`p-4 hover:shadow-md transition-all duration-200 cursor-pointer border-0 bg-gradient-to-br from-card to-card/50 ${
+                selectMode ? 'hover:bg-muted/50 hover:border-primary/50' : ''
               }`}
               onClick={() => handleFileSelect(file)}
             >
               <div className="space-y-3">
                 {/* File Icon/Thumbnail */}
-                <div className="flex items-center justify-center h-16">
+                <div className="flex items-center justify-center h-20">
                   {file.file_type === 'image' ? (
-                    <img
-                      src={getFileUrl(file)}
-                      alt={file.file_name}
-                      className="max-h-16 max-w-full object-contain rounded"
-                      onError={(e) => {
-                        const img = e.target as HTMLImageElement;
-                        img.style.display = 'none';
-                        img.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden shadow-sm">
+                      <img
+                        src={getFileUrl(file)}
+                        alt={file.file_name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="w-full h-full bg-muted rounded flex items-center justify-center">' +
+                              getFileIcon(file.file_type).props.children +
+                              '</div>';
+                          }
+                        }}
+                      />
+                    </div>
                   ) : (
-                    getFileIcon(file.file_type)
+                    <div className="p-4 rounded-lg bg-gradient-to-br from-muted to-muted/50">
+                      {getFileIcon(file.file_type)}
+                    </div>
                   )}
                 </div>
 
@@ -253,6 +188,9 @@ export const DemoFileManager = ({ onSelectFile, selectMode = false }: DemoFileMa
                       {file.file_type}
                     </Badge>
                   </div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatDate(file.created_at)}
+                  </div>
                 </div>
 
                 {/* Actions */}
@@ -265,23 +203,31 @@ export const DemoFileManager = ({ onSelectFile, selectMode = false }: DemoFileMa
                         e.stopPropagation();
                         handlePreview(file);
                       }}
-                      className="flex-1"
+                      className="flex-1 h-8"
                     >
                       <Eye className="w-3 h-3 mr-1" />
-                      Preview
+                      View
                     </Button>
                     <Button 
                       size="sm" 
                       variant="outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        downloadFile(file);
+                        handleDownload(file);
                       }}
-                      className="flex-1"
+                      className="flex-1 h-8"
                     >
                       <Download className="w-3 h-3 mr-1" />
                       Download
                     </Button>
+                  </div>
+                )}
+
+                {selectMode && (
+                  <div className="pt-2 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground text-center">
+                      Click to select this file
+                    </p>
                   </div>
                 )}
               </div>
@@ -289,6 +235,25 @@ export const DemoFileManager = ({ onSelectFile, selectMode = false }: DemoFileMa
           ))}
         </div>
       )}
+
+      {/* Features Showcase */}
+      <div className="mt-8 p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-lg border">
+        <h3 className="font-semibold mb-2 text-center">🚀 What you can do with our File Manager:</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
+          <div className="text-center">
+            <div className="w-8 h-8 mx-auto mb-2 text-blue-500">📁</div>
+            <div>Organize files in folders</div>
+          </div>
+          <div className="text-center">
+            <div className="w-8 h-8 mx-auto mb-2 text-green-500">⬆️</div>
+            <div>Drag & drop file uploads</div>
+          </div>
+          <div className="text-center">
+            <div className="w-8 h-8 mx-auto mb-2 text-purple-500">🔍</div>
+            <div>Advanced search & filtering</div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
