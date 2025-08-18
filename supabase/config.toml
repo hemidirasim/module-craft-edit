@@ -2,3 +2,6 @@ project_id = "qgmluixnzhpthywyrytn"
 
 [functions.widget-js]
 verify_jwt = false
+
+[functions.demo-file-upload]
+verify_jwt = false
