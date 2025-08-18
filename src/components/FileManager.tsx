@@ -55,9 +55,10 @@ interface FileManagerProps {
   onSelectFile?: (file: any) => void;
   selectMode?: boolean;
   fileTypeFilter?: 'image' | 'document' | 'all';
+  isGuestMode?: boolean;
 }
 
-export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter = 'all' }: FileManagerProps) => {
+export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter = 'all', isGuestMode = false }: FileManagerProps) => {
   const { user } = useAuth();
   const {
     folders,
@@ -420,6 +421,50 @@ export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter =
       toast.error('Failed to move item');
     }
   };
+
+  if (isGuestMode) {
+    return (
+      <div className="space-y-4">
+        {/* Guest Mode Notice */}
+        <div className="bg-muted/50 p-4 rounded-lg border">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-sm">Guest Mode</h3>
+              <p className="text-muted-foreground text-sm">
+                You're viewing the file manager as a guest. Sign up to upload and manage your own files.
+              </p>
+            </div>
+            <a href="/auth" className="text-primary hover:underline text-sm font-medium">
+              Sign Up
+            </a>
+          </div>
+        </div>
+        
+        {/* Demo Files Display */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Demo Files</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {/* Sample Files */}
+            <Card className="p-4 text-center">
+              <Image className="w-12 h-12 mx-auto mb-2 text-blue-500" />
+              <p className="text-sm font-medium">sample-image.jpg</p>
+              <p className="text-xs text-muted-foreground">2.5 MB</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <FileText className="w-12 h-12 mx-auto mb-2 text-red-500" />
+              <p className="text-sm font-medium">document.pdf</p>
+              <p className="text-xs text-muted-foreground">1.2 MB</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <Video className="w-12 h-12 mx-auto mb-2 text-purple-500" />
+              <p className="text-sm font-medium">presentation.mp4</p>
+              <p className="text-xs text-muted-foreground">15.8 MB</p>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
