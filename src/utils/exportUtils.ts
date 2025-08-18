@@ -23,30 +23,30 @@ export const importFromWord = async (file: File): Promise<string> => {
     
     // Use mammoth.js to convert Word to HTML with enhanced options
     const arrayBuffer = await file.arrayBuffer();
-    const result = await mammoth.convertToHtml({ 
-      arrayBuffer,
-      styleMap: [
-        "p[style-name='Heading 1'] => h1:fresh",
-        "p[style-name='Heading 2'] => h2:fresh",
-        "p[style-name='Heading 3'] => h3:fresh",
-        "p[style-name='Heading 4'] => h4:fresh",
-        "p[style-name='Heading 5'] => h5:fresh",
-        "p[style-name='Heading 6'] => h6:fresh",
-        "p[style-name='Title'] => h1:fresh",
-        "p[style-name='Subtitle'] => h2:fresh",
-        "p[style-name='Quote'] => blockquote:fresh",
-        "p[style-name='Intense Quote'] => blockquote:fresh",
-        "p[style-name='List Paragraph'] => li:fresh",
-        "r[style-name='Strong'] => strong",
-        "r[style-name='Emphasis'] => em",
-        "r[style-name='Code'] => code",
-        "r[style-name='Strikethrough'] => s",
-        "r[style-name='Underline'] => u"
-      ],
-      ignoreEmptyParagraphs: false,
-      preserveNumbering: true,
-      preserveHighlighting: true
-    });
+const result = await mammoth.convertToHtml(
+      { arrayBuffer },
+      {
+        styleMap: [
+          "p[style-name='Heading 1'] => h1:fresh",
+          "p[style-name='Heading 2'] => h2:fresh",
+          "p[style-name='Heading 3'] => h3:fresh",
+          "p[style-name='Heading 4'] => h4:fresh",
+          "p[style-name='Heading 5'] => h5:fresh",
+          "p[style-name='Heading 6'] => h6:fresh",
+          "p[style-name='Title'] => h1:fresh",
+          "p[style-name='Subtitle'] => h2:fresh",
+          "p[style-name='Quote'] => blockquote:fresh",
+          "p[style-name='Intense Quote'] => blockquote:fresh",
+          "p[style-name='List Paragraph'] => li:fresh",
+          "r[style-name='Strong'] => strong",
+          "r[style-name='Emphasis'] => em",
+          "r[style-name='Code'] => code",
+          "r[style-name='Strikethrough'] => s",
+          "r[style-name='Underline'] => u"
+        ],
+        ignoreEmptyParagraphs: false
+      }
+    );
     
     console.log('✅ Mammoth.js conversion completed');
     console.log('📄 Extracted HTML length:', result.value.length);
@@ -266,30 +266,30 @@ export const testWordImport = async (file: File): Promise<any> => {
     console.log('📄 File size:', file.size, 'bytes');
     
     const arrayBuffer = await file.arrayBuffer();
-    const result = await mammoth.convertToHtml({ 
-      arrayBuffer,
-      styleMap: [
-        "p[style-name='Heading 1'] => h1:fresh",
-        "p[style-name='Heading 2'] => h2:fresh",
-        "p[style-name='Heading 3'] => h3:fresh",
-        "p[style-name='Heading 4'] => h4:fresh",
-        "p[style-name='Heading 5'] => h5:fresh",
-        "p[style-name='Heading 6'] => h6:fresh",
-        "p[style-name='Title'] => h1:fresh",
-        "p[style-name='Subtitle'] => h2:fresh",
-        "p[style-name='Quote'] => blockquote:fresh",
-        "p[style-name='Intense Quote'] => blockquote:fresh",
-        "p[style-name='List Paragraph'] => li:fresh",
-        "r[style-name='Strong'] => strong",
-        "r[style-name='Emphasis'] => em",
-        "r[style-name='Code'] => code",
-        "r[style-name='Strikethrough'] => s",
-        "r[style-name='Underline'] => u"
-      ],
-      ignoreEmptyParagraphs: false,
-      preserveNumbering: true,
-      preserveHighlighting: true
-    });
+const result = await mammoth.convertToHtml(
+      { arrayBuffer },
+      {
+        styleMap: [
+          "p[style-name='Heading 1'] => h1:fresh",
+          "p[style-name='Heading 2'] => h2:fresh",
+          "p[style-name='Heading 3'] => h3:fresh",
+          "p[style-name='Heading 4'] => h4:fresh",
+          "p[style-name='Heading 5'] => h5:fresh",
+          "p[style-name='Heading 6'] => h6:fresh",
+          "p[style-name='Title'] => h1:fresh",
+          "p[style-name='Subtitle'] => h2:fresh",
+          "p[style-name='Quote'] => blockquote:fresh",
+          "p[style-name='Intense Quote'] => blockquote:fresh",
+          "p[style-name='List Paragraph'] => li:fresh",
+          "r[style-name='Strong'] => strong",
+          "r[style-name='Emphasis'] => em",
+          "r[style-name='Code'] => code",
+          "r[style-name='Strikethrough'] => s",
+          "r[style-name='Underline'] => u"
+        ],
+        ignoreEmptyParagraphs: false
+      }
+    );
     
     const testResult = {
       fileInfo: {

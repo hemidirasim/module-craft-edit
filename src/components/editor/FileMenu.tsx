@@ -124,7 +124,9 @@ export const FileMenu: React.FC<FileMenuProps> = ({ content = "", onContentChang
     const testInput = document.createElement('input');
     testInput.type = 'file';
     testInput.accept = '.docx';
-    testInput.onchange = handleTestWordImport;
+    testInput.onchange = (ev: Event) => {
+      handleTestWordImport(ev as unknown as React.ChangeEvent<HTMLInputElement>);
+    };
     testInput.click();
   };
 
