@@ -387,6 +387,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      schedule_demo_cleanup: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       setup_demo_user: {
         Args: Record<PropertyKey, never>
         Returns: undefined
