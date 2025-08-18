@@ -5,7 +5,7 @@ import { Database } from '@/integrations/supabase/types';
 type Folder = Database['public']['Tables']['folders']['Row'];
 type FileRecord = Database['public']['Tables']['files']['Row'];
 
-export const useFileManager = () => {
+export const useFileManager = (guestMode: boolean = false) => {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<FileRecord[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -244,6 +244,12 @@ export const useFileManager = () => {
   };
 
   useEffect(() => {
+    if (guestMode) {
+      // In guest mode, don't fetch data and just set loading to false
+      setLoading(false);
+      return;
+    }
+    
     const loadData = async () => {
       setLoading(true);
       await Promise.all([
@@ -254,7 +260,7 @@ export const useFileManager = () => {
     };
 
     loadData();
-  }, [currentFolderId]);
+  }, [currentFolderId, guestMode]);
 
   return {
     folders,

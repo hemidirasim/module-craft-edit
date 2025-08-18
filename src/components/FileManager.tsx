@@ -61,26 +61,84 @@ interface FileManagerProps {
 export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter = 'all', isGuestMode = false }: FileManagerProps) => {
   const { user } = useAuth();
   
-  // Only use file manager hooks when not in guest mode
-  const fileManagerHook = isGuestMode ? null : useFileManager();
+  // Always call the hook, but pass guest mode information
+  const hookResult = useFileManager(isGuestMode);
   
+  // In guest mode, override functions to prevent database calls
   const {
     folders = [],
     files = [],
     currentFolderId = null,
     loading = false,
     setCurrentFolderId = () => {},
-    createFolder = async () => {},
-    deleteFolder = async () => {},
-    deleteFile = async () => {},
-    renameFolder = async () => {},
-    renameFile = async () => {},
-    moveFile = async () => ({ success: false }),
-    moveFolder = async () => ({ success: false }),
-    uploadFile = async () => {},
+    createFolder: originalCreateFolder = async () => {},
+    deleteFolder: originalDeleteFolder = async () => {},
+    deleteFile: originalDeleteFile = async () => {},
+    renameFolder: originalRenameFolder = async () => {},
+    renameFile: originalRenameFile = async () => {},
+    moveFile: originalMoveFile = async () => ({ success: false }),
+    moveFolder: originalMoveFolder = async () => ({ success: false }),
+    uploadFile: originalUploadFile = async () => {},
     getSignedUrl = async () => '',
     refresh = () => {}
-  } = fileManagerHook || {};
+  } = hookResult || {};
+  
+  // Guest mode wrapper functions
+  const createFolder = async (name: string, parentId?: string | null) => {
+    if (isGuestMode) {
+      throw new Error('Please sign up to create folders');
+    }
+    return originalCreateFolder(name, parentId);
+  };
+  
+  const uploadFile = async (file: File, folderId?: string | null) => {
+    if (isGuestMode) {
+      throw new Error('Please sign up to upload files');
+    }
+    return originalUploadFile(file, folderId);
+  };
+  
+  const deleteFolder = async (folderId: string) => {
+    if (isGuestMode) {
+      throw new Error('Please sign up to manage folders');
+    }
+    return originalDeleteFolder(folderId);
+  };
+  
+  const deleteFile = async (fileId: string, storagePath: string) => {
+    if (isGuestMode) {
+      throw new Error('Please sign up to manage files');
+    }
+    return originalDeleteFile(fileId, storagePath);
+  };
+  
+  const renameFolder = async (folderId: string, newName: string) => {
+    if (isGuestMode) {
+      throw new Error('Please sign up to manage folders');
+    }
+    return originalRenameFolder(folderId, newName);
+  };
+  
+  const renameFile = async (fileId: string, newName: string) => {
+    if (isGuestMode) {
+      throw new Error('Please sign up to manage files');
+    }
+    return originalRenameFile(fileId, newName);
+  };
+  
+  const moveFile = async (fileId: string, newFolderId: string | null) => {
+    if (isGuestMode) {
+      throw new Error('Please sign up to manage files');
+    }
+    return originalMoveFile(fileId, newFolderId);
+  };
+  
+  const moveFolder = async (folderId: string, newParentId: string | null) => {
+    if (isGuestMode) {
+      throw new Error('Please sign up to manage folders');
+    }
+    return originalMoveFolder(folderId, newParentId);
+  };
 
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
@@ -396,12 +454,10 @@ export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter =
 
   // Drag & Drop for moving files/folders
   const handleFileDragStart = (e: React.DragEvent, file: any) => {
-    console.log('File drag start:', file.id);
     e.dataTransfer.setData('application/json', JSON.stringify({ type: 'file', data: file }));
   };
 
   const handleFolderDragStart = (e: React.DragEvent, folder: any) => {
-    console.log('Folder drag start:', folder.id);
     e.dataTransfer.setData('application/json', JSON.stringify({ type: 'folder', data: folder }));
   };
 
