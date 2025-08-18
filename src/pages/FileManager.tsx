@@ -26,7 +26,7 @@ export default function FileManagerPage() {
           </p>
         </div>
         
-        <FileManager isGuestMode={!user} />
+        <FileManager isGuestMode={!user && !loading} />
       </div>
     </div>
   );

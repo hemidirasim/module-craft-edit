@@ -59,13 +59,10 @@ interface FileManagerProps {
 }
 
 export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter = 'all', isGuestMode = false }: FileManagerProps) => {
-  console.log('FileManager called with isGuestMode:', isGuestMode);
   const { user } = useAuth();
-  console.log('User:', user);
   
   // Only use file manager hooks when not in guest mode
   const fileManagerHook = isGuestMode ? null : useFileManager();
-  console.log('FileManagerHook:', fileManagerHook);
   
   const {
     folders = [],
@@ -140,6 +137,12 @@ export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter =
   };
 
   const handleCreateFolder = async () => {
+    if (isGuestMode) {
+      toast.error('Please sign up to create folders');
+      setShowNewFolderDialog(false);
+      return;
+    }
+
     if (!newFolderName.trim()) return;
 
     try {
