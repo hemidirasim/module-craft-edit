@@ -7,13 +7,78 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
+      demo_files: {
+        Row: {
+          created_at: string | null
+          demo_user_id: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          public_url: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string | null
+          demo_user_id?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          public_url: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string | null
+          demo_user_id?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          public_url?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_files_demo_user_id_fkey"
+            columns: ["demo_user_id"]
+            isOneToOne: false
+            referencedRelation: "demo_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demo_users: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          session_id?: string
+        }
+        Relationships: []
+      }
       editor_widgets: {
         Row: {
           configuration: Json
@@ -282,13 +347,43 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_demo_file: {
+        Args: {
+          p_file_name: string
+          p_file_size: number
+          p_file_type: string
+          p_public_url: string
+          p_session_id: string
+          p_storage_path: string
+        }
+        Returns: string
+      }
+      cleanup_expired_demo_data: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      create_demo_user: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_demo_files: {
+        Args: { p_session_id: string }
+        Returns: {
+          created_at: string
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          public_url: string
+        }[]
+      }
       increment_widget_usage: {
         Args: {
-          _widget_id: string
           _domain: string
+          _ip_address?: unknown
           _page_url?: string
           _user_agent?: string
-          _ip_address?: unknown
+          _widget_id: string
         }
         Returns: boolean
       }
