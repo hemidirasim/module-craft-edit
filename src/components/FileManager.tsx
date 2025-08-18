@@ -466,13 +466,6 @@ export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter =
     );
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please log in to access file manager</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
