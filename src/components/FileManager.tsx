@@ -60,23 +60,27 @@ interface FileManagerProps {
 
 export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter = 'all', isGuestMode = false }: FileManagerProps) => {
   const { user } = useAuth();
+  
+  // Only use file manager hooks when not in guest mode
+  const fileManagerHook = isGuestMode ? null : useFileManager();
+  
   const {
-    folders,
-    files,
-    currentFolderId,
-    loading,
-    setCurrentFolderId,
-    createFolder,
-    deleteFolder,
-    deleteFile,
-    renameFolder,
-    renameFile,
-    moveFile,
-    moveFolder,
-    uploadFile,
-    getSignedUrl,
-    refresh
-  } = useFileManager();
+    folders = [],
+    files = [],
+    currentFolderId = null,
+    loading = false,
+    setCurrentFolderId = () => {},
+    createFolder = async () => {},
+    deleteFolder = async () => {},
+    deleteFile = async () => {},
+    renameFolder = async () => {},
+    renameFile = async () => {},
+    moveFile = async () => ({ success: false }),
+    moveFolder = async () => ({ success: false }),
+    uploadFile = async () => {},
+    getSignedUrl = async () => '',
+    refresh = () => {}
+  } = fileManagerHook || {};
 
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
