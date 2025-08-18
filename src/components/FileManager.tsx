@@ -16,15 +16,12 @@ import {
   Copy,
   Edit,
   Eye,
-  Move,
-  Play,
-  Info
+  Move
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -52,61 +49,16 @@ import {
 } from '@/components/ui/context-menu';
 import { useFileManager } from '@/hooks/useFileManager';
 import { useAuth } from '@/hooks/useAuth';
-import { DemoFileManager } from './DemoFileManager';
 import { toast } from 'sonner';
 
 interface FileManagerProps {
   onSelectFile?: (file: any) => void;
   selectMode?: boolean;
   fileTypeFilter?: 'image' | 'document' | 'all';
-  demoMode?: boolean;
 }
 
-export const FileManager = ({ 
-  onSelectFile, 
-  selectMode = false, 
-  fileTypeFilter = 'all',
-  demoMode = false 
-}: FileManagerProps) => {
+export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter = 'all' }: FileManagerProps) => {
   const { user } = useAuth();
-
-  // If demo mode is explicitly requested or user is not logged in, use demo mode
-  const shouldUseDemoMode = demoMode || !user;
-
-  if (shouldUseDemoMode) {
-    return (
-      <div className="space-y-4">
-        {/* Demo Mode Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">Demo File Manager</h2>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Play className="w-3 h-3" />
-              Demo Mode
-            </Badge>
-          </div>
-          
-          {!user && (
-            <Alert className="max-w-md">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto"
-                  onClick={() => window.location.href = '/auth'}
-                >
-                  Sign up for free
-                </Button>
-                {' '}to save your files permanently and access advanced features.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-
-        <DemoFileManager onSelectFile={onSelectFile} selectMode={selectMode} />
-      </div>
-    );
-  }
   const {
     folders,
     files,
@@ -469,7 +421,13 @@ export const FileManager = ({
     }
   };
 
-  // At this point we know user is logged in and not in demo mode
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Please log in to access file manager</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
