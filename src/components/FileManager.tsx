@@ -59,10 +59,13 @@ interface FileManagerProps {
 }
 
 export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter = 'all', isGuestMode = false }: FileManagerProps) => {
+  console.log('FileManager called with isGuestMode:', isGuestMode);
   const { user } = useAuth();
+  console.log('User:', user);
   
   // Only use file manager hooks when not in guest mode
   const fileManagerHook = isGuestMode ? null : useFileManager();
+  console.log('FileManagerHook:', fileManagerHook);
   
   const {
     folders = [],
