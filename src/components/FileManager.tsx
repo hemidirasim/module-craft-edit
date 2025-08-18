@@ -146,14 +146,14 @@ export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter =
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
     if (isGuestMode) {
-      toast.error('Qeydiyyatdan keçin ki, fayl yükləyə biləsiniz');
+      toast.error('Please sign up to upload files');
       event.target.value = '';
       return;
     }
+
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
     try {
@@ -325,7 +325,7 @@ export const FileManager = ({ onSelectFile, selectMode = false, fileTypeFilter =
     if (droppedFiles.length === 0) return;
 
     if (isGuestMode) {
-      toast.error('Qeydiyyatdan keçin ki, fayl yükləyə biləsiniz');
+      toast.error('Please sign up to upload files');
       return;
     }
 
